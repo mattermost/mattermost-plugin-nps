@@ -4,6 +4,6 @@ var manifest = struct {
 	Id      string
 	Version string
 }{
-	Id:      "com.mattermost.nps-plugin",
+	Id:      "com.mattermost.nps",
 	Version: "0.0.1",
 }

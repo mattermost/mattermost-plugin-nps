@@ -1,5 +1,5 @@
 {
-    "id": "com.mattermost.nps-plugin",
+    "id": "com.mattermost.nps",
     "name": "Net Promoter Score",
     "description": "This plugin sends Net Promoter Score surveys to gather user feedback on Mattermost.",
     "version": "0.0.1",
