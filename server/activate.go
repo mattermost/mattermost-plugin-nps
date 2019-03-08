@@ -1,16 +1,23 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/mattermost/mattermost-server/mlog"
+	"github.com/mattermost/mattermost-server/model"
 
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 )
 
-const minimumServerVersion = semver.MustParse("5.9.0") // TODO change this to 5.10.0
+var minimumServerVersion = semver.MustParse("5.9.0") // TODO change this to 5.10.0
 
 func checkMinimumVersion(serverVersion semver.Version) error {
-	return serverVersion.GTE(minimumServerVersion)
+	if serverVersion.LT(minimumServerVersion) {
+		return fmt.Errorf("NPS plugin can only be ran on Mattermost 5.10.0 or higher")
+	}
+
+	return nil
 }
 
 func (p *Plugin) OnActivate() error {
@@ -25,13 +32,15 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(err, "failed to check minimum server version")
 	}
 
-	if err := ensureBotExists(); err != nil {
+	if err := p.ensureBotExists(); err != nil {
 		return errors.Wrap(err, "failed to ensure bot user exists")
 	}
 
 	// TODO check for a version change to trigger server-side things
 
 	mlog.Debug("NPS plugin activated")
+
+	return nil
 }
 
 func (p *Plugin) ensureBotExists() error {
