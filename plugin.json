@@ -17,8 +17,8 @@
         "header": "A net promoster score survey measures user satisfaction. [Learn more](https://example.com) about net promoter score surveys.",
         "footer": "",
         "settings": [{
-            "key": "Enable",
-            "display_name": "Enable",
+            "key": "EnableSurvey",
+            "display_name": "Enable Net Promoter Score Survey",
             "type": "bool",
             "help_text": "When true, a [net promoter score survey](https://example.com) will be sent to all users quarterly. The survey results will be used by Mattermost, Inc. to improve the quality and user experience of the product. Please refer to our [privacy policy](https://example.com) for more information on the collection and use of information received through our services.",
             "help_text_markdown": true,
