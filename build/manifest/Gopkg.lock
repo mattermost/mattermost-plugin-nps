@@ -42,8 +42,8 @@
   version = "v1.4.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:31a07e9a54b4a9e2517e02e39c21231028dc085119c2a3dfcca72a4ecdc09b9c"
+  branch = "mm14334a"
+  digest = "1:48c9c1e4ce677e1ce3fda5db713cb9c29193384d810354316639dfbff4543d58"
   name = "github.com/mattermost/mattermost-server"
   packages = [
     "mlog",
@@ -53,7 +53,7 @@
     "utils/markdown",
   ]
   pruneopts = "UT"
-  revision = "9ef8c1e8b1cb1d7133af406569a61dd41a2e5644"
+  revision = "a5ae12d05d70ffbaf97bb3179dad773b739a2bea"
 
 [[projects]]
   digest = "1:07140002dbf37da92090f731b46fa47be4820b82fe5c14a035203b0e813d0ec2"
