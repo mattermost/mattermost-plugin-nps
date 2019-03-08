@@ -1,0 +1,71 @@
+package main
+
+import (
+	"github.com/mattermost/mattermost-server/mlog"
+
+	"github.com/blang/semver"
+	"github.com/pkg/errors"
+)
+
+const minimumServerVersion = semver.MustParse("5.9.0") // TODO change this to 5.10.0
+
+func checkMinimumVersion(serverVersion semver.Version) error {
+	return serverVersion.GTE(minimumServerVersion)
+}
+
+func (p *Plugin) OnActivate() error {
+	mlog.Debug("Activating NPS plugin")
+
+	serverVersion, err := semver.Parse(p.API.GetServerVersion())
+	if err != nil {
+		return errors.Wrap(err, "failed to parse server version")
+	}
+
+	if err := checkMinimumVersion(serverVersion); err != nil {
+		return errors.Wrap(err, "failed to check minimum server version")
+	}
+
+	if err := ensureBotExists(); err != nil {
+		return errors.Wrap(err, "failed to ensure bot user exists")
+	}
+
+	// TODO check for a version change to trigger server-side things
+
+	mlog.Debug("NPS plugin activated")
+}
+
+func (p *Plugin) ensureBotExists() error {
+	// Attempt to find an existing bot
+	botUserIdBytes, err := p.API.KVGet(BOT_USER_KEY)
+	if err != nil {
+		return err
+	}
+
+	if botUserIdBytes == nil {
+		// Create a bot since one doesn't exist
+		mlog.Debug("Creating bot for NPS plugin")
+
+		bot, err := p.API.CreateBot(&model.Bot{
+			Username: "surveybot",
+			DisplayName: "Surveybot",
+			Description: "Created by the Net Promoter Score plugin.",
+		})
+		if err != nil {
+			return err
+		}
+
+		mlog.Debug("Bot created for NPS plugin")
+
+		// Save the bot ID
+		err = p.API.KVSet(BOT_USER_KEY, []byte(bot.UserId))
+		if err != nil {
+			return err
+		}
+
+		p.botUserId = bot.UserId
+	} else {
+		p.botUserId = string(botUserIdBytes)
+	}
+
+	return nil
+}

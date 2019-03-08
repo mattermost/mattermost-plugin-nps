@@ -34,7 +34,15 @@
   version = "v1.4.7"
 
 [[projects]]
-  digest = "1:63ccdfbd20f7ccd2399d0647a7d100b122f79c13bb83da9660b1598396fd9f62"
+  digest = "1:b5df43d8cd265a39f9d375d76ad00b53d6ec8ff8074f598eb173e4939a196a3c"
+  name = "github.com/go-ldap/ldap"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "729c20c2694d870bcd631f0dadaecd088bd7ccbc"
+  version = "v3.0.2"
+
+[[projects]]
+  digest = "1:2d0636a8c490d2272dd725db26f74a537111b99b9dbdda0d8b98febe63702aa4"
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -44,24 +52,24 @@
     "ptypes/timestamp",
   ]
   pruneopts = "NUT"
-  revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
-  version = "v1.2.0"
+  revision = "c823c79ea1570fb5ff454033735a8e68575d1d0f"
+  version = "v1.3.0"
 
 [[projects]]
-  digest = "1:a1578f7323eca2b88021fdc9a79a99833d40b12c32a5ea4f284e2fad19ea2657"
+  digest = "1:ab3ec1fe3e39bac4b3ab63390767766622be35b7cab03f47f787f9ec60522a53"
   name = "github.com/google/uuid"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "d460ce9f8df2e77fb1ba55ca87fafed96c607494"
-  version = "v1.0.0"
+  revision = "0cd6bf5da1e1c83f8b45653022c74f71af0538a4"
+  version = "v1.1.1"
 
 [[projects]]
-  branch = "master"
-  digest = "1:abef72680f73c5aae861627aac61947c4d160c60110ed283c14ae77b63a0a0c2"
+  digest = "1:4a0c072e44da763409da72d41492373a034baf2e6d849c76d239b4abdfbb6c49"
   name = "github.com/gorilla/websocket"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "a51a35ae3232254685f26a0b6d995ca0e81e2248"
+  revision = "66b9c49e59c6c48f0ffce28c2d8b8a5678502c6d"
+  version = "v1.4.0"
 
 [[projects]]
   digest = "1:ce8deaa2f422b7315ee4fa91f29963ed24f33eb1e1f921fe9f27ce7987776c01"
@@ -71,30 +79,11 @@
   revision = "e45cbeb79f0411b1cfedd3f226ff69d5d433c762"
 
 [[projects]]
-  digest = "1:af00abbd22cc527703068245c819a5f53567918f8c088157a4c01dd6244b58fb"
+  digest = "1:e34b211a329e5b3af38f4794aca585e329e0db3f5328756ea2c4e0796ed0bb77"
   name = "github.com/hashicorp/go-plugin"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "a4620f9913d19f03a6bf19b2f304daaaf83ea130"
-
-[[projects]]
-  digest = "1:11c6c696067d3127ecf332b10f89394d386d9083f82baf71f40f2da31841a009"
-  name = "github.com/hashicorp/hcl"
-  packages = [
-    ".",
-    "hcl/ast",
-    "hcl/parser",
-    "hcl/printer",
-    "hcl/scanner",
-    "hcl/strconv",
-    "hcl/token",
-    "json/parser",
-    "json/scanner",
-    "json/token",
-  ]
-  pruneopts = "NUT"
-  revision = "8cb6e5b959231cc1119e43259c4a608f9c51a241"
-  version = "v1.0.0"
+  revision = "54b6ff97d8180dbbd93d2010dd4a92c86f604bb8"
 
 [[projects]]
   branch = "master"
@@ -102,40 +91,24 @@
   name = "github.com/hashicorp/yamux"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "7221087c3d281fda5f794e28c2ea4c6e4d5c4558"
+  revision = "2f1d1f20f75d5404f53b9edf6b53ed5505508675"
 
 [[projects]]
-  digest = "1:d244f8666a838fe6ad70ec8fe77f50ebc29fdc3331a2729ba5886bef8435d10d"
-  name = "github.com/magiconair/properties"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "c2353362d570a7bfa228149c62842019201cfb71"
-  version = "v1.8.0"
-
-[[projects]]
-  digest = "1:7496e8dfee311245ba337d464a50a50af13ab59a7fde3c474c9933671c9a6eaa"
+  branch = "mm14334a"
+  digest = "1:7a632abf5fde3e0f624112850149ae5e3c08df3e155617bd83e2eccec2d0986c"
   name = "github.com/mattermost/mattermost-server"
   packages = [
-    "einterfaces",
     "mlog",
     "model",
     "plugin",
+    "services/timezones",
     "utils",
+    "utils/fileutils",
     "utils/jsonutils",
     "utils/markdown",
   ]
   pruneopts = "NUT"
-  revision = "0c1207215852a8726c3f09dea157d597fec368df"
-  version = "v5.6.0"
-
-[[projects]]
-  branch = "mattermost"
-  digest = "1:434763e90d03c0a2ae33048c7764f5f0298fdd1c889f8c6d7c798460a6f283dd"
-  name = "github.com/mattermost/viper"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "362ff1e71044349d56d37d8b75cd317bff8369b9"
-  source = "https://github.com/mattermost/viper"
+  revision = "a5ae12d05d70ffbaf97bb3179dad773b739a2bea"
 
 [[projects]]
   digest = "1:18b773b92ac82a451c1276bd2776c1e55ce057ee202691ab33c8d6690efcc048"
@@ -144,14 +117,6 @@
   pruneopts = "NUT"
   revision = "6d0b8010fcc857872e42fc6c931227569016843c"
   version = "v1.0.0"
-
-[[projects]]
-  digest = "1:a45ae66dea4c899d79fceb116accfa1892105c251f0dcd9a217ddc276b42ec68"
-  name = "github.com/mitchellh/mapstructure"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "3536a929edddb9a5b34bd6861dc4a9647cb459fe"
-  version = "v1.1.2"
 
 [[projects]]
   digest = "1:07140002dbf37da92090f731b46fa47be4820b82fe5c14a035203b0e813d0ec2"
@@ -191,12 +156,12 @@
   version = "v1.2.0"
 
 [[projects]]
-  digest = "1:5cf3f025cbee5951a4ee961de067c8a89fc95a5adabead774f82822efabab121"
+  digest = "1:14715f705ff5dfe0ffd6571d7d201dd8e921030f8070321a79380d8ca4ec1a24"
   name = "github.com/pkg/errors"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
-  version = "v0.8.0"
+  revision = "ba968bfe8b2f7e042a574c888954fccecfa385b4"
+  version = "v0.8.1"
 
 [[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
@@ -205,41 +170,6 @@
   pruneopts = "NUT"
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
   version = "v1.0.0"
-
-[[projects]]
-  digest = "1:330e9062b308ac597e28485699c02223bd052437a6eed32a173c9227dcb9d95a"
-  name = "github.com/spf13/afero"
-  packages = [
-    ".",
-    "mem",
-  ]
-  pruneopts = "NUT"
-  revision = "d40851caa0d747393da1ffb28f7f9d8b4eeffebd"
-  version = "v1.1.2"
-
-[[projects]]
-  digest = "1:3fa7947ca83b98ae553590d993886e845a4bff19b7b007e869c6e0dd3b9da9cd"
-  name = "github.com/spf13/cast"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "8965335b8c7107321228e3e3702cab9832751bac"
-  version = "v1.2.0"
-
-[[projects]]
-  digest = "1:f29f83301ed096daed24a90f4af591b7560cb14b9cc3e1827abbf04db7269ab5"
-  name = "github.com/spf13/jwalterweatherman"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "4a4406e478ca629068e7768fc33f3f044173c0a6"
-  version = "v1.0.0"
-
-[[projects]]
-  digest = "1:9d8420bbf131d1618bde6530af37c3799340d3762cc47210c1d9532a4c3a2779"
-  name = "github.com/spf13/pflag"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "298182f68c66c05229eb03ac171abe6e309ee79a"
-  version = "v1.0.3"
 
 [[projects]]
   digest = "1:bacb8b590716ab7c33f2277240972c9582d389593ee8d66fc10074e0508b8126"
@@ -282,18 +212,18 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1ecf2a49df33be51e757d0033d5d51d5f784f35f68e5a38f797b2d3f03357d71"
+  digest = "1:9d5b5d543996dd584da1db1e0de1926f3e4c3a8dba0fa2f8db70f3ebee2342e0"
   name = "golang.org/x/crypto"
   packages = [
     "bcrypt",
     "blowfish",
   ]
   pruneopts = "NUT"
-  revision = "7c1a557ab941a71c619514f229f0b27ccb0c27cf"
+  revision = "8dd112bcdc25174059e45e07517d9fc663123347"
 
 [[projects]]
   branch = "master"
-  digest = "1:43144a8b3203f89adbed21f991f29fb5c9fc173b1e8e1c27fc1888f6a25b9618"
+  digest = "1:dd951f8e05b73e40d566521c76156e09e2a73ddf5e78fe1a603506369f58ef60"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -307,15 +237,15 @@
     "trace",
   ]
   pruneopts = "NUT"
-  revision = "146acd28ed5894421fb5aac80ca93bc1b1f46f87"
+  revision = "16b79f2e4e95ea23b2bf9903c9809ff7b013ce85"
 
 [[projects]]
   branch = "master"
-  digest = "1:a9bc64e1206f3d5ce2ac71e397ddfe81065ac706929d34fcb3f0a48e74cd6e3b"
+  digest = "1:e482ae9014dcf45ffb110e47d8da101c63a430e2ac6efa5133d4adebe4a459dd"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "NUT"
-  revision = "4497e2df6f9e69048a54498c7affbbec3294ad47"
+  revision = "584f3b12f43e1e55248c90e84804777009eed0a4"
 
 [[projects]]
   digest = "1:e7071ed636b5422cc51c0e3a6cebc229d6c9fffc528814b519a980641422d619"
@@ -342,23 +272,25 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:56b0bca90b7e5d1facf5fbdacba23e4e0ce069d25381b8e2f70ef1e7ebfb9c1a"
+  digest = "1:c3076e7defee87de1236f1814beb588f40a75544c60121e6eb38b3b3721783e2"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "NUT"
-  revision = "af9cb2a35e7f169ec875002c1829c9b315cddc04"
+  revision = "5fe7a883aa19554f42890211544aa549836af7b7"
 
 [[projects]]
-  digest = "1:fae299a942ba4907d7b7865fa5e51e892524a217468d10edbfd6ca7b3bb94111"
+  digest = "1:8274473795baa9e1fc3b36fae1d8af131a03a7ae2456a8e87a6fda86af019f70"
   name = "google.golang.org/grpc"
   packages = [
     ".",
     "balancer",
     "balancer/base",
     "balancer/roundrobin",
+    "binarylog/grpc_binarylog_v1",
     "codes",
     "connectivity",
     "credentials",
+    "credentials/internal",
     "encoding",
     "encoding/proto",
     "grpclog",
@@ -366,9 +298,12 @@
     "health/grpc_health_v1",
     "internal",
     "internal/backoff",
+    "internal/binarylog",
     "internal/channelz",
     "internal/envconfig",
     "internal/grpcrand",
+    "internal/grpcsync",
+    "internal/syscall",
     "internal/transport",
     "keepalive",
     "metadata",
@@ -382,8 +317,16 @@
     "tap",
   ]
   pruneopts = "NUT"
-  revision = "8dea3dc473e90c8179e519d91302d0597c0ca1d1"
-  version = "v1.15.0"
+  revision = "2fdaae294f38ed9a121193c51ec99fecd3b13eb7"
+  version = "v1.19.0"
+
+[[projects]]
+  digest = "1:797db40073a8a1d30cc43864b6190372f2fca7af38b1cf1532e4e92a8283e075"
+  name = "gopkg.in/asn1-ber.v1"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "f715ec2f112d1e4195b827ad68cf44017a3ef2b1"
+  version = "v1.3"
 
 [[projects]]
   digest = "1:80c34337e8a734e190f2d1b716cae774cca74db98315166f92074434e9af0227"
@@ -394,17 +337,20 @@
   version = "v2.1"
 
 [[projects]]
-  digest = "1:7c95b35057a0ff2e19f707173cc1a947fa43a6eb5c4d300d196ece0334046082"
+  digest = "1:18108594151654e9e696b27b181b953f9a90b16bf14d253dd1b397b025a1487f"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
-  version = "v2.2.1"
+  revision = "51d6538a90f86fe93ac480b35f37b2be17fef232"
+  version = "v2.2.2"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/blang/semver",
+    "github.com/mattermost/mattermost-server/mlog",
+    "github.com/mattermost/mattermost-server/model",
     "github.com/mattermost/mattermost-server/plugin",
     "github.com/pkg/errors",
     "github.com/stretchr/testify/assert",

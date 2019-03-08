@@ -11,24 +11,49 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:bc36a17a513f15717b5fa3dcfd666f5ddb6fd3db06f5f2834ac2f5979d4f5070"
+  digest = "1:665c8850f673be8d358fe61ab00412049e685202aa7466ae5c72ad50d89c84f7"
+  name = "github.com/dyatlov/go-opengraph"
+  packages = ["opengraph"]
+  pruneopts = "UT"
+  revision = "816b6608b3c8c1e871bc9cf777f390e2532081fe"
+
+[[projects]]
+  digest = "1:2a792dde3ae5dc95000d4dee312523504ea875b097a2b119a2f55d1d1d32ed61"
+  name = "github.com/go-ldap/ldap"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "729c20c2694d870bcd631f0dadaecd088bd7ccbc"
+  version = "v3.0.2"
+
+[[projects]]
+  digest = "1:582b704bebaa06b48c29b0cec224a6058a09c86883aaddabde889cd1a5f73e1b"
+  name = "github.com/google/uuid"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "0cd6bf5da1e1c83f8b45653022c74f71af0538a4"
+  version = "v1.1.1"
+
+[[projects]]
+  digest = "1:7b5c6e2eeaa9ae5907c391a91c132abfd5c9e8a784a341b5625e750c67e6825d"
   name = "github.com/gorilla/websocket"
   packages = ["."]
   pruneopts = "UT"
-  revision = "5ed622c449da6d44c3c8329331ff47a9e5844f71"
+  revision = "66b9c49e59c6c48f0ffce28c2d8b8a5678502c6d"
+  version = "v1.4.0"
 
 [[projects]]
-  digest = "1:1cebd7208d10c6f20d5fd71c9c7062fea74524842db93fec2993fb5ea4975c73"
+  branch = "master"
+  digest = "1:31a07e9a54b4a9e2517e02e39c21231028dc085119c2a3dfcca72a4ecdc09b9c"
   name = "github.com/mattermost/mattermost-server"
   packages = [
     "mlog",
     "model",
+    "services/timezones",
     "utils/jsonutils",
     "utils/markdown",
   ]
   pruneopts = "UT"
-  revision = "0c1207215852a8726c3f09dea157d597fec368df"
-  version = "v5.6.0"
+  revision = "9ef8c1e8b1cb1d7133af406569a61dd41a2e5644"
 
 [[projects]]
   digest = "1:07140002dbf37da92090f731b46fa47be4820b82fe5c14a035203b0e813d0ec2"
@@ -44,12 +69,12 @@
   version = "v1.10.0"
 
 [[projects]]
-  digest = "1:361de06aa7ae272616cbe71c3994a654cc6316324e30998e650f7765b20c5b33"
+  digest = "1:e5d0bd87abc2781d14e274807a470acd180f0499f8bf5bb18606e9ec22ad9de9"
   name = "github.com/pborman/uuid"
   packages = ["."]
   pruneopts = "UT"
-  revision = "e790cca94e6cc75c7064b1332e63811d4aae1a53"
-  version = "v1.1"
+  revision = "adf5a7427709b9deb95d29d3fa8a2bf9cfd388f1"
+  version = "v1.2"
 
 [[projects]]
   digest = "1:95741de3af260a92cc5c7f3f3061e85273f5a81b5db20d4bd68da74bd521675e"
@@ -60,12 +85,12 @@
   version = "v1.2.0"
 
 [[projects]]
-  digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
+  digest = "1:cf31692c14422fa27c83a05292eb5cbe0fb2775972e8f1f8446a71549bd8980b"
   name = "github.com/pkg/errors"
   packages = ["."]
   pruneopts = "UT"
-  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
-  version = "v0.8.0"
+  revision = "ba968bfe8b2f7e042a574c888954fccecfa385b4"
+  version = "v0.8.1"
 
 [[projects]]
   digest = "1:3c1a69cdae3501bf75e76d0d86dc6f2b0a7421bc205c0cb7b96b19eed464a34d"
@@ -84,7 +109,7 @@
   version = "v1.1.0"
 
 [[projects]]
-  digest = "1:d9a420eae5f76973feeb733fbf58f6a89173255b63b27a7ae4b2124a73dc6c5b"
+  digest = "1:c52caf7bd44f92e54627a31b85baf06a68333a196b3d8d241480a774733dcf8b"
   name = "go.uber.org/zap"
   packages = [
     ".",
@@ -95,19 +120,51 @@
     "zapcore",
   ]
   pruneopts = "UT"
-  revision = "4d45f9617f7d90f7a663ff21c7a4321dbe78098b"
-  version = "v1.9.0"
+  revision = "ff33455a0e382e8a81d14dd7c922020b6b5e7982"
+  version = "v1.9.1"
 
 [[projects]]
   branch = "master"
-  digest = "1:1ecf2a49df33be51e757d0033d5d51d5f784f35f68e5a38f797b2d3f03357d71"
+  digest = "1:9d5b5d543996dd584da1db1e0de1926f3e4c3a8dba0fa2f8db70f3ebee2342e0"
   name = "golang.org/x/crypto"
   packages = [
     "bcrypt",
     "blowfish",
   ]
   pruneopts = "UT"
-  revision = "c126467f60eb25f8f27e5a981f32a87e3965053f"
+  revision = "8dd112bcdc25174059e45e07517d9fc663123347"
+
+[[projects]]
+  branch = "master"
+  digest = "1:de4815ce3ca5b624af2733716ecd471de1ef50cda8afec39491aab517f73139c"
+  name = "golang.org/x/net"
+  packages = [
+    "html",
+    "html/atom",
+  ]
+  pruneopts = "UT"
+  revision = "16b79f2e4e95ea23b2bf9903c9809ff7b013ce85"
+
+[[projects]]
+  digest = "1:17ad89bd57485e11f306d41b703f53089fb0803682707b21fe9b3b29467d37a0"
+  name = "golang.org/x/text"
+  packages = [
+    "internal/gen",
+    "internal/tag",
+    "language",
+    "unicode/cldr",
+  ]
+  pruneopts = "UT"
+  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
+  version = "v0.3.0"
+
+[[projects]]
+  digest = "1:af07c44dc04418be522bfd4e21ca9130d58169ea084e3a883e23772003a381c4"
+  name = "gopkg.in/asn1-ber.v1"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "f715ec2f112d1e4195b827ad68cf44017a3ef2b1"
+  version = "v1.3"
 
 [[projects]]
   digest = "1:c805e517269b0ba4c21ded5836019ed7d16953d4026cb7d00041d039c7906be9"
@@ -118,12 +175,12 @@
   version = "v2.1"
 
 [[projects]]
-  digest = "1:342378ac4dcb378a5448dd723f0784ae519383532f5e70ade24132c4c8693202"
+  digest = "1:4d2e5a73dc1500038e504a8d78b986630e3626dc027bc030ba5c75da257cdb96"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
   pruneopts = "UT"
-  revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
-  version = "v2.2.1"
+  revision = "51d6538a90f86fe93ac480b35f37b2be17fef232"
+  version = "v2.2.2"
 
 [solve-meta]
   analyzer-name = "dep"
