@@ -1,0 +1,27 @@
+{
+    "id": "com.mattermost.nps-plugin",
+    "name": "Net Promoter Score",
+    "description": "This plugin sends Net Promoter Score surveys to gather user feedback on Mattermost.",
+    "version": "0.0.1",
+    "server": {
+        "executables": {
+            "linux-amd64": "server/dist/plugin-linux-amd64",
+            "darwin-amd64": "server/dist/plugin-darwin-amd64",
+            "windows-amd64": "server/dist/plugin-windows-amd64.exe"
+        }
+    },
+    "webapp": {
+        "bundle_path": "webapp/dist/main.js"
+    },
+    "settings_schema": {
+        "header": "A net promoster score survey measures user satisfaction. [Learn more](https://example.com) about net promoter score surveys.",
+        "footer": "",
+        "settings": [{
+            "key": "Enable",
+            "display_name": "Enable",
+            "type": "bool",
+            "help_text": "When true, a [net promoter score survey](https://example.com) will be sent to all users quarterly. The survey results will be used by Mattermost, Inc. to improve the quality and user experience of the product. Please refer to our [privacy policy](https://example.com) for more information on the collection and use of information received through our services.",
+            "default": true
+        }]
+    }
+}
