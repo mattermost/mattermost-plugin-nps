@@ -38,6 +38,8 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(err, "failed to ensure bot user exists")
 	}
 
+	p.initializeClient()
+
 	// TODO check for a version change to trigger server-side things
 
 	p.API.LogDebug("NPS plugin activated")

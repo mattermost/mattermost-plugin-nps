@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/mattermost/mattermost-server/plugin"
+	analytics "github.com/segmentio/analytics-go"
 )
 
 const (
@@ -23,10 +24,10 @@ type Plugin struct {
 	configuration *configuration
 
 	botUserId string
+
+	client *analytics.Client
 }
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello, world!")
 }
-
-// See https://developers.mattermost.com/extend/plugins/server/reference/
