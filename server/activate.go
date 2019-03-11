@@ -20,6 +20,11 @@ func checkMinimumVersion(serverVersion semver.Version) error {
 func (p *Plugin) OnActivate() error {
 	p.API.LogDebug("Activating NPS plugin")
 
+	if !p.canSendDiagnostics() {
+		p.API.LogDebug("Not activating NPS plugin because diagnostics are disabled")
+		return nil
+	}
+
 	serverVersion, err := semver.Parse(p.API.GetServerVersion())
 	if err != nil {
 		return errors.Wrap(err, "failed to parse server version")
@@ -38,6 +43,10 @@ func (p *Plugin) OnActivate() error {
 	p.API.LogDebug("NPS plugin activated")
 
 	return nil
+}
+
+func (p *Plugin) canSendDiagnostics() bool {
+	return *p.API.GetConfig().LogSettings.EnableDiagnostics
 }
 
 func (p *Plugin) ensureBotExists() error {
