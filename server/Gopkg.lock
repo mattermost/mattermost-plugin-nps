@@ -95,12 +95,20 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:3e68f0c7ca71e13dc517a01a4d7ed991e93f3f70302455d78038bbebafafdb3a"
+  digest = "1:e721d401d3ae66dbc0bfe05cc094eccddd46adc1288a155e4a334aeb1b6f9d6c"
+  name = "github.com/jehiah/go-strftime"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "1d33003b386959af197ba96475f198c114627b5e"
+
+[[projects]]
+  digest = "1:9bcf3dbb295bb3d5dadba94ff1ab01dcb47c4c836c7f92f7b376c917c9acfa0f"
   name = "github.com/mattermost/mattermost-server"
   packages = [
     "mlog",
     "model",
     "plugin",
+    "plugin/plugintest",
     "services/timezones",
     "utils",
     "utils/fileutils",
@@ -108,7 +116,7 @@
     "utils/markdown",
   ]
   pruneopts = "NUT"
-  revision = "9ef8c1e8b1cb1d7133af406569a61dd41a2e5644"
+  revision = "32656e60699a50e281738dcdee7ab361dd31107a"
 
 [[projects]]
   digest = "1:18b773b92ac82a451c1276bd2776c1e55ce057ee202691ab33c8d6690efcc048"
@@ -172,12 +180,47 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:bacb8b590716ab7c33f2277240972c9582d389593ee8d66fc10074e0508b8126"
+  digest = "1:48d5c8f40f297893557a2a1282e7a9f5449c7e03801b6fd6c3080da53d9f1941"
+  name = "github.com/segmentio/analytics-go"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "2d840d861c322bdf5346ba7917af1c2285e653d3"
+  version = "2.1.1"
+
+[[projects]]
+  branch = "master"
+  digest = "1:4c39453563e71f7cb6c62c69a94b99910861abfb9f3b904516a171eb558f1c60"
+  name = "github.com/segmentio/backo-go"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "204274ad699c0983a70203a566887f17a717fef4"
+
+[[projects]]
+  digest = "1:60a46e2410edbf02b419f833372dd1d24d7aa1b916a990a7370e792fada1eadd"
+  name = "github.com/stretchr/objx"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "477a77ecc69700c7cdeb1fa9e129548e1c1c393c"
+  version = "v0.1.1"
+
+[[projects]]
+  digest = "1:81d363777b015e85bd42b978b80f4f5ecdaa43e11452ba8ff7ea93db3ce166bd"
   name = "github.com/stretchr/testify"
-  packages = ["assert"]
+  packages = [
+    "assert",
+    "mock",
+  ]
   pruneopts = "NUT"
   revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
   version = "v1.2.2"
+
+[[projects]]
+  branch = "master"
+  digest = "1:2f9538da7381bb981fb8451b2b0fb304c2bc7f1724228dc336a8f002e6fec704"
+  name = "github.com/xtgo/uuid"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "a0b114877d4caeffbd7f87e3757c17fce570fea7"
 
 [[projects]]
   digest = "1:22f696cee54865fb8e9ff91df7b633f6b8f22037a8015253c6b6a71ca82219c7"
@@ -349,10 +392,11 @@
   analyzer-version = 1
   input-imports = [
     "github.com/blang/semver",
-    "github.com/mattermost/mattermost-server/mlog",
     "github.com/mattermost/mattermost-server/model",
     "github.com/mattermost/mattermost-server/plugin",
+    "github.com/mattermost/mattermost-server/plugin/plugintest",
     "github.com/pkg/errors",
+    "github.com/segmentio/analytics-go",
     "github.com/stretchr/testify/assert",
   ]
   solver-name = "gps-cdcl"

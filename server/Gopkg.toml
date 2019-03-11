@@ -5,8 +5,13 @@
 
 [[constraint]]
   name = "github.com/mattermost/mattermost-server"
-  branch = "master"
+  revision = "32656e60699a50e281738dcdee7ab361dd31107a"
 
 [[constraint]]
   name = "github.com/stretchr/testify"
   version = "~1.2.0"
+
+# Keep back because of breaking API changes
+[[constraint]]
+  name = "github.com/segmentio/analytics-go"
+  version = "2.1.1"
