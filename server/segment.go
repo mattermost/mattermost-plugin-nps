@@ -1,7 +1,7 @@
 package main
 
 import (
-"strings"
+	"strings"
 
 	"github.com/mattermost/mattermost-server/model"
 	analytics "github.com/segmentio/analytics-go"
@@ -9,7 +9,7 @@ import (
 
 const (
 	NPS_FEEDBACK = "nps_feedback"
-	NPS_SCORE = "nps_score"
+	NPS_SCORE    = "nps_score"
 
 	SEGMENT_KEY = "placeholder_segment_key"
 )
@@ -52,10 +52,10 @@ func (p *Plugin) sendToSegment(event string, properties map[string]interface{}) 
 
 func (p *Plugin) getEventProperties(userId string, timestamp int64, other map[string]interface{}) map[string]interface{} {
 	properties := map[string]interface{}{
-		"user_id": userId,
-		"timestamp": timestamp,
+		"user_id":        userId,
+		"timestamp":      timestamp,
 		"server_version": p.API.GetServerVersion(),
-		"server_id": p.API.GetDiagnosticId(),
+		"server_id":      p.API.GetDiagnosticId(),
 	}
 
 	if systemInstallDate, err := p.API.GetSystemInstallDate(); err != nil {

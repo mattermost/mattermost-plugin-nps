@@ -63,7 +63,7 @@ func (p *Plugin) ensureBotExists() error {
 		p.API.LogDebug("Creating bot for NPS plugin")
 
 		bot, err := p.API.CreateBot(&model.Bot{
-			Username: "surveybot",
+			Username:    "surveybot",
 			DisplayName: "Surveybot",
 			Description: "Created by the Net Promoter Score plugin.",
 		})
