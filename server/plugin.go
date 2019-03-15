@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	BOT_USER_KEY = "bot"
+	BOT_USER_KEY       = "Bot"
+	SERVER_UPGRADE_KEY = "ServerUpgrade"
 )
 
 type Plugin struct {

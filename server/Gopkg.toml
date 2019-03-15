@@ -5,7 +5,7 @@
 
 [[constraint]]
   name = "github.com/mattermost/mattermost-server"
-  revision = "32656e60699a50e281738dcdee7ab361dd31107a"
+  revision = "57e2778bf"
 
 [[constraint]]
   name = "github.com/stretchr/testify"

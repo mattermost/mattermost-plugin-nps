@@ -1,9 +1,8 @@
 package main
 
 import (
-	"github.com/mattermost/mattermost-server/model"
-
 	"github.com/blang/semver"
+	"github.com/mattermost/mattermost-server/model"
 	"github.com/pkg/errors"
 )
 
@@ -40,15 +39,16 @@ func (p *Plugin) OnActivate() error {
 
 	p.initializeClient()
 
-	// TODO check for a version change to trigger server-side things
-
 	p.API.LogDebug("NPS plugin activated")
+
+	p.checkForNextSurvey(serverVersion)
 
 	return nil
 }
 
 func (p *Plugin) canSendDiagnostics() bool {
-	return *p.API.GetConfig().LogSettings.EnableDiagnostics
+	enableDiagnostics := p.API.GetConfig().LogSettings.EnableDiagnostics
+	return enableDiagnostics != nil && *enableDiagnostics
 }
 
 func (p *Plugin) ensureBotExists() error {

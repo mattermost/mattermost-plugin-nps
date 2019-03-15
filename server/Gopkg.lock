@@ -102,7 +102,7 @@
   revision = "1d33003b386959af197ba96475f198c114627b5e"
 
 [[projects]]
-  digest = "1:9bcf3dbb295bb3d5dadba94ff1ab01dcb47c4c836c7f92f7b376c917c9acfa0f"
+  digest = "1:8897b24ef1bd4dee8364d72d3e05e4ad6da28eb46f7a65b5fe51d0840b8531e3"
   name = "github.com/mattermost/mattermost-server"
   packages = [
     "mlog",
@@ -116,7 +116,7 @@
     "utils/markdown",
   ]
   pruneopts = "NUT"
-  revision = "32656e60699a50e281738dcdee7ab361dd31107a"
+  revision = "57e2778bf"
 
 [[projects]]
   digest = "1:18b773b92ac82a451c1276bd2776c1e55ce057ee202691ab33c8d6690efcc048"
@@ -398,6 +398,7 @@
     "github.com/pkg/errors",
     "github.com/segmentio/analytics-go",
     "github.com/stretchr/testify/assert",
+    "github.com/stretchr/testify/mock",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
