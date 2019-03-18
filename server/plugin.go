@@ -1,17 +1,17 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
 	"sync"
 
+	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/plugin"
 	analytics "github.com/segmentio/analytics-go"
 )
 
 const (
-	BOT_USER_KEY       = "Bot"
-	SERVER_UPGRADE_KEY = "ServerUpgrade"
+	ADMIN_DM_NOTICE_KEY = "AdminDM-"
+	BOT_USER_KEY        = "Bot"
+	SERVER_UPGRADE_KEY  = "ServerUpgrade"
 )
 
 type Plugin struct {
@@ -29,6 +29,27 @@ type Plugin struct {
 	client *analytics.Client
 }
 
-func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello, world!")
+func (p *Plugin) CreateBotDMPost(userID, message, postType string) *model.AppError {
+	channel, err := p.API.GetDirectChannel(userID, p.botUserId)
+	if err != nil {
+		p.API.LogError("Couldn't get bot's DM channel", "user_id", userID, "err", err)
+		return err
+	}
+
+	post := &model.Post{
+		UserId:    p.botUserId,
+		ChannelId: channel.Id,
+		Message:   message,
+		Type:      postType,
+		Props: map[string]interface{}{
+			"from_webhook":      "true",
+		},
+	}
+
+	if _, err := p.API.CreatePost(post); err != nil {
+		p.API.LogError("Couldn't send bot DM", "user_id", userID, "err", err)
+		return err
+	}
+
+	return nil
 }

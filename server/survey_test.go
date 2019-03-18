@@ -11,35 +11,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestGetLastServerUpgrade(t *testing.T) {
-	t.Run("nothing stored", func(t *testing.T) {
-		api := &plugintest.API{}
-		api.On("KVGet", SERVER_UPGRADE_KEY).Return(nil, nil)
-		defer api.AssertExpectations(t)
-
-		p := Plugin{}
-		p.SetAPI(api)
-
-		assert.Nil(t, p.getLastServerUpgrade())
-	})
-
-	t.Run("something stored", func(t *testing.T) {
-		timestamp := time.Unix(1552599223, 0)
-
-		api := &plugintest.API{}
-		api.On("KVGet", SERVER_UPGRADE_KEY).Return([]byte(`{"Version": "5.10.0", "Timestamp": "2019-03-14T17:33:43-04:00"}`), nil)
-		defer api.AssertExpectations(t)
-
-		p := Plugin{}
-		p.SetAPI(api)
-
-		assert.Equal(t, &serverUpgrade{
-			Version:   semver.MustParse("5.10.0"),
-			Timestamp: timestamp,
-		}, p.getLastServerUpgrade())
-	})
-}
-
 func TestShouldScheduleSurvey(t *testing.T) {
 	for _, test := range []struct {
 		Name           string
@@ -90,7 +61,7 @@ func TestShouldScheduleSurvey(t *testing.T) {
 	}
 }
 
-func TestShouldSendSurveyScheduledEmail(t *testing.T) {
+func TestShouldSendAdminNotices(t *testing.T) {
 	for _, test := range []struct {
 		Name        string
 		Now         time.Time
@@ -123,29 +94,22 @@ func TestShouldSendSurveyScheduledEmail(t *testing.T) {
 		},
 	} {
 		t.Run(test.Name, func(t *testing.T) {
-			assert.Equal(t, test.Expected, shouldSendSurveyScheduledEmail(test.Now, test.LastUpgrade))
+			assert.Equal(t, test.Expected, shouldSendAdminNotices(test.Now, test.LastUpgrade))
 		})
 	}
 }
 
-func TestSendSurveyScheduledEmail(t *testing.T) {
-	email1 := "admin1@example.com"
-	email2 := "admin2@example.com"
-	inactiveEmail := "inactive@example.com"
+func TestSendAdminNoticeEmails(t *testing.T) {
+	admins := []*model.User{
+		{
+			Email: "admin1@example.com",
+		},
+		{
+			Email: "admin2@example.com",
+		},
+	}
 
 	api := &plugintest.API{}
-	api.On("GetUsers", &model.UserGetOptions{Page: 0, PerPage: 100, Role: "system_admin"}).Return([]*model.User{
-		{
-			Email: email1,
-		},
-		{
-			Email: email2,
-		},
-		{
-			Email:    inactiveEmail,
-			DeleteAt: 1234,
-		},
-	}, nil)
 	api.On("GetConfig").Return(&model.Config{
 		ServiceSettings: model.ServiceSettings{
 			SiteURL: model.NewString("https://mattermost.example.com"),
@@ -158,15 +122,37 @@ func TestSendSurveyScheduledEmail(t *testing.T) {
 		},
 	})
 	api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything)
-	api.On("SendMail", email1, mock.Anything, mock.Anything).Return(nil)
-	api.On("SendMail", email2, mock.Anything, mock.Anything).Return(nil)
-	// No mock for inactiveEmail since it shouldn't be called
+	api.On("SendMail", admins[0].Email, mock.Anything, mock.Anything).Return(nil)
+	api.On("SendMail", admins[1].Email, mock.Anything, mock.Anything).Return(nil)
 	defer api.AssertExpectations(t)
 
 	p := Plugin{}
 	p.SetAPI(api)
 
-	p.sendSurveyScheduledEmail()
+	p.sendAdminNoticeEmails(admins)
+}
+
+func TestSendAdminNoticeDMs(t *testing.T) {
+	admins := []*model.User{
+		{
+			Id: model.NewId(),
+		},
+		{
+			Id: model.NewId(),
+		},
+	}
+
+	nextSurvey := time.Date(2009, time.November, 17, 23, 0, 0, 0, time.UTC)
+
+	api := &plugintest.API{}
+	api.On("KVSet", ADMIN_DM_NOTICE_KEY+admins[0].Id, []byte(`{"Sent":false,"NextSurvey":"2009-11-17T23:00:00Z"}`)).Return(nil)
+	api.On("KVSet", ADMIN_DM_NOTICE_KEY+admins[1].Id, []byte(`{"Sent":false,"NextSurvey":"2009-11-17T23:00:00Z"}`)).Return(nil)
+	defer api.AssertExpectations(t)
+
+	p := Plugin{}
+	p.SetAPI(api)
+
+	p.sendAdminNoticeDMs(admins, nextSurvey)
 }
 
 func TestGetAdminUsers(t *testing.T) {
@@ -234,5 +220,223 @@ func TestGetAdminUsers(t *testing.T) {
 
 		assert.Nil(t, err)
 		assert.Len(t, received, 8)
+	})
+
+	t.Run("shouldn't return deactivated users", func(t *testing.T) {
+		activeEmail := model.NewId()
+
+		api := &plugintest.API{}
+		api.On("GetUsers", &model.UserGetOptions{Page: 0, PerPage: perPage, Role: "system_admin"}).Return([]*model.User{
+			{
+				Email: activeEmail,
+			},
+			{
+				Email:    model.NewId(),
+				DeleteAt: 1234,
+			},
+		}, nil)
+		defer api.AssertExpectations(t)
+
+		p := Plugin{}
+		p.SetAPI(api)
+
+		received, err := p.getAdminUsers(perPage)
+
+		assert.Nil(t, err)
+		assert.Len(t, received, 1)
+		assert.Equal(t, activeEmail, received[0].Email)
+	})
+}
+
+func TestCheckForAdminNoticeDM(t *testing.T) {
+	t.Run("not a system admin", func(t *testing.T) {
+		user := &model.User{
+			Roles: model.SYSTEM_USER_ROLE_ID,
+		}
+
+		p := Plugin{}
+
+		notice := p.checkForAdminNoticeDM(user)
+
+		assert.Nil(t, notice)
+	})
+
+	t.Run("should log error when KVGet fails", func(t *testing.T) {
+		user := &model.User{
+			Id:    model.NewId(),
+			Roles: model.SYSTEM_USER_ROLE_ID+" "+model.SYSTEM_ADMIN_ROLE_ID,
+		}
+
+		appErr := &model.AppError{}
+
+		api := &plugintest.API{}
+		api.On("KVGet", ADMIN_DM_NOTICE_KEY+user.Id).Return(nil, appErr)
+		api.On("LogError", mock.Anything, "err", appErr)
+		defer api.AssertExpectations(t)
+
+		p := Plugin{}
+		p.SetAPI(api)
+
+		notice := p.checkForAdminNoticeDM(user)
+
+		assert.Nil(t, notice)
+	})
+
+	t.Run("shouldn't error when no notice is stored", func(t *testing.T) {
+		user := &model.User{
+			Id:    model.NewId(),
+			Roles: model.SYSTEM_USER_ROLE_ID+" "+model.SYSTEM_ADMIN_ROLE_ID,
+		}
+
+		api := &plugintest.API{}
+		api.On("KVGet", ADMIN_DM_NOTICE_KEY+user.Id).Return(nil, nil)
+		defer api.AssertExpectations(t)
+
+		p := Plugin{}
+		p.SetAPI(api)
+
+		notice := p.checkForAdminNoticeDM(user)
+
+		assert.Nil(t, notice)
+	})
+
+	t.Run("should log error when decoding fails", func(t *testing.T) {
+		user := &model.User{
+			Id:    model.NewId(),
+			Roles: model.SYSTEM_USER_ROLE_ID+" "+model.SYSTEM_ADMIN_ROLE_ID,
+		}
+
+		api := &plugintest.API{}
+		api.On("KVGet", ADMIN_DM_NOTICE_KEY+user.Id).Return([]byte("garbage"), nil)
+		api.On("LogError", mock.Anything, "err", mock.Anything)
+		defer api.AssertExpectations(t)
+
+		p := Plugin{}
+		p.SetAPI(api)
+
+		notice := p.checkForAdminNoticeDM(user)
+
+		assert.Nil(t, notice)
+	})
+
+	t.Run("shouldn't return notice when already sent", func(t *testing.T) {
+		user := &model.User{
+			Id:    model.NewId(),
+			Roles: model.SYSTEM_USER_ROLE_ID+" "+model.SYSTEM_ADMIN_ROLE_ID,
+		}
+
+		api := &plugintest.API{}
+		api.On("KVGet", ADMIN_DM_NOTICE_KEY+user.Id).Return([]byte(`{"Sent":true}`), nil)
+		defer api.AssertExpectations(t)
+
+		p := Plugin{}
+		p.SetAPI(api)
+
+		notice := p.checkForAdminNoticeDM(user)
+
+		assert.Nil(t, notice)
+	})
+
+	t.Run("should return unsent notice", func(t *testing.T) {
+		user := &model.User{
+			Id:    model.NewId(),
+			Roles: model.SYSTEM_USER_ROLE_ID+" "+model.SYSTEM_ADMIN_ROLE_ID,
+		}
+
+		nextSurvey := time.Date(2009, time.November, 17, 23, 0, 0, 0, time.UTC)
+
+		api := &plugintest.API{}
+		api.On("KVGet", ADMIN_DM_NOTICE_KEY+user.Id).Return([]byte(`{"Sent":false,"NextSurvey":"2009-11-17T23:00:00Z"}`), nil)
+		defer api.AssertExpectations(t)
+
+		p := Plugin{}
+		p.SetAPI(api)
+
+		notice := p.checkForAdminNoticeDM(user)
+
+		assert.Equal(t, &adminNotice{Sent: false, NextSurvey: nextSurvey}, notice)
+	})
+}
+
+func TestSendAdminNoticeDM(t *testing.T) {
+	t.Run("should send DM and mark notice as sent", func(t *testing.T) {
+		botUserId := model.NewId()
+		user := &model.User{
+			Id: model.NewId(),
+		}
+		notice := &adminNotice{
+			NextSurvey: time.Date(2009, time.November, 17, 23, 0, 0, 0, time.UTC),
+			Sent:       false,
+		}
+
+		api := &plugintest.API{}
+		api.On("LogDebug", "Sending admin notice DM", "user_id", user.Id)
+		api.On("GetDirectChannel", user.Id, botUserId).Return(&model.Channel{}, nil)
+		api.On("CreatePost", mock.Anything).Return(nil, nil)
+		api.On("KVSet", ADMIN_DM_NOTICE_KEY+user.Id, []byte(`{"Sent":true,"NextSurvey":"2009-11-17T23:00:00Z"}`)).Return(nil)
+		defer api.AssertExpectations(t)
+
+		p := Plugin{
+			botUserId: botUserId,
+		}
+		p.SetAPI(api)
+
+		p.sendAdminNoticeDM(user, notice)
+	})
+
+	t.Run("should log error from failed DM", func (t *testing.T) {
+		botUserId := model.NewId()
+		user := &model.User{
+			Id: model.NewId(),
+		}
+		notice := &adminNotice{
+			NextSurvey: time.Date(2009, time.November, 17, 23, 0, 0, 0, time.UTC),
+			Sent:       false,
+		}
+
+		appErr := &model.AppError{}
+
+		api := &plugintest.API{}
+		api.On("LogDebug", "Sending admin notice DM", "user_id", user.Id)
+		api.On("GetDirectChannel", user.Id, botUserId).Return(&model.Channel{}, nil)
+		api.On("CreatePost", mock.Anything).Return(nil, appErr)
+		api.On("LogError", mock.Anything, "user_id", user.Id, "err", appErr)
+		api.On("LogError", mock.Anything, "err", appErr)
+		defer api.AssertExpectations(t)
+
+		p := Plugin{
+			botUserId: botUserId,
+		}
+		p.SetAPI(api)
+
+		p.sendAdminNoticeDM(user, notice)
+	})
+
+	t.Run("should log error when failing to store sent notice", func(t *testing.T) {
+		botUserId := model.NewId()
+		user := &model.User{
+			Id: model.NewId(),
+		}
+		notice := &adminNotice{
+			NextSurvey: time.Date(2009, time.November, 17, 23, 0, 0, 0, time.UTC),
+			Sent:       false,
+		}
+
+		appErr := &model.AppError{}
+
+		api := &plugintest.API{}
+		api.On("LogDebug", "Sending admin notice DM", "user_id", user.Id)
+		api.On("GetDirectChannel", user.Id, botUserId).Return(&model.Channel{}, nil)
+		api.On("CreatePost", mock.Anything).Return(nil, nil)
+		api.On("KVSet", ADMIN_DM_NOTICE_KEY+user.Id, []byte(`{"Sent":true,"NextSurvey":"2009-11-17T23:00:00Z"}`)).Return(appErr)
+		api.On("LogError", mock.Anything, "err", appErr)
+		defer api.AssertExpectations(t)
+
+		p := Plugin{
+			botUserId: botUserId,
+		}
+		p.SetAPI(api)
+
+		p.sendAdminNoticeDM(user, notice)
 	})
 }

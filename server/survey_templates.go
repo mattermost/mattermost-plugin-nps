@@ -4,7 +4,9 @@ import (
 	"html/template"
 )
 
-var emailBodyTemplate = template.Must(template.New("emailBody").Parse(`
+const adminEmailSubject = "[%s] Net Promoter Score survey scheduled in %d days"
+
+var adminEmailBodyTemplate = template.Must(template.New("emailBody").Parse(`
 <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 20px; line-height: 1.7; color: #555;">
     <tr>
         <td>
@@ -50,3 +52,9 @@ var emailBodyTemplate = template.Must(template.New("emailBody").Parse(`
     </tr>
 </table>
 `))
+
+const adminDMBody = `Mattermost uses feedback surveys to measure user satisfaction and improve product quality. User surveys will start to be sent on %s.
+
+[Click here](/admin_console/admin_console/plugins/custom/com.mattermost.nps) to disable or learn more about Net Promoter Score Surveys.
+
+*This message is only visible to System Admins.*`
