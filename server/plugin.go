@@ -44,7 +44,7 @@ func (p *Plugin) CreateBotDMPost(userID, message, postType string) *model.AppErr
 		Message:   message,
 		Type:      postType,
 		Props: map[string]interface{}{
-			"from_webhook":      "true",
+			"from_webhook": "true",
 		},
 	}
 

@@ -8,7 +8,7 @@ import (
 )
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
-	routes := []struct{
+	routes := []struct {
 		Path    string
 		Method  string
 		Handler func(http.ResponseWriter, *http.Request)

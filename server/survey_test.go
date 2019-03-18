@@ -264,7 +264,7 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 	t.Run("should log error when KVGet fails", func(t *testing.T) {
 		user := &model.User{
 			Id:    model.NewId(),
-			Roles: model.SYSTEM_USER_ROLE_ID+" "+model.SYSTEM_ADMIN_ROLE_ID,
+			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
 		}
 
 		appErr := &model.AppError{}
@@ -285,7 +285,7 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 	t.Run("shouldn't error when no notice is stored", func(t *testing.T) {
 		user := &model.User{
 			Id:    model.NewId(),
-			Roles: model.SYSTEM_USER_ROLE_ID+" "+model.SYSTEM_ADMIN_ROLE_ID,
+			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
 		}
 
 		api := &plugintest.API{}
@@ -303,7 +303,7 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 	t.Run("should log error when decoding fails", func(t *testing.T) {
 		user := &model.User{
 			Id:    model.NewId(),
-			Roles: model.SYSTEM_USER_ROLE_ID+" "+model.SYSTEM_ADMIN_ROLE_ID,
+			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
 		}
 
 		api := &plugintest.API{}
@@ -322,7 +322,7 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 	t.Run("shouldn't return notice when already sent", func(t *testing.T) {
 		user := &model.User{
 			Id:    model.NewId(),
-			Roles: model.SYSTEM_USER_ROLE_ID+" "+model.SYSTEM_ADMIN_ROLE_ID,
+			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
 		}
 
 		api := &plugintest.API{}
@@ -340,7 +340,7 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 	t.Run("should return unsent notice", func(t *testing.T) {
 		user := &model.User{
 			Id:    model.NewId(),
-			Roles: model.SYSTEM_USER_ROLE_ID+" "+model.SYSTEM_ADMIN_ROLE_ID,
+			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
 		}
 
 		nextSurvey := time.Date(2009, time.November, 17, 23, 0, 0, 0, time.UTC)
@@ -384,7 +384,7 @@ func TestSendAdminNoticeDM(t *testing.T) {
 		p.sendAdminNoticeDM(user, notice)
 	})
 
-	t.Run("should log error from failed DM", func (t *testing.T) {
+	t.Run("should log error from failed DM", func(t *testing.T) {
 		botUserId := model.NewId()
 		user := &model.User{
 			Id: model.NewId(),

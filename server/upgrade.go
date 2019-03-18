@@ -1,6 +1,5 @@
 package main
 
-
 import (
 	"encoding/json"
 	"time"
@@ -8,6 +7,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/mattermost/mattermost-server/model"
 )
+
 type serverUpgrade struct {
 	Version   semver.Version
 	Timestamp time.Time

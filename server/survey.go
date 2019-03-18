@@ -129,7 +129,7 @@ func (p *Plugin) sendAdminNoticeDMs(admins []*model.User, nextSurvey time.Time) 
 			continue
 		}
 
-		if appErr := p.API.KVSet(ADMIN_DM_NOTICE_KEY + admin.Id, noticeBytes); appErr != nil {
+		if appErr := p.API.KVSet(ADMIN_DM_NOTICE_KEY+admin.Id, noticeBytes); appErr != nil {
 			p.API.LogError("Failed to store scheduled admin notice", "err", err.Error())
 			continue
 		}
@@ -171,7 +171,7 @@ func (p *Plugin) checkForAdminNoticeDM(user *model.User) *adminNotice {
 		return nil
 	}
 
-	noticeBytes, appErr := p.API.KVGet(ADMIN_DM_NOTICE_KEY+user.Id)
+	noticeBytes, appErr := p.API.KVGet(ADMIN_DM_NOTICE_KEY + user.Id)
 	if appErr != nil {
 		p.API.LogError("Failed to get scheduled admin notice", "err", appErr)
 		return nil
