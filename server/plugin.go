@@ -27,6 +27,8 @@ type Plugin struct {
 	botUserId string
 
 	client *analytics.Client
+
+	connectedLock sync.Mutex
 }
 
 func (p *Plugin) CreateBotDMPost(userID, message, postType string) *model.AppError {

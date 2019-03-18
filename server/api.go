@@ -43,6 +43,9 @@ func (p *Plugin) userConnected(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	p.connectedLock.Lock()
+	defer p.connectedLock.Unlock()
+
 	if p.canSendDiagnostics() {
 		user, err := p.API.GetUser(userID)
 		if err != nil {
