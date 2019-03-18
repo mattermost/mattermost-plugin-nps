@@ -24,12 +24,13 @@ func (p *Plugin) OnActivate() error {
 		return nil
 	}
 
-	serverVersion, err := semver.Parse(p.API.GetServerVersion())
-	if err != nil {
+	if serverVersion, err := semver.Parse(p.API.GetServerVersion()); err != nil {
 		return errors.Wrap(err, "failed to parse server version")
+	} else {
+		p.serverVersion = serverVersion
 	}
 
-	if err := checkMinimumVersion(serverVersion); err != nil {
+	if err := checkMinimumVersion(p.serverVersion); err != nil {
 		return errors.Wrap(err, "failed to check minimum server version")
 	}
 
@@ -41,7 +42,7 @@ func (p *Plugin) OnActivate() error {
 
 	p.API.LogDebug("NPS plugin activated")
 
-	p.checkForNextSurvey(serverVersion)
+	p.checkForNextSurvey(p.serverVersion)
 
 	return nil
 }

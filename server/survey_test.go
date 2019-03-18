@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -439,4 +440,283 @@ func TestSendAdminNoticeDM(t *testing.T) {
 
 		p.sendAdminNoticeDM(user, notice)
 	})
+}
+
+func TestShouldSendSurveyDM(t *testing.T) {
+	for _, test := range []struct {
+		Name          string
+		User          *model.User
+		Now           time.Time
+		LastUpgrade   *serverUpgrade
+		SurveyState   *surveyState
+		ServerVersion semver.Version
+		Expected      bool
+	}{
+		{
+			Name: "should send survey",
+			User: &model.User{
+				Id:       model.NewId(),
+				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
+			},
+			Now: toDate(2019, time.April, 1),
+			LastUpgrade: &serverUpgrade{
+				Timestamp: toDate(2019, time.March, 11),
+			},
+			SurveyState: &surveyState{
+				ServerVersion: semver.MustParse("5.9.0"),
+				SentAt:        toDate(2019, time.January, 1),
+				AnsweredAt:    toDate(2019, time.January, 1),
+			},
+			ServerVersion: semver.MustParse("5.10.0"),
+			Expected:      true,
+		},
+		{
+			Name: "unable to get last upgrade",
+			User: &model.User{
+				Id:       model.NewId(),
+				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
+			},
+			Now:         toDate(2019, time.April, 1),
+			LastUpgrade: nil,
+			SurveyState: &surveyState{
+				ServerVersion: semver.MustParse("5.9.0"),
+				SentAt:        toDate(2019, time.January, 1),
+				AnsweredAt:    toDate(2019, time.January, 1),
+			},
+			ServerVersion: semver.MustParse("5.10.0"),
+			Expected:      false,
+		},
+		{
+			Name: "should not send too soon after upgrade",
+			User: &model.User{
+				Id:       model.NewId(),
+				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
+			},
+			Now: toDate(2019, time.April, 1),
+			LastUpgrade: &serverUpgrade{
+				Timestamp: toDate(2019, time.March, 12),
+			},
+			SurveyState: &surveyState{
+				ServerVersion: semver.MustParse("5.9.0"),
+				SentAt:        toDate(2019, time.January, 1),
+				AnsweredAt:    toDate(2019, time.January, 1),
+			},
+			ServerVersion: semver.MustParse("5.10.0"),
+			Expected:      false,
+		},
+		{
+			Name: "should not send for recently created user",
+			User: &model.User{
+				Id:       model.NewId(),
+				CreateAt: toDate(2019, time.March, 12).UnixNano() / int64(time.Millisecond),
+			},
+			Now: toDate(2019, time.April, 1),
+			LastUpgrade: &serverUpgrade{
+				Timestamp: toDate(2019, time.March, 11),
+			},
+			SurveyState: &surveyState{
+				ServerVersion: semver.MustParse("5.9.0"),
+				SentAt:        toDate(2019, time.January, 1),
+				AnsweredAt:    toDate(2019, time.January, 1),
+			},
+			ServerVersion: semver.MustParse("5.10.0"),
+			Expected:      false,
+		},
+		{
+			Name: "should still send with no stored survey state",
+			User: &model.User{
+				Id:       model.NewId(),
+				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
+			},
+			Now: toDate(2019, time.April, 1),
+			LastUpgrade: &serverUpgrade{
+				Timestamp: toDate(2019, time.March, 11),
+			},
+			SurveyState:   nil,
+			ServerVersion: semver.MustParse("5.10.0"),
+			Expected:      true,
+		},
+		{
+			Name: "should not send on same server version",
+			User: &model.User{
+				Id:       model.NewId(),
+				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
+			},
+			Now: toDate(2019, time.April, 1),
+			LastUpgrade: &serverUpgrade{
+				Timestamp: toDate(2019, time.March, 11),
+			},
+			SurveyState: &surveyState{
+				ServerVersion: semver.MustParse("5.10.0"),
+				SentAt:        toDate(2019, time.January, 1),
+				AnsweredAt:    toDate(2019, time.January, 1),
+			},
+			ServerVersion: semver.MustParse("5.10.0"),
+			Expected:      false,
+		},
+		{
+			Name: "should not send too soon after sending last survey",
+			User: &model.User{
+				Id:       model.NewId(),
+				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
+			},
+			Now: toDate(2019, time.April, 1),
+			LastUpgrade: &serverUpgrade{
+				Timestamp: toDate(2019, time.March, 11),
+			},
+			SurveyState: &surveyState{
+				ServerVersion: semver.MustParse("5.9.0"),
+				SentAt:        toDate(2019, time.January, 2),
+				AnsweredAt:    toDate(2019, time.January, 1),
+			},
+			ServerVersion: semver.MustParse("5.10.0"),
+			Expected:      false,
+		},
+		{
+			Name: "should send too soon after answering last survey",
+			User: &model.User{
+				Id:       model.NewId(),
+				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
+			},
+			Now: toDate(2019, time.April, 1),
+			LastUpgrade: &serverUpgrade{
+				Timestamp: toDate(2019, time.March, 11),
+			},
+			SurveyState: &surveyState{
+				ServerVersion: semver.MustParse("5.9.0"),
+				SentAt:        toDate(2019, time.January, 1),
+				AnsweredAt:    toDate(2019, time.January, 2),
+			},
+			ServerVersion: semver.MustParse("5.10.0"),
+			Expected:      false,
+		},
+	} {
+		t.Run(test.Name, func(t *testing.T) {
+			var lastUpgradeBytes []byte
+			if test.LastUpgrade != nil {
+				lastUpgradeBytes, _ = json.Marshal(test.LastUpgrade)
+			}
+			var surveyStateBytes []byte
+			if test.SurveyState != nil {
+				surveyStateBytes, _ = json.Marshal(test.SurveyState)
+			}
+
+			api := &plugintest.API{}
+			api.On("KVGet", SERVER_UPGRADE_KEY).Return(lastUpgradeBytes, nil).Maybe()
+			api.On("KVGet", USER_SURVEY_KEY+test.User.Id).Return(surveyStateBytes, nil).Maybe()
+			api.On("LogError", mock.Anything, mock.Anything, mock.Anything).Maybe()
+			defer api.AssertExpectations(t)
+
+			p := Plugin{
+				serverVersion: test.ServerVersion,
+			}
+			p.SetAPI(api)
+
+			result := p.shouldSendSurveyDM(test.User, test.Now)
+
+			assert.Equal(t, test.Expected, result)
+		})
+	}
+}
+
+func TestSendSurveyDM(t *testing.T) {
+	t.Run("should send DM and mark survey as sent", func(t *testing.T) {
+		botUserId := model.NewId()
+		serverVersion := semver.MustParse("5.10.0")
+		user := &model.User{
+			Id:       model.NewId(),
+			Username: "testuser",
+		}
+		now := toDate(2019, time.March, 1)
+
+		api := &plugintest.API{}
+		api.On("LogDebug", "Sending survey DM", "user_id", user.Id)
+		api.On("GetConfig").Return(&model.Config{
+			ServiceSettings: model.ServiceSettings{
+				SiteURL: model.NewString("https://mattermost.example.com"),
+			},
+		})
+		api.On("GetDirectChannel", user.Id, botUserId).Return(&model.Channel{}, nil)
+		api.On("CreatePost", mock.Anything).Return(nil, nil)
+		api.On("KVSet", USER_SURVEY_KEY+user.Id, []byte(`{"ServerVersion":"5.10.0","SentAt":"2019-03-01T00:00:00Z","AnsweredAt":"0001-01-01T00:00:00Z"}`)).Return(nil)
+		defer api.AssertExpectations(t)
+
+		p := Plugin{
+			botUserId:     botUserId,
+			serverVersion: serverVersion,
+		}
+		p.SetAPI(api)
+
+		p.sendSurveyDM(user, now)
+	})
+
+	t.Run("should log error from failed DM", func(t *testing.T) {
+		botUserId := model.NewId()
+		serverVersion := semver.MustParse("5.10.0")
+		user := &model.User{
+			Id:       model.NewId(),
+			Username: "testuser",
+		}
+		now := toDate(2019, time.March, 1)
+
+		appErr := &model.AppError{}
+
+		api := &plugintest.API{}
+		api.On("LogDebug", "Sending survey DM", "user_id", user.Id)
+		api.On("GetConfig").Return(&model.Config{
+			ServiceSettings: model.ServiceSettings{
+				SiteURL: model.NewString("https://mattermost.example.com"),
+			},
+		})
+		api.On("GetDirectChannel", user.Id, botUserId).Return(&model.Channel{}, nil)
+		api.On("CreatePost", mock.Anything).Return(nil, appErr)
+		api.On("LogError", mock.Anything, "user_id", user.Id, "err", appErr)
+		api.On("LogError", mock.Anything, "err", appErr)
+		defer api.AssertExpectations(t)
+
+		p := Plugin{
+			botUserId:     botUserId,
+			serverVersion: serverVersion,
+		}
+		p.SetAPI(api)
+
+		p.sendSurveyDM(user, now)
+	})
+
+	t.Run("should log error when failing to store sent survey", func(t *testing.T) {
+		botUserId := model.NewId()
+		serverVersion := semver.MustParse("5.10.0")
+		user := &model.User{
+			Id:       model.NewId(),
+			Username: "testuser",
+		}
+		now := toDate(2019, time.March, 1)
+
+		appErr := &model.AppError{}
+
+		api := &plugintest.API{}
+		api.On("LogDebug", "Sending survey DM", "user_id", user.Id)
+		api.On("GetConfig").Return(&model.Config{
+			ServiceSettings: model.ServiceSettings{
+				SiteURL: model.NewString("https://mattermost.example.com"),
+			},
+		})
+		api.On("GetDirectChannel", user.Id, botUserId).Return(&model.Channel{}, nil)
+		api.On("CreatePost", mock.Anything).Return(nil, nil)
+		api.On("KVSet", USER_SURVEY_KEY+user.Id, []byte(`{"ServerVersion":"5.10.0","SentAt":"2019-03-01T00:00:00Z","AnsweredAt":"0001-01-01T00:00:00Z"}`)).Return(appErr)
+		api.On("LogError", mock.Anything, "err", appErr)
+		defer api.AssertExpectations(t)
+
+		p := Plugin{
+			botUserId:     botUserId,
+			serverVersion: serverVersion,
+		}
+		p.SetAPI(api)
+
+		p.sendSurveyDM(user, now)
+	})
+}
+
+func toDate(year int, month time.Month, day int) time.Time {
+	return time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
 }

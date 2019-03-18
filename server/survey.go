@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,6 +22,9 @@ const (
 
 	// Get admin users up to 100 at a time when sending email notifications
 	ADMIN_USERS_PER_PAGE = 100
+
+	// The minimum time before a user can be sent a survey after completing the previous one
+	MIN_DAYS_BETWEEN_USER_SURVEYS = 90
 )
 
 type adminNotice struct {
@@ -213,7 +217,7 @@ func (p *Plugin) sendAdminNoticeDM(user *model.User, notice *adminNotice) {
 	// Send the DM
 	body := fmt.Sprintf(adminDMBody, notice.NextSurvey.Format("January 2, 2006"))
 
-	if appErr := p.CreateBotDMPost(user.Id, body, "custom_nps_admin_notice"); appErr != nil {
+	if appErr := p.CreateBotDMPost(user.Id, body, "custom_nps_admin_notice", nil); appErr != nil {
 		p.API.LogError("Failed to send admin notice", "err", appErr)
 		return
 	}
@@ -232,11 +236,133 @@ func (p *Plugin) sendAdminNoticeDM(user *model.User, notice *adminNotice) {
 	}
 }
 
-func (p *Plugin) shouldSendSurveyDM(user *model.User, now time.Time) bool {
-	// TODO
-	return false
+type surveyState struct {
+	ServerVersion semver.Version
+	SentAt        time.Time
+	AnsweredAt    time.Time
 }
 
-func (p *Plugin) sendSurveyDM(user *model.User) {
-	// TODO
+func (p *Plugin) shouldSendSurveyDM(user *model.User, now time.Time) bool {
+	// Only send the survey once it has been 21 days since the last upgrade
+	lastUpgrade := p.getLastServerUpgrade()
+	if lastUpgrade == nil {
+		p.API.LogError("Failed to get date of last upgrade")
+		return false
+	}
+
+	if now.Sub(lastUpgrade.Timestamp) < DAYS_UNTIL_SURVEY*24*time.Hour {
+		return false
+	}
+
+	// And the user has existed for at least as long
+	if now.Sub(time.Unix(user.CreateAt/1000, 0)) < DAYS_UNTIL_SURVEY*24*time.Hour {
+		return false
+	}
+
+	// And that it has been long enough since the survey last occurred
+	info, err := p.getUserSurveyState(user.Id)
+	if err != nil {
+		p.API.LogError("Failed to get user survey state", "err", err)
+		return false
+	}
+
+	if info.ServerVersion.Major == p.serverVersion.Major && info.ServerVersion.Minor == p.serverVersion.Minor {
+		// Last survey occurred on the current version
+		return false
+	}
+
+	if now.Sub(info.SentAt) < MIN_DAYS_BETWEEN_USER_SURVEYS*24*time.Hour {
+		// Not enough time since last survey was sent
+		return false
+	}
+
+	if now.Sub(info.AnsweredAt) < MIN_DAYS_BETWEEN_USER_SURVEYS*24*time.Hour {
+		// Not enough time since last survey was completed
+		return false
+	}
+
+	return true
+}
+
+func (p *Plugin) getUserSurveyState(userID string) (*surveyState, *model.AppError) {
+	b, appErr := p.API.KVGet(USER_SURVEY_KEY + userID)
+	if appErr != nil {
+		return nil, appErr
+	} else if b == nil {
+		return &surveyState{}, nil
+	}
+
+	var state surveyState
+
+	err := json.Unmarshal(b, &state)
+	if err != nil {
+		return nil, &model.AppError{Message: err.Error()}
+	}
+
+	return &state, nil
+}
+
+func (p *Plugin) sendSurveyDM(user *model.User, now time.Time) {
+	p.API.LogDebug("Sending survey DM", "user_id", user.Id)
+
+	// Send the DM
+	body := fmt.Sprintf(surveyDMBody, user.Username)
+
+	if appErr := p.CreateBotDMPost(user.Id, body, "custom_nps_survey", p.buildSurveyPostProps(user.Id)); appErr != nil {
+		p.API.LogError("Failed to send survey", "err", appErr)
+		return
+	}
+
+	// Store that the survey has been sent
+	state := &surveyState{
+		ServerVersion: p.serverVersion,
+		SentAt:        now,
+	}
+
+	b, err := json.Marshal(state)
+	if err != nil {
+		p.API.LogError("Failed to encode sent survey state. Survey will be resent on next refresh.", "err", err.Error())
+		return
+	}
+
+	if appErr := p.API.KVSet(USER_SURVEY_KEY+user.Id, b); appErr != nil {
+		p.API.LogError("Failed to save sent survey state. Survey will be resent on next refresh.", "err", appErr)
+	}
+}
+
+func (p *Plugin) buildSurveyPostProps(userID string) map[string]interface{} {
+	var options []*model.PostActionOptions
+	for i := 10; i >= 0; i-- {
+		text := strconv.Itoa(i)
+		if i == 0 {
+			text = "0 (Not Likely)"
+		} else if i == 10 {
+			text = "10 (Very Likely)"
+		}
+
+		options = append(options, &model.PostActionOptions{
+			Text:  text,
+			Value: strconv.Itoa(i),
+		})
+	}
+
+	siteURL := *p.API.GetConfig().ServiceSettings.SiteURL
+
+	action := &model.PostAction{
+		Name:    "Select an option...",
+		Type:    model.POST_ACTION_TYPE_SELECT,
+		Options: options,
+		Integration: &model.PostActionIntegration{
+			URL: fmt.Sprintf("%s/plugins/%s/api/v1/score/%s", siteURL, manifest.Id, userID),
+		},
+	}
+
+	return map[string]interface{}{
+		"attachments": []*model.SlackAttachment{
+			&model.SlackAttachment{
+				Title:   "How likely are you to recommend Mattermost?",
+				Actions: []*model.PostAction{action},
+			},
+		},
+	}
 }

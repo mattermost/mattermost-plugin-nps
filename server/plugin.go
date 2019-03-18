@@ -3,6 +3,7 @@ package main
 import (
 	"sync"
 
+	"github.com/blang/semver"
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/plugin"
 	analytics "github.com/segmentio/analytics-go"
@@ -12,6 +13,7 @@ const (
 	ADMIN_DM_NOTICE_KEY = "AdminDM-"
 	BOT_USER_KEY        = "Bot"
 	SERVER_UPGRADE_KEY  = "ServerUpgrade"
+	USER_SURVEY_KEY     = "UserSurvey-"
 )
 
 type Plugin struct {
@@ -24,6 +26,8 @@ type Plugin struct {
 	// setConfiguration for usage.
 	configuration *configuration
 
+	serverVersion semver.Version
+
 	botUserId string
 
 	client *analytics.Client
@@ -31,21 +35,24 @@ type Plugin struct {
 	connectedLock sync.Mutex
 }
 
-func (p *Plugin) CreateBotDMPost(userID, message, postType string) *model.AppError {
+func (p *Plugin) CreateBotDMPost(userID, message, postType string, props map[string]interface{}) *model.AppError {
 	channel, err := p.API.GetDirectChannel(userID, p.botUserId)
 	if err != nil {
 		p.API.LogError("Couldn't get bot's DM channel", "user_id", userID, "err", err)
 		return err
 	}
 
+	if props == nil {
+		props = make(map[string]interface{})
+	}
+	props["from_webhook"] = true
+
 	post := &model.Post{
 		UserId:    p.botUserId,
 		ChannelId: channel.Id,
 		Message:   message,
 		Type:      postType,
-		Props: map[string]interface{}{
-			"from_webhook": "true",
-		},
+		Props:     props,
 	}
 
 	if _, err := p.API.CreatePost(post); err != nil {

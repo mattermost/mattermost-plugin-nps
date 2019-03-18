@@ -58,3 +58,5 @@ const adminDMBody = `Mattermost uses feedback surveys to measure user satisfacti
 [Click here](/admin_console/admin_console/plugins/custom/com.mattermost.nps) to disable or learn more about Net Promoter Score Surveys.
 
 *This message is only visible to System Admins.*`
+
+const surveyDMBody = `:wave: Hey @%s! Please take a few moments to help us improve your experience with Mattermost.`

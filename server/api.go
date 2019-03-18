@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -17,6 +19,11 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 			Path:    "/api/v1/connected",
 			Method:  http.MethodPost,
 			Handler: p.userConnected,
+		},
+		{
+			Path:    "/api/v1/score/9tq3aohzpfg5prbxzyqrhjc7ih",
+			Method:  http.MethodPost,
+			Handler: p.submitScore,
 		},
 	}
 
@@ -62,9 +69,15 @@ func (p *Plugin) userConnected(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if p.shouldSendSurveyDM(user, now) {
-			p.sendSurveyDM(user)
+			p.sendSurveyDM(user, now)
 		}
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
+	body, _ := ioutil.ReadAll(r.Body)
+	p.API.LogDebug(fmt.Sprintf("Received score of %s from %s", body, r.Header.Get("Mattermost-User-ID")))
+	w.Write([]byte("{}"))
 }
