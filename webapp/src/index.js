@@ -1,9 +1,16 @@
 import {id as pluginId} from './manifest';
 
+import {Client} from './client';
+
 export default class Plugin {
-    // eslint-disable-next-line no-unused-vars
-    initialize(registry, store) {
-        // @see https://developers.mattermost.com/extend/plugins/webapp/reference/
+    constructor() {
+        this.client = null;
+    }
+
+    initialize(/*registry, store*/) {
+        this.client = new Client();
+
+        this.client.connected();
     }
 }
 
