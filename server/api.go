@@ -1,11 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/plugin"
 )
 
@@ -76,8 +79,70 @@ func (p *Plugin) userConnected(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+/*
+Sample:
+{
+	"user_id":"9tq3aohzpfg5prbxzyqrhjc7ih",
+	"channel_id":"f89d7gu1wi8gpp31qycjsxjb7w",
+	"team_id":"",
+	"post_id":"cjrfd9341ir3jk8miq1hk7uwny",
+	"trigger_id":"cXM2cHQzNWsxcGZkaWpqbmJ6dXJ3NHp0cWM6OXRxM2FvaHpwZmc1cHJieHp5cXJoamM3aWg6MTU1MjkzODY2MTc2ODpNRVlDSVFEUFpsbXpjcno4V3c5UVY5dVNJeFcwaXU3OXhhUXpvSkxLcDRYWHJmZGxmQUloQUpWOS9wQU5VQ1ZBRUw2eU5XMVFseDljYloycUgwMkRHczd2bm9sdzBmSTc=",
+	"type":"select",
+	"data_source":"",
+	"context":{"selected_option":"2"}
+}
+*/
+
 func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
-	body, _ := ioutil.ReadAll(r.Body)
-	p.API.LogDebug(fmt.Sprintf("Received score of %s from %s", body, r.Header.Get("Mattermost-User-ID")))
-	w.Write([]byte("{}"))
+	userID := r.Header.Get("Mattermost-User-ID")
+	if userID == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	var surveyResponse *model.PostActionIntegrationRequest
+	if err := json.NewDecoder(io.LimitReader(r.Body, 2048)).Decode(&surveyResponse); err != nil {
+		p.API.LogError("Failed to decode survey score response", "err", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if surveyResponse.Context == nil {
+		p.API.LogError("Score response is missing Context")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if _, ok := surveyResponse.Context["selected_option"].(string); !ok {
+		p.API.LogError("Score response contains invalid score")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var score int
+	if i, err := strconv.ParseInt(surveyResponse.Context["selected_option"].(string), 10, 0); err != nil {
+		p.API.LogError("Score response contains invalid score")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	} else if i < 0 || i > 10 {
+		p.API.LogError("Score response contains invalid score")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	} else {
+		score = int(i)
+	}
+
+	p.API.LogDebug(fmt.Sprintf("Received score of %d from %s", score, r.Header.Get("Mattermost-User-ID")))
+
+	p.sendScore(score, userID, time.Now().UnixNano() / int64(time.Millisecond))
+
+	p.CreateBotDMPost(userID, p.buildFeedbackRequestPost(userID))
+
+	// Send response to update score post
+	response := model.PostActionIntegrationResponse{
+		Update: p.buildAnsweredSurveyPost(score),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(response.ToJson())
 }

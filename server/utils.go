@@ -7,31 +7,28 @@ import (
 	"github.com/mattermost/mattermost-server/model"
 )
 
-func (p *Plugin) CreateBotDMPost(userID, message, postType string, props map[string]interface{}) (*model.Post, *model.AppError) {
+func (p *Plugin) CreateBotDMPost(userID string, post *model.Post) (*model.Post, *model.AppError) {
 	channel, err := p.API.GetDirectChannel(userID, p.botUserId)
 	if err != nil {
 		p.API.LogError("Couldn't get bot's DM channel", "user_id", userID, "err", err)
 		return nil, err
 	}
 
-	if props == nil {
-		props = make(map[string]interface{})
-	}
-	props["from_webhook"] = true
+	post.UserId = p.botUserId
+	post.ChannelId = channel.Id
 
-	post, err := p.API.CreatePost(&model.Post{
-		UserId:    p.botUserId,
-		ChannelId: channel.Id,
-		Message:   message,
-		Type:      postType,
-		Props:     props,
-	})
+	if post.Props == nil {
+		post.Props = make(map[string]interface{})
+	}
+	post.Props["from_webhook"] = true
+
+	created, err := p.API.CreatePost(post)
 	if err != nil {
 		p.API.LogError("Couldn't send bot DM", "user_id", userID, "err", err)
 		return nil, err
 	}
 
-	return post, nil
+	return created, nil
 }
 
 func (p *Plugin) KVGet(key string, v interface{}) *model.AppError {

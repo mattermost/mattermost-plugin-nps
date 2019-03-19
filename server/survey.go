@@ -204,9 +204,7 @@ func (p *Plugin) sendAdminNoticeDM(user *model.User, notice *adminNotice) {
 	p.API.LogDebug("Sending admin notice DM", "user_id", user.Id)
 
 	// Send the DM
-	body := fmt.Sprintf(adminDMBody, notice.NextSurvey.Format("January 2, 2006"))
-
-	if _, err := p.CreateBotDMPost(user.Id, body, "custom_nps_admin_notice", nil); err != nil {
+	if _, err := p.CreateBotDMPost(user.Id, p.buildAdminNoticePost(notice.NextSurvey)); err != nil {
 		p.API.LogError("Failed to send admin notice", "err", err)
 		return
 	}
@@ -216,6 +214,13 @@ func (p *Plugin) sendAdminNoticeDM(user *model.User, notice *adminNotice) {
 
 	if err := p.KVSet(ADMIN_DM_NOTICE_KEY+user.Id, notice); err != nil {
 		p.API.LogError("Failed to save sent admin notice. Admin notice will be resent on next refresh.", "err", err)
+	}
+}
+
+func (p *Plugin) buildAdminNoticePost(nextSurvey time.Time) *model.Post {
+	return &model.Post{
+		Message: fmt.Sprintf(adminDMBody, nextSurvey.Format("January 2, 2006")),
+		Type:    "custom_nps_admin_notice",
 	}
 }
 
@@ -277,9 +282,7 @@ func (p *Plugin) sendSurveyDM(user *model.User, now time.Time) {
 	p.API.LogDebug("Sending survey DM", "user_id", user.Id)
 
 	// Send the DM
-	body := fmt.Sprintf(surveyDMBody, user.Username)
-
-	post, err := p.CreateBotDMPost(user.Id, body, "custom_nps_survey", p.buildSurveyPostProps(user.Id))
+	post, err := p.CreateBotDMPost(user.Id, p.buildSurveyPost(user))
 	if err != nil {
 		p.API.LogError("Failed to send survey", "err", err)
 		return
@@ -296,7 +299,7 @@ func (p *Plugin) sendSurveyDM(user *model.User, now time.Time) {
 	}
 }
 
-func (p *Plugin) buildSurveyPostProps(userID string) map[string]interface{} {
+func (p *Plugin) buildSurveyPost(user *model.User) *model.Post {
 	var options []*model.PostActionOptions
 	for i := 10; i >= 0; i-- {
 		text := strconv.Itoa(i)
@@ -323,12 +326,33 @@ func (p *Plugin) buildSurveyPostProps(userID string) map[string]interface{} {
 		},
 	}
 
-	return map[string]interface{}{
-		"attachments": []*model.SlackAttachment{
-			&model.SlackAttachment{
-				Title:   "How likely are you to recommend Mattermost?",
-				Actions: []*model.PostAction{action},
+	return &model.Post{
+		Message: fmt.Sprintf(surveyBody, user.Username),
+		Type: "custom_nps_survey",
+		Props: map[string]interface{}{
+			"attachments": []*model.SlackAttachment{
+				&model.SlackAttachment{
+					Title:   surveyDropdownTitle,
+					Actions: []*model.PostAction{action},
+				},
 			},
 		},
+	}
+}
+
+func (p *Plugin) buildAnsweredSurveyPost(score int) *model.Post {
+	return &model.Post{
+		Type: "custom_nps_survey",
+		Message: fmt.Sprintf(surveyAnsweredBody, score),
+		Props: map[string]interface{}{
+			"from_webhook": true, // Needs to be manually specified since this doesn't go through CreateBotDMPost
+		},
+	}
+}
+
+func (p *Plugin) buildFeedbackRequestPost(userID string) *model.Post {
+	return &model.Post{
+		Type: "custom_nps_feedback",
+		Message: feedbackRequestBody,
 	}
 }

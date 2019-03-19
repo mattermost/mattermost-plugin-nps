@@ -5,7 +5,6 @@ import (
 )
 
 const adminEmailSubject = "[%s] Net Promoter Score survey scheduled in %d days"
-
 var adminEmailBodyTemplate = template.Must(template.New("emailBody").Parse(`
 <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 20px; line-height: 1.7; color: #555;">
     <tr>
@@ -59,4 +58,8 @@ const adminDMBody = `Mattermost uses feedback surveys to measure user satisfacti
 
 *This message is only visible to System Admins.*`
 
-const surveyDMBody = `:wave: Hey @%s! Please take a few moments to help us improve your experience with Mattermost.`
+const surveyBody = ":wave: Hey @%s! Please take a few moments to help us improve your experience with Mattermost."
+const surveyDropdownTitle = "How likely are you to recommend Mattermost?"
+const surveyAnsweredBody = "You are %d out of 10 likely to recommend Mattermost."
+
+const feedbackRequestBody = "Thanks! How can we make your experience better?"
