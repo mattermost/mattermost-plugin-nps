@@ -146,8 +146,14 @@ func TestSendAdminNoticeDMs(t *testing.T) {
 	nextSurvey := time.Date(2009, time.November, 17, 23, 0, 0, 0, time.UTC)
 
 	api := &plugintest.API{}
-	api.On("KVSet", ADMIN_DM_NOTICE_KEY+admins[0].Id, []byte(`{"Sent":false,"NextSurvey":"2009-11-17T23:00:00Z"}`)).Return(nil)
-	api.On("KVSet", ADMIN_DM_NOTICE_KEY+admins[1].Id, []byte(`{"Sent":false,"NextSurvey":"2009-11-17T23:00:00Z"}`)).Return(nil)
+	api.On("KVSet", ADMIN_DM_NOTICE_KEY+admins[0].Id, mustMarshalJSON(&adminNotice{
+		Sent: false,
+		NextSurvey: nextSurvey,
+	})).Return(nil)
+	api.On("KVSet", ADMIN_DM_NOTICE_KEY+admins[1].Id, mustMarshalJSON(&adminNotice{
+		Sent: false,
+		NextSurvey: nextSurvey,
+	})).Return(nil)
 	defer api.AssertExpectations(t)
 
 	p := Plugin{}
@@ -327,7 +333,9 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 		}
 
 		api := &plugintest.API{}
-		api.On("KVGet", ADMIN_DM_NOTICE_KEY+user.Id).Return([]byte(`{"Sent":true}`), nil)
+		api.On("KVGet", ADMIN_DM_NOTICE_KEY+user.Id).Return(mustMarshalJSON(&adminNotice{
+			Sent: true,
+		}), nil)
 		defer api.AssertExpectations(t)
 
 		p := Plugin{}
@@ -347,7 +355,10 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 		nextSurvey := time.Date(2009, time.November, 17, 23, 0, 0, 0, time.UTC)
 
 		api := &plugintest.API{}
-		api.On("KVGet", ADMIN_DM_NOTICE_KEY+user.Id).Return([]byte(`{"Sent":false,"NextSurvey":"2009-11-17T23:00:00Z"}`), nil)
+		api.On("KVGet", ADMIN_DM_NOTICE_KEY+user.Id).Return(mustMarshalJSON(&adminNotice{
+			Sent: false,
+			NextSurvey: nextSurvey,
+		}), nil)
 		defer api.AssertExpectations(t)
 
 		p := Plugin{}
@@ -374,7 +385,10 @@ func TestSendAdminNoticeDM(t *testing.T) {
 		api.On("LogDebug", "Sending admin notice DM", "user_id", user.Id)
 		api.On("GetDirectChannel", user.Id, botUserId).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(nil, nil)
-		api.On("KVSet", ADMIN_DM_NOTICE_KEY+user.Id, []byte(`{"Sent":true,"NextSurvey":"2009-11-17T23:00:00Z"}`)).Return(nil)
+		api.On("KVSet", ADMIN_DM_NOTICE_KEY+user.Id, mustMarshalJSON(&adminNotice{
+			Sent: true,
+			NextSurvey: notice.NextSurvey,
+		})).Return(nil)
 		defer api.AssertExpectations(t)
 
 		p := Plugin{
@@ -429,7 +443,10 @@ func TestSendAdminNoticeDM(t *testing.T) {
 		api.On("LogDebug", "Sending admin notice DM", "user_id", user.Id)
 		api.On("GetDirectChannel", user.Id, botUserId).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(nil, nil)
-		api.On("KVSet", ADMIN_DM_NOTICE_KEY+user.Id, []byte(`{"Sent":true,"NextSurvey":"2009-11-17T23:00:00Z"}`)).Return(appErr)
+		api.On("KVSet", ADMIN_DM_NOTICE_KEY+user.Id, mustMarshalJSON(&adminNotice{
+			Sent: true,
+			NextSurvey: notice.NextSurvey,
+		})).Return(appErr)
 		api.On("LogError", mock.Anything, "err", appErr)
 		defer api.AssertExpectations(t)
 
@@ -639,7 +656,11 @@ func TestSendSurveyDM(t *testing.T) {
 		})
 		api.On("GetDirectChannel", user.Id, botUserId).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
-		api.On("KVSet", USER_SURVEY_KEY+user.Id, []byte(`{"ServerVersion":"5.10.0","SentAt":"2019-03-01T00:00:00Z","AnsweredAt":"0001-01-01T00:00:00Z","ScorePostId":"`+postID+`"}`)).Return(nil)
+		api.On("KVSet", USER_SURVEY_KEY+user.Id, mustMarshalJSON(&surveyState{
+			ServerVersion: semver.MustParse("5.10.0"),
+			SentAt: toDate(2019, 03, 01),
+			ScorePostId: postID,
+		})).Return(nil)
 		defer api.AssertExpectations(t)
 
 		p := Plugin{
@@ -705,7 +726,11 @@ func TestSendSurveyDM(t *testing.T) {
 		})
 		api.On("GetDirectChannel", user.Id, botUserId).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
-		api.On("KVSet", USER_SURVEY_KEY+user.Id, []byte(`{"ServerVersion":"5.10.0","SentAt":"2019-03-01T00:00:00Z","AnsweredAt":"0001-01-01T00:00:00Z","ScorePostId":"`+postID+`"}`)).Return(appErr)
+		api.On("KVSet", USER_SURVEY_KEY+user.Id, mustMarshalJSON(&surveyState{
+			ServerVersion: semver.MustParse("5.10.0"),
+			SentAt: toDate(2019, 03, 01),
+			ScorePostId: postID,
+		})).Return(appErr)
 		api.On("LogError", mock.Anything, "err", appErr)
 		defer api.AssertExpectations(t)
 
@@ -717,8 +742,4 @@ func TestSendSurveyDM(t *testing.T) {
 
 		p.sendSurveyDM(user, now)
 	})
-}
-
-func toDate(year int, month time.Month, day int) time.Time {
-	return time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
 }

@@ -18,7 +18,9 @@ func TestGetLastServerUpgrade(t *testing.T) {
 		p := Plugin{}
 		p.SetAPI(api)
 
-		assert.Nil(t, p.getLastServerUpgrade())
+		upgrade, err := p.getLastServerUpgrade()
+		assert.Nil(t, upgrade)
+		assert.Nil(t, err)
 	})
 
 	t.Run("something stored", func(t *testing.T) {
@@ -31,9 +33,11 @@ func TestGetLastServerUpgrade(t *testing.T) {
 		p := Plugin{}
 		p.SetAPI(api)
 
+		upgrade, err := p.getLastServerUpgrade()
 		assert.Equal(t, &serverUpgrade{
 			Version:   semver.MustParse("5.10.0"),
 			Timestamp: timestamp,
-		}, p.getLastServerUpgrade())
+		}, upgrade)
+		assert.Nil(t, err)
 	})
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -38,7 +37,7 @@ type adminNotice struct {
 // Note that this only sends an email to admins to notify them that a survey has been scheduled. The web app plugin is
 // in charge of checking and actually triggering the survey.
 func (p *Plugin) checkForNextSurvey(currentVersion semver.Version) bool {
-	lastUpgrade := p.getLastServerUpgrade()
+	lastUpgrade, _ := p.getLastServerUpgrade()
 
 	if !shouldScheduleSurvey(currentVersion, lastUpgrade) {
 		// No version change
@@ -124,17 +123,12 @@ func (p *Plugin) sendAdminNoticeEmails(admins []*model.User) {
 func (p *Plugin) sendAdminNoticeDMs(admins []*model.User, nextSurvey time.Time) {
 	// Actual DMs will be sent when the admins next log in, so just mark that they're scheduled to receive one
 	for _, admin := range admins {
-		noticeBytes, err := json.Marshal(&adminNotice{
+		err := p.KVSet(ADMIN_DM_NOTICE_KEY+admin.Id, &adminNotice{
 			Sent:       false,
 			NextSurvey: nextSurvey,
 		})
 		if err != nil {
-			p.API.LogError("Failed to encode scheduled admin notice", "err", err.Error())
-			continue
-		}
-
-		if appErr := p.API.KVSet(ADMIN_DM_NOTICE_KEY+admin.Id, noticeBytes); appErr != nil {
-			p.API.LogError("Failed to store scheduled admin notice", "err", err.Error())
+			p.API.LogError("Failed to store scheduled admin notice", "err", err)
 			continue
 		}
 	}
@@ -175,21 +169,16 @@ func (p *Plugin) checkForAdminNoticeDM(user *model.User) *adminNotice {
 		return nil
 	}
 
-	noticeBytes, appErr := p.API.KVGet(ADMIN_DM_NOTICE_KEY + user.Id)
-	if appErr != nil {
-		p.API.LogError("Failed to get scheduled admin notice", "err", appErr)
+	var notice *adminNotice
+	err := p.KVGet(ADMIN_DM_NOTICE_KEY + user.Id, &notice)
+
+	if err != nil {
+		p.API.LogError("Failed to get scheduled admin notice", "err", err)
 		return nil
 	}
 
-	if noticeBytes == nil {
+	if notice == nil {
 		// No notice stored for this user, likely because they were created after the survey was scheduled
-		return nil
-	}
-
-	var notice adminNotice
-
-	if err := json.Unmarshal(noticeBytes, &notice); err != nil {
-		p.API.LogError("Failed to decode scheduled admin notice", "err", err)
 		return nil
 	}
 
@@ -198,7 +187,7 @@ func (p *Plugin) checkForAdminNoticeDM(user *model.User) *adminNotice {
 		return nil
 	}
 
-	return &notice
+	return notice
 }
 
 func isSystemAdmin(user *model.User) bool {
@@ -217,22 +206,16 @@ func (p *Plugin) sendAdminNoticeDM(user *model.User, notice *adminNotice) {
 	// Send the DM
 	body := fmt.Sprintf(adminDMBody, notice.NextSurvey.Format("January 2, 2006"))
 
-	if _, appErr := p.CreateBotDMPost(user.Id, body, "custom_nps_admin_notice", nil); appErr != nil {
-		p.API.LogError("Failed to send admin notice", "err", appErr)
+	if _, err := p.CreateBotDMPost(user.Id, body, "custom_nps_admin_notice", nil); err != nil {
+		p.API.LogError("Failed to send admin notice", "err", err)
 		return
 	}
 
 	// Store that the DM has been sent
 	notice.Sent = true
 
-	noticeBytes, err := json.Marshal(notice)
-	if err != nil {
-		p.API.LogError("Failed to encode sent admin notice. Admin notice will be resent on next refresh.", "err", err.Error())
-		return
-	}
-
-	if appErr := p.API.KVSet(ADMIN_DM_NOTICE_KEY+user.Id, noticeBytes); appErr != nil {
-		p.API.LogError("Failed to save sent admin notice. Admin notice will be resent on next refresh.", "err", appErr)
+	if err := p.KVSet(ADMIN_DM_NOTICE_KEY+user.Id, notice); err != nil {
+		p.API.LogError("Failed to save sent admin notice. Admin notice will be resent on next refresh.", "err", err)
 	}
 }
 
@@ -245,8 +228,8 @@ type surveyState struct {
 
 func (p *Plugin) shouldSendSurveyDM(user *model.User, now time.Time) bool {
 	// Only send the survey once it has been 21 days since the last upgrade
-	lastUpgrade := p.getLastServerUpgrade()
-	if lastUpgrade == nil {
+	lastUpgrade, err := p.getLastServerUpgrade()
+	if lastUpgrade == nil || err != nil {
 		p.API.LogError("Failed to get date of last upgrade")
 		return false
 	}
@@ -261,46 +244,33 @@ func (p *Plugin) shouldSendSurveyDM(user *model.User, now time.Time) bool {
 	}
 
 	// And that it has been long enough since the survey last occurred
-	info, err := p.getUserSurveyState(user.Id)
-	if err != nil {
+	var state *surveyState
+	if err := p.KVGet(USER_SURVEY_KEY + user.Id, &state); err != nil {
 		p.API.LogError("Failed to get user survey state", "err", err)
 		return false
 	}
 
-	if info.ServerVersion.Major == p.serverVersion.Major && info.ServerVersion.Minor == p.serverVersion.Minor {
+	if state == nil {
+		// The user hasn't answered a survey before
+		return true
+	}
+
+	if state.ServerVersion.Major == p.serverVersion.Major && state.ServerVersion.Minor == p.serverVersion.Minor {
 		// Last survey occurred on the current version
 		return false
 	}
 
-	if now.Sub(info.SentAt) < MIN_DAYS_BETWEEN_USER_SURVEYS*24*time.Hour {
+	if now.Sub(state.SentAt) < MIN_DAYS_BETWEEN_USER_SURVEYS*24*time.Hour {
 		// Not enough time since last survey was sent
 		return false
 	}
 
-	if now.Sub(info.AnsweredAt) < MIN_DAYS_BETWEEN_USER_SURVEYS*24*time.Hour {
+	if now.Sub(state.AnsweredAt) < MIN_DAYS_BETWEEN_USER_SURVEYS*24*time.Hour {
 		// Not enough time since last survey was completed
 		return false
 	}
 
 	return true
-}
-
-func (p *Plugin) getUserSurveyState(userID string) (*surveyState, *model.AppError) {
-	b, appErr := p.API.KVGet(USER_SURVEY_KEY + userID)
-	if appErr != nil {
-		return nil, appErr
-	} else if b == nil {
-		return &surveyState{}, nil
-	}
-
-	var state surveyState
-
-	err := json.Unmarshal(b, &state)
-	if err != nil {
-		return nil, &model.AppError{Message: err.Error()}
-	}
-
-	return &state, nil
 }
 
 func (p *Plugin) sendSurveyDM(user *model.User, now time.Time) {
@@ -309,27 +279,20 @@ func (p *Plugin) sendSurveyDM(user *model.User, now time.Time) {
 	// Send the DM
 	body := fmt.Sprintf(surveyDMBody, user.Username)
 
-	post, appErr := p.CreateBotDMPost(user.Id, body, "custom_nps_survey", p.buildSurveyPostProps(user.Id))
-	if appErr != nil {
-		p.API.LogError("Failed to send survey", "err", appErr)
+	post, err := p.CreateBotDMPost(user.Id, body, "custom_nps_survey", p.buildSurveyPostProps(user.Id))
+	if err != nil {
+		p.API.LogError("Failed to send survey", "err", err)
 		return
 	}
 
 	// Store that the survey has been sent
-	state := &surveyState{
+	err = p.KVSet(USER_SURVEY_KEY+user.Id, &surveyState{
 		ServerVersion: p.serverVersion,
 		SentAt:        now,
 		ScorePostId:   post.Id,
-	}
-
-	b, err := json.Marshal(state)
+	})
 	if err != nil {
-		p.API.LogError("Failed to encode sent survey state. Survey will be resent on next refresh.", "err", err.Error())
-		return
-	}
-
-	if appErr := p.API.KVSet(USER_SURVEY_KEY+user.Id, b); appErr != nil {
-		p.API.LogError("Failed to save sent survey state. Survey will be resent on next refresh.", "err", appErr)
+		p.API.LogError("Failed to save sent survey state. Survey will be resent on next refresh.", "err", err)
 	}
 }
 

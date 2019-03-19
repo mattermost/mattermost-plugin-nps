@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/blang/semver"
@@ -13,27 +12,13 @@ type serverUpgrade struct {
 	Timestamp time.Time
 }
 
-func (p *Plugin) getLastServerUpgrade() *serverUpgrade {
-	upgradeBytes, appErr := p.API.KVGet(SERVER_UPGRADE_KEY)
-	if appErr != nil || upgradeBytes == nil {
-		return nil
-	}
+func (p *Plugin) getLastServerUpgrade() (*serverUpgrade, *model.AppError) {
+	var upgrade *serverUpgrade
+	err := p.KVGet(SERVER_UPGRADE_KEY, &upgrade)
 
-	var upgrade serverUpgrade
-
-	err := json.Unmarshal(upgradeBytes, &upgrade)
-	if err != nil {
-		return nil
-	}
-
-	return &upgrade
+	return upgrade, err
 }
 
 func (p *Plugin) storeServerUpgrade(upgrade *serverUpgrade) *model.AppError {
-	upgradeBytes, err := json.Marshal(upgrade)
-	if err != nil {
-		return &model.AppError{Message: err.Error()}
-	}
-
-	return p.API.KVSet(SERVER_UPGRADE_KEY, upgradeBytes)
+	return p.KVSet(SERVER_UPGRADE_KEY, upgrade)
 }
