@@ -628,6 +628,7 @@ func TestSendSurveyDM(t *testing.T) {
 			Username: "testuser",
 		}
 		now := toDate(2019, time.March, 1)
+		postID := model.NewId()
 
 		api := &plugintest.API{}
 		api.On("LogDebug", "Sending survey DM", "user_id", user.Id)
@@ -637,8 +638,8 @@ func TestSendSurveyDM(t *testing.T) {
 			},
 		})
 		api.On("GetDirectChannel", user.Id, botUserId).Return(&model.Channel{}, nil)
-		api.On("CreatePost", mock.Anything).Return(nil, nil)
-		api.On("KVSet", USER_SURVEY_KEY+user.Id, []byte(`{"ServerVersion":"5.10.0","SentAt":"2019-03-01T00:00:00Z","AnsweredAt":"0001-01-01T00:00:00Z"}`)).Return(nil)
+		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
+		api.On("KVSet", USER_SURVEY_KEY+user.Id, []byte(`{"ServerVersion":"5.10.0","SentAt":"2019-03-01T00:00:00Z","AnsweredAt":"0001-01-01T00:00:00Z","ScorePostId":"`+postID+`"}`)).Return(nil)
 		defer api.AssertExpectations(t)
 
 		p := Plugin{
@@ -691,6 +692,7 @@ func TestSendSurveyDM(t *testing.T) {
 			Username: "testuser",
 		}
 		now := toDate(2019, time.March, 1)
+		postID := model.NewId()
 
 		appErr := &model.AppError{}
 
@@ -702,8 +704,8 @@ func TestSendSurveyDM(t *testing.T) {
 			},
 		})
 		api.On("GetDirectChannel", user.Id, botUserId).Return(&model.Channel{}, nil)
-		api.On("CreatePost", mock.Anything).Return(nil, nil)
-		api.On("KVSet", USER_SURVEY_KEY+user.Id, []byte(`{"ServerVersion":"5.10.0","SentAt":"2019-03-01T00:00:00Z","AnsweredAt":"0001-01-01T00:00:00Z"}`)).Return(appErr)
+		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
+		api.On("KVSet", USER_SURVEY_KEY+user.Id, []byte(`{"ServerVersion":"5.10.0","SentAt":"2019-03-01T00:00:00Z","AnsweredAt":"0001-01-01T00:00:00Z","ScorePostId":"`+postID+`"}`)).Return(appErr)
 		api.On("LogError", mock.Anything, "err", appErr)
 		defer api.AssertExpectations(t)
 

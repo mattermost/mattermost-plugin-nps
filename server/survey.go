@@ -217,7 +217,7 @@ func (p *Plugin) sendAdminNoticeDM(user *model.User, notice *adminNotice) {
 	// Send the DM
 	body := fmt.Sprintf(adminDMBody, notice.NextSurvey.Format("January 2, 2006"))
 
-	if appErr := p.CreateBotDMPost(user.Id, body, "custom_nps_admin_notice", nil); appErr != nil {
+	if _, appErr := p.CreateBotDMPost(user.Id, body, "custom_nps_admin_notice", nil); appErr != nil {
 		p.API.LogError("Failed to send admin notice", "err", appErr)
 		return
 	}
@@ -237,9 +237,10 @@ func (p *Plugin) sendAdminNoticeDM(user *model.User, notice *adminNotice) {
 }
 
 type surveyState struct {
-	ServerVersion semver.Version
-	SentAt        time.Time
-	AnsweredAt    time.Time
+	ServerVersion  semver.Version
+	SentAt         time.Time
+	AnsweredAt     time.Time
+	ScorePostId    string
 }
 
 func (p *Plugin) shouldSendSurveyDM(user *model.User, now time.Time) bool {
@@ -308,7 +309,8 @@ func (p *Plugin) sendSurveyDM(user *model.User, now time.Time) {
 	// Send the DM
 	body := fmt.Sprintf(surveyDMBody, user.Username)
 
-	if appErr := p.CreateBotDMPost(user.Id, body, "custom_nps_survey", p.buildSurveyPostProps(user.Id)); appErr != nil {
+	post, appErr := p.CreateBotDMPost(user.Id, body, "custom_nps_survey", p.buildSurveyPostProps(user.Id))
+	if appErr != nil {
 		p.API.LogError("Failed to send survey", "err", appErr)
 		return
 	}
@@ -317,6 +319,7 @@ func (p *Plugin) sendSurveyDM(user *model.User, now time.Time) {
 	state := &surveyState{
 		ServerVersion: p.serverVersion,
 		SentAt:        now,
+		ScorePostId:   post.Id,
 	}
 
 	b, err := json.Marshal(state)

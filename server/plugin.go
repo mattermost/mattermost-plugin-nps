@@ -35,11 +35,11 @@ type Plugin struct {
 	connectedLock sync.Mutex
 }
 
-func (p *Plugin) CreateBotDMPost(userID, message, postType string, props map[string]interface{}) *model.AppError {
+func (p *Plugin) CreateBotDMPost(userID, message, postType string, props map[string]interface{}) (*model.Post, *model.AppError) {
 	channel, err := p.API.GetDirectChannel(userID, p.botUserId)
 	if err != nil {
 		p.API.LogError("Couldn't get bot's DM channel", "user_id", userID, "err", err)
-		return err
+		return nil, err
 	}
 
 	if props == nil {
@@ -47,18 +47,17 @@ func (p *Plugin) CreateBotDMPost(userID, message, postType string, props map[str
 	}
 	props["from_webhook"] = true
 
-	post := &model.Post{
+	post, err := p.API.CreatePost(&model.Post{
 		UserId:    p.botUserId,
 		ChannelId: channel.Id,
 		Message:   message,
 		Type:      postType,
 		Props:     props,
-	}
-
-	if _, err := p.API.CreatePost(post); err != nil {
+	})
+	if err != nil {
 		p.API.LogError("Couldn't send bot DM", "user_id", userID, "err", err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return post, nil
 }
