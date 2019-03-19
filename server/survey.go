@@ -319,7 +319,7 @@ func (p *Plugin) buildSurveyPostProps(userID string) map[string]interface{} {
 		Type:    model.POST_ACTION_TYPE_SELECT,
 		Options: options,
 		Integration: &model.PostActionIntegration{
-			URL: fmt.Sprintf("%s/plugins/%s/api/v1/score/%s", siteURL, manifest.Id, userID),
+			URL: fmt.Sprintf("%s/plugins/%s/api/v1/score", siteURL, manifest.Id),
 		},
 	}
 

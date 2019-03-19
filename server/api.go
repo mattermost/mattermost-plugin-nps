@@ -21,7 +21,7 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 			Handler: p.userConnected,
 		},
 		{
-			Path:    "/api/v1/score/9tq3aohzpfg5prbxzyqrhjc7ih",
+			Path:    "/api/v1/score",
 			Method:  http.MethodPost,
 			Handler: p.submitScore,
 		},
