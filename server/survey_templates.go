@@ -5,6 +5,7 @@ import (
 )
 
 const adminEmailSubject = "[%s] Net Promoter Score survey scheduled in %d days"
+
 var adminEmailBodyTemplate = template.Must(template.New("emailBody").Parse(`
 <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 20px; line-height: 1.7; color: #555;">
     <tr>
