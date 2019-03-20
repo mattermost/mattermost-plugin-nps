@@ -45,7 +45,7 @@ func (p *Plugin) checkForNextSurvey(currentVersion semver.Version) bool {
 		return false
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	nextSurvey := now.Add(DAYS_UNTIL_SURVEY * 24 * time.Hour)
 
 	if lastUpgrade == nil {
