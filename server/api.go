@@ -53,16 +53,25 @@ func (p *Plugin) userConnected(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err := p.checkForDMs(userID)
+	if err != nil {
+		p.API.LogError("Failed to check for user notifications", "user_id", userID, "err", err)
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (p *Plugin) checkForDMs(userID string) *model.AppError {
 	p.connectedLock.Lock()
 	defer p.connectedLock.Unlock()
 
 	if p.canSendDiagnostics() {
 		user, err := p.API.GetUser(userID)
 		if err != nil {
-			p.API.LogError("Failed to get user", "user_id", userID, "err", err)
-
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+			return err
 		}
 
 		now := time.Now()
@@ -76,7 +85,7 @@ func (p *Plugin) userConnected(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.WriteHeader(http.StatusOK)
+	return nil
 }
 
 /*

@@ -50,3 +50,9 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 		p.API.LogError("Failed to respond to Surveybot feedback")
 	}
 }
+
+func (p *Plugin) UserHasLoggedIn(c *plugin.Context, user *model.User) {
+	if err := p.checkForDMs(user.Id); err != nil {
+		p.API.LogError("Failed to check for user notifications on login", "user_id", user.Id, "err", err)
+	}
+}
