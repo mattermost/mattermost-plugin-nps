@@ -21,7 +21,7 @@ func (p *Plugin) CreateBotDMPost(userID string, post *model.Post) (*model.Post, 
 	if post.Props == nil {
 		post.Props = make(map[string]interface{})
 	}
-	post.Props["from_webhook"] = true
+	post.Props["from_webhook"] = "true"
 
 	created, err := p.API.CreatePost(post)
 	if err != nil {
