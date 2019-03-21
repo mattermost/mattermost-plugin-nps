@@ -72,6 +72,12 @@ func (p *Plugin) ensureBotExists() error {
 			return err
 		}
 
+		// Give it a profile picture
+		err = p.API.SetProfileImage(bot.UserId, profileImage)
+		if err != nil {
+			p.API.LogError("Failed to set profile image for bot", "err", err)
+		}
+
 		p.API.LogDebug("Bot created for NPS plugin")
 
 		// Save the bot ID
