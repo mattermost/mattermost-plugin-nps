@@ -356,3 +356,14 @@ func (p *Plugin) buildFeedbackRequestPost(userID string) *model.Post {
 		Message: feedbackRequestBody,
 	}
 }
+
+func (p *Plugin) markSurveyAnswered(userID string, now time.Time) *model.AppError {
+	var state *surveyState
+	if err := p.KVGet(USER_SURVEY_KEY+userID, &state); err != nil {
+		return err
+	}
+
+	state.AnsweredAt = now
+
+	return p.KVSet(USER_SURVEY_KEY+userID, &state)
+}
