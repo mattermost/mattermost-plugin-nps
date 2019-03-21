@@ -5,32 +5,29 @@ import {getUser} from 'mattermost-redux/selectors/entities/users';
 import * as Actions from './actions';
 
 export default class Hooks {
-	constructor(store) {
-		this.store = store;
-	}
+    constructor(store) {
+        this.store = store;
+    }
 
-	messageWillBePosted = (post) => {
-		const channel = makeGetChannel()(store.getState(), {id: post.channel_id});
+    messageWillBePosted = (post) => {
+        const channel = makeGetChannel()(this.store.getState(), {id: post.channel_id});
 
-		if (channel.type !== General.DM_CHANNEL) {
-			console.log('not dm chanel', channel);
-			return Promise.resolve({post});
-		}
+        if (channel.type !== General.DM_CHANNEL) {
+            return Promise.resolve({post});
+        }
 
-		// makeGetChannel passes the channel through completeDirectChannelInfo, so it has extra data that helps here
-		const teammate = getUser(store.getState(), channel.teammate_id);
+        // makeGetChannel passes the channel through completeDirectChannelInfo, so it has extra data that helps here
+        const teammate = getUser(this.store.getState(), channel.teammate_id);
 
-		if (teammate.username !== 'surveybot') {
-			console.log('not surveybot', teammate);
-			return Promise.resolve({post});
-		}
+        if (teammate.username !== 'surveybot') {
+            return Promise.resolve({post});
+        }
 
-		return new Promise((resolve) => {
-			console.log('showing');
-			const onConfirm = () => resolve({post});
-			const onCancel = () => resolve({error: {message: 'error'}}); // TODO write an actual error
+        return new Promise((resolve) => {
+            const onConfirm = () => resolve({post});
+            const onCancel = () => resolve({error: {message: 'Feedback not sent.'}});
 
-			this.store.dispatch(Actions.showConfirmationModal(onConfirm, onCancel));
-		});
-	}
+            this.store.dispatch(Actions.showConfirmationModal(onConfirm, onCancel));
+        });
+    }
 }
