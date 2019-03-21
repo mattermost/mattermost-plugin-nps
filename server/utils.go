@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/mattermost/mattermost-server/model"
@@ -55,6 +56,18 @@ func (p *Plugin) KVSet(key string, v interface{}) *model.AppError {
 	}
 
 	return p.API.KVSet(key, data)
+}
+
+func (p *Plugin) isBotDMChannel(channel *model.Channel) bool {
+	if channel.Type != model.CHANNEL_DIRECT {
+		return false
+	}
+
+	if !strings.HasPrefix(channel.Name, p.botUserId+"__") && !strings.HasSuffix(channel.Name, "__"+p.botUserId) {
+		return false
+	}
+
+	return true
 }
 
 // Test helper functions
