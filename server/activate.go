@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/blang/semver"
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/pkg/errors"
@@ -20,8 +22,9 @@ func (p *Plugin) OnActivate() error {
 	p.API.LogDebug("Activating NPS plugin")
 
 	if !p.canSendDiagnostics() {
-		p.API.LogDebug("Not activating NPS plugin because diagnostics are disabled")
-		return nil
+		errMsg := "Not activating NPS plugin because diagnostics are disabled"
+		p.API.LogError(errMsg)
+		return fmt.Errorf(errMsg)
 	}
 
 	if serverVersion, err := semver.Parse(p.API.GetServerVersion()); err != nil {
