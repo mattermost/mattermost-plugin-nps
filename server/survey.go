@@ -340,17 +340,23 @@ func (p *Plugin) buildSurveyPost(user *model.User) *model.Post {
 	}
 }
 
-func (p *Plugin) buildAnsweredSurveyPost(score int) *model.Post {
+func (p *Plugin) buildAnsweredSurveyPost(user *model.User, score int) *model.Post {
 	return &model.Post{
 		Type:    "custom_nps_survey",
-		Message: fmt.Sprintf(surveyAnsweredBody, score),
+		Message: fmt.Sprintf(surveyBody, user.Username),
 		Props: map[string]interface{}{
+			"attachments": []*model.SlackAttachment{
+				{
+					Title: surveyDropdownTitle,
+					Text:  fmt.Sprintf(surveyAnsweredBody, score),
+				},
+			},
 			"from_webhook": true, // Needs to be manually specified since this doesn't go through CreateBotDMPost
 		},
 	}
 }
 
-func (p *Plugin) buildFeedbackRequestPost(userID string) *model.Post {
+func (p *Plugin) buildFeedbackRequestPost() *model.Post {
 	return &model.Post{
 		Type:    "custom_nps_feedback",
 		Message: feedbackRequestBody,
