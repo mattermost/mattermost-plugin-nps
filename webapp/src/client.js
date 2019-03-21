@@ -4,11 +4,22 @@ export class Client {
     }
 
     connected = () => {
-        fetch(`${this.url}/connected`, {
+        return this.doFetch(`${this.url}/connected`, {
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
             },
         });
+    }
+
+    doFetch = async (url, options) => {
+        try {
+            const response = await fetch(url, options);
+            const data = await response.json();
+
+            return {data};
+        } catch (error) {
+            return {error};
+        }
     }
 }

@@ -79,20 +79,6 @@ func (p *Plugin) userConnected(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-/*
-Sample:
-{
-	"user_id":"9tq3aohzpfg5prbxzyqrhjc7ih",
-	"channel_id":"f89d7gu1wi8gpp31qycjsxjb7w",
-	"team_id":"",
-	"post_id":"cjrfd9341ir3jk8miq1hk7uwny",
-	"trigger_id":"cXM2cHQzNWsxcGZkaWpqbmJ6dXJ3NHp0cWM6OXRxM2FvaHpwZmc1cHJieHp5cXJoamM3aWg6MTU1MjkzODY2MTc2ODpNRVlDSVFEUFpsbXpjcno4V3c5UVY5dVNJeFcwaXU3OXhhUXpvSkxLcDRYWHJmZGxmQUloQUpWOS9wQU5VQ1ZBRUw2eU5XMVFseDljYloycUgwMkRHczd2bm9sdzBmSTc=",
-	"type":"select",
-	"data_source":"",
-	"context":{"selected_option":"2"}
-}
-*/
-
 func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("Mattermost-User-ID")
 	if userID == "" {
