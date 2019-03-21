@@ -23,7 +23,8 @@
     "eslint-plugin-import": "^2.13.0",
     "eslint-plugin-react": "^7.10.0",
     "webpack": "^4.16.1",
-    "webpack-cli": "^3.0.8"
+    "webpack-cli": "^3.0.8",
+    "lodash": ">=4.17.11"
   },
   "dependencies": {
     "react": "16.4.1",

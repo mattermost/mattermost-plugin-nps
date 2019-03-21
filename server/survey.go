@@ -45,7 +45,7 @@ func (p *Plugin) checkForNextSurvey(currentVersion semver.Version) bool {
 		return false
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	nextSurvey := now.Add(DAYS_UNTIL_SURVEY * 24 * time.Hour)
 
 	if lastUpgrade == nil {
@@ -170,7 +170,7 @@ func (p *Plugin) checkForAdminNoticeDM(user *model.User) *adminNotice {
 	}
 
 	var notice *adminNotice
-	err := p.KVGet(ADMIN_DM_NOTICE_KEY + user.Id, &notice)
+	err := p.KVGet(ADMIN_DM_NOTICE_KEY+user.Id, &notice)
 
 	if err != nil {
 		p.API.LogError("Failed to get scheduled admin notice", "err", err)
@@ -225,10 +225,10 @@ func (p *Plugin) buildAdminNoticePost(nextSurvey time.Time) *model.Post {
 }
 
 type surveyState struct {
-	ServerVersion  semver.Version
-	SentAt         time.Time
-	AnsweredAt     time.Time
-	ScorePostId    string
+	ServerVersion semver.Version
+	SentAt        time.Time
+	AnsweredAt    time.Time
+	ScorePostId   string
 }
 
 func (p *Plugin) shouldSendSurveyDM(user *model.User, now time.Time) bool {
@@ -250,7 +250,7 @@ func (p *Plugin) shouldSendSurveyDM(user *model.User, now time.Time) bool {
 
 	// And that it has been long enough since the survey last occurred
 	var state *surveyState
-	if err := p.KVGet(USER_SURVEY_KEY + user.Id, &state); err != nil {
+	if err := p.KVGet(USER_SURVEY_KEY+user.Id, &state); err != nil {
 		p.API.LogError("Failed to get user survey state", "err", err)
 		return false
 	}
@@ -328,10 +328,10 @@ func (p *Plugin) buildSurveyPost(user *model.User) *model.Post {
 
 	return &model.Post{
 		Message: fmt.Sprintf(surveyBody, user.Username),
-		Type: "custom_nps_survey",
+		Type:    "custom_nps_survey",
 		Props: map[string]interface{}{
 			"attachments": []*model.SlackAttachment{
-				&model.SlackAttachment{
+				{
 					Title:   surveyDropdownTitle,
 					Actions: []*model.PostAction{action},
 				},
@@ -342,7 +342,7 @@ func (p *Plugin) buildSurveyPost(user *model.User) *model.Post {
 
 func (p *Plugin) buildAnsweredSurveyPost(score int) *model.Post {
 	return &model.Post{
-		Type: "custom_nps_survey",
+		Type:    "custom_nps_survey",
 		Message: fmt.Sprintf(surveyAnsweredBody, score),
 		Props: map[string]interface{}{
 			"from_webhook": true, // Needs to be manually specified since this doesn't go through CreateBotDMPost
@@ -352,7 +352,7 @@ func (p *Plugin) buildAnsweredSurveyPost(score int) *model.Post {
 
 func (p *Plugin) buildFeedbackRequestPost(userID string) *model.Post {
 	return &model.Post{
-		Type: "custom_nps_feedback",
+		Type:    "custom_nps_feedback",
 		Message: feedbackRequestBody,
 	}
 }

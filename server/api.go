@@ -134,7 +134,7 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 
 	p.API.LogDebug(fmt.Sprintf("Received score of %d from %s", score, r.Header.Get("Mattermost-User-ID")))
 
-	p.sendScore(score, userID, time.Now().UnixNano() / int64(time.Millisecond))
+	p.sendScore(score, userID, time.Now().UnixNano()/int64(time.Millisecond))
 
 	p.CreateBotDMPost(userID, p.buildFeedbackRequestPost(userID))
 
