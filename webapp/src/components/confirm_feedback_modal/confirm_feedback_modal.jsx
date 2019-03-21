@@ -37,7 +37,7 @@ export default class ConfirmFeedbackModal extends React.PureComponent {
                     <Modal.Title>{'Send Feedback'}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    {'You are about to send feedback about Mattermost. Is that correct?'}
+                    {'You are about to send feedback about Mattermost. Are you sure?'}
                 </Modal.Body>
                 <Modal.Footer>
                     <button
