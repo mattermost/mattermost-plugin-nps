@@ -330,9 +330,11 @@ func (p *Plugin) buildSurveyPost(user *model.User) *model.Post {
 		Message: fmt.Sprintf(surveyBody, user.Username),
 		Type:    "custom_nps_survey",
 		Props: map[string]interface{}{
-			"attachments": &model.SlackAttachment{
-				Title:   surveyDropdownTitle,
-				Actions: []*model.PostAction{action},
+			"attachments": []*model.SlackAttachment{
+				{
+					Title:   surveyDropdownTitle,
+					Actions: []*model.PostAction{action},
+				},
 			},
 		},
 	}
