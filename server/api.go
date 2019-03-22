@@ -119,6 +119,14 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user, err := p.API.GetUser(userID)
+	if err != nil {
+		p.API.LogError("Failed to get user", "user_id", userID, "err", err)
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	var score int
 	if i, err := strconv.ParseInt(surveyResponse.Context["selected_option"].(string), 10, 0); err != nil {
 		p.API.LogError("Score response contains invalid score")
@@ -142,11 +150,11 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 		p.API.LogWarn("Failed to mark survey as answered", "err", err)
 	}
 
-	p.CreateBotDMPost(userID, p.buildFeedbackRequestPost(userID))
+	p.CreateBotDMPost(userID, p.buildFeedbackRequestPost())
 
 	// Send response to update score post
 	response := model.PostActionIntegrationResponse{
-		Update: p.buildAnsweredSurveyPost(score),
+		Update: p.buildAnsweredSurveyPost(user, score),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
