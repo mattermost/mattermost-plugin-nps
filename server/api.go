@@ -134,7 +134,13 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 
 	p.API.LogDebug(fmt.Sprintf("Received score of %d from %s", score, r.Header.Get("Mattermost-User-ID")))
 
-	p.sendScore(score, userID, time.Now().UnixNano()/int64(time.Millisecond))
+	now := time.Now().UTC()
+
+	p.sendScore(score, userID, now.UnixNano()/int64(time.Millisecond))
+
+	if err := p.markSurveyAnswered(userID, now); err != nil {
+		p.API.LogWarn("Failed to mark survey as answered", "err", err)
+	}
 
 	p.CreateBotDMPost(userID, p.buildFeedbackRequestPost(userID))
 
