@@ -19,6 +19,10 @@ func (p *Plugin) ChannelHasBeenCreated(c *plugin.Context, channel *model.Channel
 }
 
 func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
+	if !p.canSendDiagnostics() {
+		return
+	}
+
 	if post.UserId == p.botUserId {
 		return
 	}
@@ -31,10 +35,6 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 	}
 
 	if !p.isBotDMChannel(channel) {
-		return
-	}
-
-	if !p.canSendDiagnostics() {
 		return
 	}
 
