@@ -55,7 +55,7 @@ var adminEmailBodyTemplate = template.Must(template.New("emailBody").Parse(`
 
 const adminDMBody = `Mattermost uses feedback surveys to measure user satisfaction and improve product quality. User surveys will start to be sent on %s.
 
-[Click here](/admin_console/admin_console/plugins/custom/com.mattermost.nps) to disable or learn more about Net Promoter Score Surveys.
+[Click here](/admin_console/plugins/custom/com.mattermost.nps) to disable or learn more about Net Promoter Score Surveys.
 
 *This message is only visible to System Admins.*`
 
