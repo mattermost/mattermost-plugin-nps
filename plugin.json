@@ -3,7 +3,6 @@
     "name": "Net Promoter Score",
     "description": "This plugin sends Net Promoter Score surveys to gather user feedback on Mattermost.",
     "version": "0.0.1",
-    "min_server_version": "5.10.0",
     "server": {
         "executables": {
             "linux-amd64": "server/dist/plugin-linux-amd64",
