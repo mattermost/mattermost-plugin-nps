@@ -40,6 +40,8 @@ func (p *Plugin) OnActivate() error {
 
 	p.initializeClient()
 
+	p.registerCommands()
+
 	p.API.LogDebug("NPS plugin activated")
 
 	p.checkForNextSurvey(p.serverVersion)
