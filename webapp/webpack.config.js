@@ -30,9 +30,12 @@ module.exports = {
         ],
     },
     externals: {
+        'prop-types': 'PropTypes',
         react: 'React',
-        redux: 'Redux',
+        'react-bootstrap': 'ReactBootstrap',
+        'react-dom': 'ReactDOM',
         'react-redux': 'ReactRedux',
+        redux: 'Redux',
     },
     output: {
         path: path.join(__dirname, '/dist'),
