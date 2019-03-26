@@ -66,7 +66,7 @@ func (p *Plugin) executeTestCommand(action string, args []string) (*model.Comman
 	if action == "" {
 		return &model.CommandResponse{
 			ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL,
-			Text:         fmt.Sprintf("Unknown action %s specified.", action),
+			Text:         "No action specified.",
 		}, nil
 	}
 
@@ -79,7 +79,7 @@ func (p *Plugin) executeTestCommand(action string, args []string) (*model.Comman
 	if !ok {
 		return &model.CommandResponse{
 			ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL,
-			Text:         "Incorrect action specified.",
+			Text:         fmt.Sprintf("Unknown action %s specified.", action),
 		}, nil
 	}
 
