@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/blang/semver"
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/pkg/errors"
