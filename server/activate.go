@@ -66,7 +66,7 @@ func (p *Plugin) ensureBotExists() error {
 		bot, err := p.API.CreateBot(&model.Bot{
 			Username:    "surveybot",
 			DisplayName: "Surveybot",
-			Description: "Created by the Net Promoter Score plugin.",
+			Description: SURVEYBOT_DESCRIPTION,
 		})
 		if err != nil {
 			return err
