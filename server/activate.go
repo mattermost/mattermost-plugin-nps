@@ -24,7 +24,7 @@ func (p *Plugin) OnActivate() error {
 	if !p.canSendDiagnostics() {
 		errMsg := "Not activating NPS plugin because diagnostics are disabled"
 		p.API.LogError(errMsg)
-		return fmt.Errorf(errMsg)
+		return errors.New(errMsg)
 	}
 
 	if serverVersion, err := semver.Parse(p.API.GetServerVersion()); err != nil {
