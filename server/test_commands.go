@@ -66,7 +66,7 @@ func (p *Plugin) executeTestCommand(action string, args []string) (*model.Comman
 	if action == "" {
 		return &model.CommandResponse{
 			ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL,
-			Text:         "No action specified.",
+			Text:         fmt.Sprintf("Unknown action %s specified.", action),
 		}, nil
 	}
 
@@ -105,7 +105,7 @@ func (p *Plugin) executeTestResetCommand(args []string) (*model.CommandResponse,
 
 	return &model.CommandResponse{
 		ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL,
-		Text:         "NPS plugin reset. Please re-enable it from the system console to continue testing.",
+		Text:         "NPS plugin reset. Please disable and re-enable it from the system console to continue testing.",
 	}, nil
 }
 
@@ -117,11 +117,24 @@ func (p *Plugin) executeTestVersionCommand(args []string) (*model.CommandRespons
 		}, nil
 	}
 
-	version := semver.MustParse(args[0])
+	version, err := semver.Parse(args[0])
+	if err != nil {
+		return &model.CommandResponse{
+			ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL,
+			Text:         fmt.Sprintf("Invalid version %s specified.", args[0]),
+		}, nil
+	}
 
 	var timestamp time.Time
 	if len(args) == 2 {
-		t, _ := strconv.ParseInt(args[1], 10, 64)
+		t, err := strconv.ParseInt(args[1], 10, 64)
+		if err != nil {
+			return &model.CommandResponse{
+				ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL,
+				Text:         fmt.Sprintf("Invalid unix timestamp %s specified.", args[1]),
+			}, nil
+		}
+
 		timestamp = time.Unix(t, 0).UTC()
 	} else {
 		timestamp = time.Now().UTC()
