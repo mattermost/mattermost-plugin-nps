@@ -6,16 +6,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-var minimumServerVersion = semver.MustParse("5.9.0") // TODO change this to 5.10.0
-
-func checkMinimumVersion(serverVersion semver.Version) error {
-	if serverVersion.LT(minimumServerVersion) {
-		return errors.New("NPS plugin can only be ran on Mattermost 5.10.0 or higher")
-	}
-
-	return nil
-}
-
 func (p *Plugin) OnActivate() error {
 	p.API.LogDebug("Activating NPS plugin")
 
@@ -28,10 +18,6 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(err, "failed to parse server version")
 	} else {
 		p.serverVersion = serverVersion
-	}
-
-	if err := checkMinimumVersion(p.serverVersion); err != nil {
-		return errors.Wrap(err, "failed to check minimum server version")
 	}
 
 	if err := p.ensureBotExists(); err != nil {
