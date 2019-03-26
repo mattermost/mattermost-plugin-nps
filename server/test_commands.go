@@ -95,14 +95,6 @@ func (p *Plugin) executeTestResetCommand(args []string) (*model.CommandResponse,
 		}, nil
 	}
 
-	if err := p.API.KVSet(BOT_USER_KEY, []byte(p.botUserId)); err != nil {
-		p.API.LogError("Failed to restore bot user ID after resetting plugin state", "err", err)
-		return &model.CommandResponse{
-			ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL,
-			Text:         "Failed to re-add bot user ID after resetting plugin state. This will likely render the plugin inoperable. See log for more details.",
-		}, nil
-	}
-
 	return &model.CommandResponse{
 		ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL,
 		Text:         "NPS plugin reset. Please disable and re-enable it from the system console to continue testing.",
