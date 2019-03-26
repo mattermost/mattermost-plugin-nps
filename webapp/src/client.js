@@ -1,6 +1,8 @@
+import {id as pluginId} from './manifest';
+
 export class Client {
     constructor() {
-        this.url = '/plugins/com.mattermost.nps/api/v1';
+        this.url = `/plugins/${pluginId}/api/v1`;
     }
 
     connected = () => {
