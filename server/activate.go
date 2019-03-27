@@ -32,11 +32,26 @@ func (p *Plugin) OnActivate() error {
 
 	p.registerCommands()
 
+	p.setActivated(true)
 	p.API.LogDebug("NPS plugin activated")
 
 	p.checkForNextSurvey(p.serverVersion)
 
 	return nil
+}
+
+func (p *Plugin) setActivated(activated bool) {
+	p.activatedLock.Lock()
+	defer p.activatedLock.Unlock()
+
+	p.activated = activated
+}
+
+func (p *Plugin) isActivated() bool {
+	p.activatedLock.RLock()
+	defer p.activatedLock.RUnlock()
+
+	return p.activated
 }
 
 func (p *Plugin) canSendDiagnostics() bool {

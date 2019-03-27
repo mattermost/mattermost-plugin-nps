@@ -18,7 +18,7 @@ import (
 // If you add non-reference types to your configuration struct, be sure to rewrite Clone as a deep
 // copy appropriate for your types.
 type configuration struct {
-	Enable bool
+	EnableSurvey bool
 }
 
 // Clone shallow copies the configuration. Your implementation may require a deep copy if
@@ -71,6 +71,8 @@ func (p *Plugin) setConfiguration(configuration *configuration) {
 
 // OnConfigurationChange is invoked when configuration changes may have been made.
 func (p *Plugin) OnConfigurationChange() error {
+	oldConfiguration := p.getConfiguration()
+
 	var configuration = new(configuration)
 
 	// Load the public configuration fields from the Mattermost server configuration.
@@ -79,6 +81,13 @@ func (p *Plugin) OnConfigurationChange() error {
 	}
 
 	p.setConfiguration(configuration)
+
+	if p.isActivated() {
+		if configuration.EnableSurvey && !oldConfiguration.EnableSurvey {
+			// Check if a survey needs to be sent when the survey is enabled
+			p.checkForNextSurvey(p.serverVersion)
+		}
+	}
 
 	return nil
 }

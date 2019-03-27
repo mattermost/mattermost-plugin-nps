@@ -20,18 +20,19 @@ const (
 type Plugin struct {
 	plugin.MattermostPlugin
 
-	// configurationLock synchronizes access to the configuration.
 	configurationLock sync.RWMutex
+	configuration     *configuration
 
-	// configuration is the active plugin configuration. Consult getConfiguration and
-	// setConfiguration for usage.
-	configuration *configuration
+	activatedLock sync.RWMutex
+	activated     bool
+
+	surveyLock sync.Mutex
+
+	connectedLock sync.Mutex
 
 	serverVersion semver.Version
 
 	botUserId string
 
 	client *analytics.Client
-
-	connectedLock sync.Mutex
 }

@@ -261,7 +261,11 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 			Roles: model.SYSTEM_USER_ROLE_ID,
 		}
 
-		p := Plugin{}
+		p := Plugin{
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
 
 		notice := p.checkForAdminNoticeDM(user)
 
@@ -281,7 +285,11 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 		api.On("LogError", mock.Anything, "err", appErr)
 		defer api.AssertExpectations(t)
 
-		p := Plugin{}
+		p := Plugin{
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
 		p.SetAPI(api)
 
 		notice := p.checkForAdminNoticeDM(user)
@@ -299,7 +307,11 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 		api.On("KVGet", ADMIN_DM_NOTICE_KEY+user.Id).Return(nil, nil)
 		defer api.AssertExpectations(t)
 
-		p := Plugin{}
+		p := Plugin{
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
 		p.SetAPI(api)
 
 		notice := p.checkForAdminNoticeDM(user)
@@ -318,7 +330,11 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 		api.On("LogError", mock.Anything, "err", mock.Anything)
 		defer api.AssertExpectations(t)
 
-		p := Plugin{}
+		p := Plugin{
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
 		p.SetAPI(api)
 
 		notice := p.checkForAdminNoticeDM(user)
@@ -338,7 +354,11 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 		}), nil)
 		defer api.AssertExpectations(t)
 
-		p := Plugin{}
+		p := Plugin{
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
 		p.SetAPI(api)
 
 		notice := p.checkForAdminNoticeDM(user)
@@ -361,12 +381,33 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 		}), nil)
 		defer api.AssertExpectations(t)
 
-		p := Plugin{}
+		p := Plugin{
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
 		p.SetAPI(api)
 
 		notice := p.checkForAdminNoticeDM(user)
 
 		assert.Equal(t, &adminNotice{Sent: false, NextSurvey: nextSurvey}, notice)
+	})
+
+	t.Run("should not send notice when surveys are disabled", func(t *testing.T) {
+		user := &model.User{
+			Id:    model.NewId(),
+			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
+		}
+
+		p := Plugin{
+			configuration: &configuration{
+				EnableSurvey: false,
+			},
+		}
+
+		notice := p.checkForAdminNoticeDM(user)
+
+		assert.Nil(t, notice)
 	})
 }
 
@@ -464,6 +505,7 @@ func TestShouldSendSurveyDM(t *testing.T) {
 		Name          string
 		User          *model.User
 		Now           time.Time
+		EnableSurvey  bool
 		LastUpgrade   *serverUpgrade
 		SurveyState   *surveyState
 		ServerVersion semver.Version
@@ -475,7 +517,8 @@ func TestShouldSendSurveyDM(t *testing.T) {
 				Id:       model.NewId(),
 				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
 			},
-			Now: toDate(2019, time.April, 1),
+			Now:          toDate(2019, time.April, 1),
+			EnableSurvey: true,
 			LastUpgrade: &serverUpgrade{
 				Timestamp: toDate(2019, time.March, 11),
 			},
@@ -493,8 +536,9 @@ func TestShouldSendSurveyDM(t *testing.T) {
 				Id:       model.NewId(),
 				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
 			},
-			Now:         toDate(2019, time.April, 1),
-			LastUpgrade: nil,
+			Now:          toDate(2019, time.April, 1),
+			EnableSurvey: true,
+			LastUpgrade:  nil,
 			SurveyState: &surveyState{
 				ServerVersion: semver.MustParse("5.9.0"),
 				SentAt:        toDate(2019, time.January, 1),
@@ -509,7 +553,8 @@ func TestShouldSendSurveyDM(t *testing.T) {
 				Id:       model.NewId(),
 				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
 			},
-			Now: toDate(2019, time.April, 1),
+			Now:          toDate(2019, time.April, 1),
+			EnableSurvey: true,
 			LastUpgrade: &serverUpgrade{
 				Timestamp: toDate(2019, time.March, 12),
 			},
@@ -527,7 +572,8 @@ func TestShouldSendSurveyDM(t *testing.T) {
 				Id:       model.NewId(),
 				CreateAt: toDate(2019, time.March, 12).UnixNano() / int64(time.Millisecond),
 			},
-			Now: toDate(2019, time.April, 1),
+			Now:          toDate(2019, time.April, 1),
+			EnableSurvey: true,
 			LastUpgrade: &serverUpgrade{
 				Timestamp: toDate(2019, time.March, 11),
 			},
@@ -545,7 +591,8 @@ func TestShouldSendSurveyDM(t *testing.T) {
 				Id:       model.NewId(),
 				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
 			},
-			Now: toDate(2019, time.April, 1),
+			Now:          toDate(2019, time.April, 1),
+			EnableSurvey: true,
 			LastUpgrade: &serverUpgrade{
 				Timestamp: toDate(2019, time.March, 11),
 			},
@@ -559,7 +606,8 @@ func TestShouldSendSurveyDM(t *testing.T) {
 				Id:       model.NewId(),
 				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
 			},
-			Now: toDate(2019, time.April, 1),
+			Now:          toDate(2019, time.April, 1),
+			EnableSurvey: true,
 			LastUpgrade: &serverUpgrade{
 				Timestamp: toDate(2019, time.March, 11),
 			},
@@ -577,7 +625,8 @@ func TestShouldSendSurveyDM(t *testing.T) {
 				Id:       model.NewId(),
 				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
 			},
-			Now: toDate(2019, time.April, 1),
+			Now:          toDate(2019, time.April, 1),
+			EnableSurvey: true,
 			LastUpgrade: &serverUpgrade{
 				Timestamp: toDate(2019, time.March, 11),
 			},
@@ -595,7 +644,8 @@ func TestShouldSendSurveyDM(t *testing.T) {
 				Id:       model.NewId(),
 				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
 			},
-			Now: toDate(2019, time.April, 1),
+			Now:          toDate(2019, time.April, 1),
+			EnableSurvey: true,
 			LastUpgrade: &serverUpgrade{
 				Timestamp: toDate(2019, time.March, 11),
 			},
@@ -603,6 +653,25 @@ func TestShouldSendSurveyDM(t *testing.T) {
 				ServerVersion: semver.MustParse("5.9.0"),
 				SentAt:        toDate(2019, time.January, 1),
 				AnsweredAt:    toDate(2019, time.January, 2),
+			},
+			ServerVersion: semver.MustParse("5.10.0"),
+			Expected:      false,
+		},
+		{
+			Name: "should not send survey when disabled",
+			User: &model.User{
+				Id:       model.NewId(),
+				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
+			},
+			Now:          toDate(2019, time.April, 1),
+			EnableSurvey: false,
+			LastUpgrade: &serverUpgrade{
+				Timestamp: toDate(2019, time.March, 11),
+			},
+			SurveyState: &surveyState{
+				ServerVersion: semver.MustParse("5.9.0"),
+				SentAt:        toDate(2019, time.January, 1),
+				AnsweredAt:    toDate(2019, time.January, 1),
 			},
 			ServerVersion: semver.MustParse("5.10.0"),
 			Expected:      false,
@@ -625,6 +694,9 @@ func TestShouldSendSurveyDM(t *testing.T) {
 			defer api.AssertExpectations(t)
 
 			p := Plugin{
+				configuration: &configuration{
+					EnableSurvey: test.EnableSurvey,
+				},
 				serverVersion: test.ServerVersion,
 			}
 			p.SetAPI(api)

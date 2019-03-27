@@ -40,6 +40,16 @@ type adminNotice struct {
 // Note that this only sends an email to admins to notify them that a survey has been scheduled. The web app plugin is
 // in charge of checking and actually triggering the survey.
 func (p *Plugin) checkForNextSurvey(currentVersion semver.Version) bool {
+	p.surveyLock.Lock()
+	defer p.surveyLock.Unlock()
+
+	if !p.getConfiguration().EnableSurvey {
+		// Surveys are disabled, so return false without updating the stored version. If surveys are re-enabled, the
+		// plugin will then detect an upgrade (if one occurred) and schedule the next survey.
+		p.API.LogDebug("Not sending NPS survey because survey is disabled")
+		return false
+	}
+
 	lastUpgrade, _ := p.getLastServerUpgrade()
 
 	if !shouldScheduleSurvey(currentVersion, lastUpgrade) {
@@ -169,6 +179,11 @@ func (p *Plugin) getAdminUsers(perPage int) ([]*model.User, *model.AppError) {
 }
 
 func (p *Plugin) checkForAdminNoticeDM(user *model.User) *adminNotice {
+	if !p.getConfiguration().EnableSurvey {
+		// Surveys are disabled
+		return nil
+	}
+
 	if !isSystemAdmin(user) {
 		return nil
 	}
@@ -236,6 +251,11 @@ type surveyState struct {
 }
 
 func (p *Plugin) shouldSendSurveyDM(user *model.User, now time.Time) bool {
+	if !p.getConfiguration().EnableSurvey {
+		// Surveys are disabled
+		return false
+	}
+
 	// Only send the survey once it has been 21 days since the last upgrade
 	lastUpgrade, err := p.getLastServerUpgrade()
 	if lastUpgrade == nil || err != nil {
