@@ -98,6 +98,7 @@ func (p *Plugin) sendAdminNoticeEmails(admins []*model.User) {
 	subject := fmt.Sprintf(adminEmailSubject, *config.TeamSettings.SiteName, DAYS_UNTIL_SURVEY)
 
 	bodyProps := map[string]interface{}{
+		"PluginID":        manifest.Id,
 		"SiteURL":         *config.ServiceSettings.SiteURL,
 		"DaysUntilSurvey": DAYS_UNTIL_SURVEY,
 	}
@@ -222,7 +223,7 @@ func (p *Plugin) sendAdminNoticeDM(user *model.User, notice *adminNotice) {
 
 func (p *Plugin) buildAdminNoticePost(nextSurvey time.Time) *model.Post {
 	return &model.Post{
-		Message: fmt.Sprintf(adminDMBody, nextSurvey.Format("January 2, 2006")),
+		Message: fmt.Sprintf(adminDMBody, nextSurvey.Format("January 2, 2006"), manifest.Id),
 		Type:    "custom_nps_admin_notice",
 	}
 }
