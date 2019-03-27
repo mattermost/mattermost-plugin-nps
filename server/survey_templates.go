@@ -61,6 +61,7 @@ const adminDMBody = `Mattermost uses feedback surveys to measure user satisfacti
 
 const surveyBody = ":wave: Hey @%s! Please take a few moments to help us improve your experience with Mattermost."
 const surveyDropdownTitle = "How likely are you to recommend Mattermost?"
-const surveyAnsweredBody = "You are %d out of 10 likely to recommend Mattermost."
+const surveyAnsweredBody = "You selected %d out of 10."
 
 const feedbackRequestBody = "Thanks! How can we make your experience better?"
+const feedbackResponseBody = ":tada: Thanks for helping us make Mattermost better!"
