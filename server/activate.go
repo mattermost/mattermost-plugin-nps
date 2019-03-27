@@ -1,6 +1,9 @@
 package main
 
 import (
+	"io/ioutil"
+	"path/filepath"
+
 	"github.com/blang/semver"
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/pkg/errors"
@@ -43,9 +46,9 @@ func (p *Plugin) canSendDiagnostics() bool {
 
 func (p *Plugin) ensureBotExists() *model.AppError {
 	// Attempt to find an existing bot
-	botUserIdBytes, err := p.API.KVGet(BOT_USER_KEY)
-	if err != nil {
-		return err
+	botUserIdBytes, appErr := p.API.KVGet(BOT_USER_KEY)
+	if appErr != nil {
+		return appErr
 	}
 
 	if botUserIdBytes != nil {
@@ -70,26 +73,36 @@ func (p *Plugin) ensureBotExists() *model.AppError {
 		// Create a bot since one doesn't exist
 		p.API.LogDebug("Creating bot for NPS plugin")
 
-		bot, err = p.API.CreateBot(&model.Bot{
+		bundlePath, err := p.API.GetBundlePath()
+		if err != nil {
+			return &model.AppError{Message: "Failed to get bundle path"}
+		}
+
+		profileImage, err := ioutil.ReadFile(filepath.Join(bundlePath, "assets", "icon-happy-bot-square@1x.png"))
+		if err != nil {
+			return &model.AppError{Message: "Failed to read profile image"}
+		}
+
+		bot, appErr = p.API.CreateBot(&model.Bot{
 			Username:    "surveybot",
 			DisplayName: "Surveybot",
 			Description: SURVEYBOT_DESCRIPTION,
 		})
-		if err != nil {
-			return err
+		if appErr != nil {
+			return appErr
 		}
 
 		// Give it a profile picture
-		if err := p.API.SetProfileImage(bot.UserId, profileImage); err != nil {
-			p.API.LogWarn("Failed to set profile image for bot", "err", err)
+		if appErr = p.API.SetProfileImage(bot.UserId, profileImage); appErr != nil {
+			p.API.LogWarn("Failed to set profile image for bot", "error", appErr)
 		}
 
 		p.API.LogDebug("Bot created for NPS plugin")
 	}
 
 	// Save the bot ID
-	if err := p.KVSet(BOT_USER_KEY, bot.UserId); err != nil {
-		return err
+	if appErr := p.KVSet(BOT_USER_KEY, bot.UserId); appErr != nil {
+		return appErr
 	}
 
 	p.botUserId = bot.UserId
