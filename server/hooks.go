@@ -11,7 +11,7 @@ func (p *Plugin) ChannelHasBeenCreated(c *plugin.Context, channel *model.Channel
 		return
 	}
 
-	channel.Header = "Surveybot collects user feedback to improve Mattermost. [Learn more](https://mattermost.com/pl/default-nps)."
+	channel.Header = SURVEYBOT_DESCRIPTION
 
 	if _, err := p.API.UpdateChannel(channel); err != nil {
 		p.API.LogWarn("Failed to set channel header for Surveybot", "err", err)
