@@ -18,11 +18,6 @@ func (p *Plugin) CreateBotDMPost(userID string, post *model.Post) (*model.Post, 
 	post.UserId = p.botUserId
 	post.ChannelId = channel.Id
 
-	if post.Props == nil {
-		post.Props = make(map[string]interface{})
-	}
-	post.Props["from_webhook"] = "true"
-
 	created, err := p.API.CreatePost(post)
 	if err != nil {
 		p.API.LogError("Couldn't send bot DM", "user_id", userID, "err", err)
