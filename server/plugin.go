@@ -13,6 +13,8 @@ const (
 	BOT_USER_KEY        = "Bot"
 	SERVER_UPGRADE_KEY  = "ServerUpgrade"
 	USER_SURVEY_KEY     = "UserSurvey-"
+
+	SURVEYBOT_DESCRIPTION = "Surveybot collects user feedback to improve Mattermost. [Learn more](https://mattermost.com/pl/default-nps)."
 )
 
 type Plugin struct {
