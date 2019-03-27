@@ -75,12 +75,12 @@ func (p *Plugin) ensureBotExists() *model.AppError {
 
 		bundlePath, err := p.API.GetBundlePath()
 		if err != nil {
-			return errors.Wrap(err, "failed to get bundle path")
+			return &model.AppError{Message: "Failed to get bundle path"}
 		}
 
 		profileImage, err := ioutil.ReadFile(filepath.Join(bundlePath, "assets", "icon-happy-bot-square@1x.png"))
 		if err != nil {
-			return errors.Wrap(err, "failed to read profile image")
+			return &model.AppError{Message: "Failed to read profile image"}
 		}
 
 		bot, appErr = p.API.CreateBot(&model.Bot{
