@@ -11,7 +11,7 @@ const (
 	NPS_FEEDBACK = "nps_feedback"
 	NPS_SCORE    = "nps_score"
 
-	SEGMENT_KEY = "placeholder_segment_key"
+	SEGMENT_KEY = "5xaDYWpjOoCKmJNNKK6fg1DacwZ7ZVZc"
 )
 
 func (p *Plugin) initializeClient() {

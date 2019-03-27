@@ -14,16 +14,19 @@ import (
 const (
 	// How often "survey scheduled" emails can be sent to prevent multiple emails from being sent if multiple server
 	// upgrades occur within a short time
-	MIN_DAYS_BETWEEN_SURVEY_EMAILS = 7
+	MIN_TIME_BETWEEN_SURVEY_EMAILS = 7 * 24 * time.Hour
 
-	// How long until a survey occurs after a server upgrade
+	// How long until a survey occurs after a server upgrade in days (for use in notifications)
 	DAYS_UNTIL_SURVEY = 21
+
+	// How long until a survey occurs after a server upgrade as a time.Duration
+	TIME_UNTIL_SURVEY = 21 * 24 * time.Hour
 
 	// Get admin users up to 100 at a time when sending email notifications
 	ADMIN_USERS_PER_PAGE = 100
 
 	// The minimum time before a user can be sent a survey after completing the previous one
-	MIN_DAYS_BETWEEN_USER_SURVEYS = 90
+	MIN_TIME_BETWEEN_USER_SURVEYS = 90 * 24 * time.Hour
 )
 
 type adminNotice struct {
@@ -46,7 +49,7 @@ func (p *Plugin) checkForNextSurvey(currentVersion semver.Version) bool {
 	}
 
 	now := time.Now().UTC()
-	nextSurvey := now.Add(DAYS_UNTIL_SURVEY * 24 * time.Hour)
+	nextSurvey := now.Add(TIME_UNTIL_SURVEY)
 
 	if lastUpgrade == nil {
 		p.API.LogInfo(fmt.Sprintf("NPS plugin installed. Scheduling NPS survey for %s", nextSurvey.Format("Jan 2, 2006")))
@@ -75,7 +78,7 @@ func shouldScheduleSurvey(currentVersion semver.Version, lastUpgrade *serverUpgr
 func shouldSendAdminNotices(now time.Time, lastUpgrade *serverUpgrade) bool {
 	// Only send a "survey scheduled" email if it has been at least 7 days since the last time we've sent one to
 	// prevent spamming admins when multiple upgrades are done within a short period.
-	return lastUpgrade == nil || now.Sub(lastUpgrade.Timestamp) >= MIN_DAYS_BETWEEN_SURVEY_EMAILS*24*time.Hour
+	return lastUpgrade == nil || now.Sub(lastUpgrade.Timestamp) >= MIN_TIME_BETWEEN_SURVEY_EMAILS
 }
 
 func (p *Plugin) sendAdminNotices(nextSurvey time.Time) {
@@ -95,6 +98,7 @@ func (p *Plugin) sendAdminNoticeEmails(admins []*model.User) {
 	subject := fmt.Sprintf(adminEmailSubject, *config.TeamSettings.SiteName, DAYS_UNTIL_SURVEY)
 
 	bodyProps := map[string]interface{}{
+		"PluginID":        manifest.Id,
 		"SiteURL":         *config.ServiceSettings.SiteURL,
 		"DaysUntilSurvey": DAYS_UNTIL_SURVEY,
 	}
@@ -219,7 +223,7 @@ func (p *Plugin) sendAdminNoticeDM(user *model.User, notice *adminNotice) {
 
 func (p *Plugin) buildAdminNoticePost(nextSurvey time.Time) *model.Post {
 	return &model.Post{
-		Message: fmt.Sprintf(adminDMBody, nextSurvey.Format("January 2, 2006")),
+		Message: fmt.Sprintf(adminDMBody, nextSurvey.Format("January 2, 2006"), manifest.Id),
 		Type:    "custom_nps_admin_notice",
 	}
 }
@@ -239,12 +243,12 @@ func (p *Plugin) shouldSendSurveyDM(user *model.User, now time.Time) bool {
 		return false
 	}
 
-	if now.Sub(lastUpgrade.Timestamp) < DAYS_UNTIL_SURVEY*24*time.Hour {
+	if now.Sub(lastUpgrade.Timestamp) < TIME_UNTIL_SURVEY {
 		return false
 	}
 
 	// And the user has existed for at least as long
-	if now.Sub(time.Unix(user.CreateAt/1000, 0)) < DAYS_UNTIL_SURVEY*24*time.Hour {
+	if now.Sub(time.Unix(user.CreateAt/1000, 0)) < TIME_UNTIL_SURVEY {
 		return false
 	}
 
@@ -265,12 +269,12 @@ func (p *Plugin) shouldSendSurveyDM(user *model.User, now time.Time) bool {
 		return false
 	}
 
-	if now.Sub(state.SentAt) < MIN_DAYS_BETWEEN_USER_SURVEYS*24*time.Hour {
+	if now.Sub(state.SentAt) < MIN_TIME_BETWEEN_USER_SURVEYS {
 		// Not enough time since last survey was sent
 		return false
 	}
 
-	if now.Sub(state.AnsweredAt) < MIN_DAYS_BETWEEN_USER_SURVEYS*24*time.Hour {
+	if now.Sub(state.AnsweredAt) < MIN_TIME_BETWEEN_USER_SURVEYS {
 		// Not enough time since last survey was completed
 		return false
 	}
