@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"sync"
 	"time"
 
@@ -57,11 +58,16 @@ type Plugin struct {
 	// userSurveyMaxDelay adds a short delay when checking whether the user needs to receive DMs notifying them of a new
 	// NPS survey.
 	userSurveyMaxDelay time.Duration
+
+	// readFile provides access to ioutil.ReadFile in a way that is mockable for unit testing.
+	readFile func(path string) ([]byte, error)
 }
 
 func NewPlugin() *Plugin {
 	return &Plugin{
 		upgradeCheckMaxDelay: DEFAULT_UPGRADE_CHECK_MAX_DELAY,
 		userSurveyMaxDelay:   DEAFULT_USER_SURVEY_MAX_DELAY,
+
+		readFile: ioutil.ReadFile,
 	}
 }
