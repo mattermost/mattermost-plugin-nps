@@ -63,8 +63,7 @@ func (p *Plugin) canSendDiagnostics() bool {
 func (p *Plugin) ensureBotExists() (string, *model.AppError) {
 	// Attempt to find an existing bot
 	var botUserId string
-	appErr := p.KVGet(BOT_USER_KEY, &botUserId)
-	if appErr != nil {
+	if appErr := p.KVGet(BOT_USER_KEY, &botUserId); appErr != nil {
 		return "", appErr
 	}
 
@@ -85,17 +84,17 @@ func (p *Plugin) ensureBotExists() (string, *model.AppError) {
 		// Unable to create the bot, so it may already exist and need to be reclaimed
 		p.API.LogDebug("Failed to create bot for NPS plugin. Attempting to reclaim existing bot.")
 
-		user, appErr := p.API.GetUserByUsername("surveybot")
-		if appErr != nil || user == nil {
-			return "", appErr
+		user, err := p.API.GetUserByUsername("surveybot")
+		if err != nil || user == nil {
+			return "", err
 		}
 
 		// A surveybot user exists, so try to reclaim the existing bot account
 		p.API.LogDebug("Found surveybot user. Attempting to find matching bot account.")
 
-		bot, appErr = p.API.GetBot(user.Id, true)
-		if appErr != nil {
-			return "", appErr
+		bot, err = p.API.GetBot(user.Id, true)
+		if err != nil {
+			return "", err
 		}
 
 		p.API.LogInfo("Found existing bot account")
