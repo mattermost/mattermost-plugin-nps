@@ -20,14 +20,24 @@ const (
 type Plugin struct {
 	plugin.MattermostPlugin
 
+	// configurationLock synchronizes access to the configuration.
 	configurationLock sync.RWMutex
-	configuration     *configuration
 
+	// configuration is the active plugin configuration. Consult getConfiguration and
+	// setConfiguration for usage.
+	configuration *configuration
+
+	// activatedLock synchronizes access to activated.
 	activatedLock sync.RWMutex
-	activated     bool
 
+	// activated is used to track whether or not OnActivate has initialized the plugin state.
+	activated bool
+
+	// surveyLock is used to prevent multiple threads from accessing checkForNextSurvey at the same time.
 	surveyLock sync.Mutex
 
+	// connectedLock is used to prevent multiple connected requests from being handled at the same time in order to
+	// prevent users from receiving duplicate Surveybot DMs.
 	connectedLock sync.Mutex
 
 	serverVersion semver.Version
