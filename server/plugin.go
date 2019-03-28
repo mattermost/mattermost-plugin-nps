@@ -2,6 +2,7 @@ package main
 
 import (
 	"sync"
+	"time"
 
 	"github.com/blang/semver"
 	"github.com/mattermost/mattermost-server/plugin"
@@ -15,6 +16,9 @@ const (
 	USER_SURVEY_KEY     = "UserSurvey-"
 
 	SURVEYBOT_DESCRIPTION = "Surveybot collects user feedback to improve Mattermost. [Learn more](https://mattermost.com/pl/default-nps)."
+
+	DEFAULT_UPGRADE_CHECK_MAX_DELAY = 2 * time.Minute
+	DEAFULT_USER_SURVEY_MAX_DELAY   = 1 * time.Second
 )
 
 type Plugin struct {
@@ -45,4 +49,19 @@ type Plugin struct {
 	botUserId string
 
 	client *analytics.Client
+
+	// upgradeCheckMaxDelay adds a short delay to checkForNextSurvey calls to mitigate against race conditions caused
+	// by multiple servers restarting at the same time after an upgrade.
+	upgradeCheckMaxDelay time.Duration
+
+	// userSurveyMaxDelay adds a short delay when checking whether the user needs to receive DMs notifying them of a new
+	// NPS survey.
+	userSurveyMaxDelay time.Duration
+}
+
+func NewPlugin() *Plugin {
+	return &Plugin{
+		upgradeCheckMaxDelay: DEFAULT_UPGRADE_CHECK_MAX_DELAY,
+		userSurveyMaxDelay:   DEAFULT_USER_SURVEY_MAX_DELAY,
+	}
 }

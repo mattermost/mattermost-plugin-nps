@@ -65,9 +65,6 @@ func (p *Plugin) userConnected(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Plugin) checkForDMs(userID string) *model.AppError {
-	p.connectedLock.Lock()
-	defer p.connectedLock.Unlock()
-
 	if p.canSendDiagnostics() {
 		user, err := p.API.GetUser(userID)
 		if err != nil {
@@ -76,13 +73,22 @@ func (p *Plugin) checkForDMs(userID string) *model.AppError {
 
 		now := time.Now()
 
-		if notice := p.checkForAdminNoticeDM(user); notice != nil {
-			p.sendAdminNoticeDM(user, notice)
-		}
+		go func() {
+			// Add a random delay to mitigate against the fact that the user may have multiple sessions hitting this
+			// API at the same time across different servers.
+			p.sleepUpTo(p.userSurveyMaxDelay)
 
-		if p.shouldSendSurveyDM(user, now) {
-			p.sendSurveyDM(user, now)
-		}
+			p.connectedLock.Lock()
+			defer p.connectedLock.Unlock()
+
+			if notice := p.checkForAdminNoticeDM(user); notice != nil {
+				p.sendAdminNoticeDM(user, notice)
+			}
+
+			if p.shouldSendSurveyDM(user, now) {
+				p.sendSurveyDM(user, now)
+			}
+		}()
 	}
 
 	return nil

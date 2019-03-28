@@ -40,6 +40,10 @@ type adminNotice struct {
 // Note that this only sends an email to admins to notify them that a survey has been scheduled. The web app plugin is
 // in charge of checking and actually triggering the survey.
 func (p *Plugin) checkForNextSurvey(currentVersion semver.Version) bool {
+	// Add a random delay to mitigate against the fact that multiple instances of the plugin may be trying to start up across
+	// different servers and we have no real way to synchronize between them.
+	p.sleepUpTo(p.upgradeCheckMaxDelay)
+
 	p.surveyLock.Lock()
 	defer p.surveyLock.Unlock()
 

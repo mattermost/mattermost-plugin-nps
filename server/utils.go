@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -63,6 +64,13 @@ func (p *Plugin) isBotDMChannel(channel *model.Channel) bool {
 	}
 
 	return true
+}
+
+func (p *Plugin) sleepUpTo(maxDelay time.Duration) {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	delay := time.Duration(r.Int63n(int64(maxDelay)))
+
+	time.Sleep(delay)
 }
 
 // Test helper functions
