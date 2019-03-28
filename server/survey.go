@@ -355,7 +355,6 @@ func (p *Plugin) buildAnsweredSurveyPost(user *model.User, score int) *model.Pos
 					Text:  fmt.Sprintf(surveyAnsweredBody, score),
 				},
 			},
-			"from_webhook": "true", // Needs to be manually specified since this doesn't go through CreateBotDMPost
 		},
 	}
 }

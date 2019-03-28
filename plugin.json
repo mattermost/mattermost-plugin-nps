@@ -15,7 +15,7 @@
         "bundle_path": "webapp/dist/main.js"
     },
     "settings_schema": {
-        "header": "A net promoster score survey measures user satisfaction. [Learn more](https://mattermost.com/pl/default-nps) about net promoter score surveys.",
+        "header": "A net promoter score survey measures user satisfaction. [Learn more](https://mattermost.com/pl/default-nps) about net promoter score surveys.",
         "footer": "",
         "settings": [{
             "key": "EnableSurvey",

@@ -46,14 +46,15 @@ func (p *Plugin) canSendDiagnostics() bool {
 
 func (p *Plugin) ensureBotExists() *model.AppError {
 	// Attempt to find an existing bot
-	botUserIdBytes, appErr := p.API.KVGet(BOT_USER_KEY)
+	var botUserId string
+	appErr := p.KVGet(BOT_USER_KEY, &botUserId)
 	if appErr != nil {
 		return appErr
 	}
 
-	if botUserIdBytes != nil {
+	if botUserId != "" {
 		// Bot already exists
-		p.botUserId = string(botUserIdBytes)
+		p.botUserId = botUserId
 		return nil
 	}
 

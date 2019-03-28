@@ -43,7 +43,7 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 
 	// Respond to the feedback
 	_, err = p.CreateBotDMPost(post.UserId, &model.Post{
-		Message: ":tada: Thanks for helping improve Mattermost!",
+		Message: feedbackResponseBody,
 		Type:    "custom_nps_thanks",
 	})
 	if err != nil {
