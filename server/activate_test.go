@@ -12,93 +12,16 @@ import (
 func TestEnsureBotExists(t *testing.T) {
 	setupAPI := func() *plugintest.API {
 		api := &plugintest.API{}
-		api.On("LogDebug", mock.Anything).Maybe()
+		api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything).Maybe()
 		api.On("LogInfo", mock.Anything).Maybe()
 		return api
 	}
 
-	t.Run("should return error if unable to read KV store", func(t *testing.T) {
-		expectedErr := &model.AppError{Message: "Something went wrong"}
-
-		api := setupAPI()
-		api.On("KVGet", BOT_USER_KEY).Return(nil, expectedErr)
-		defer api.AssertExpectations(t)
-
-		p := &Plugin{}
-		p.API = api
-
-		botId, err := p.ensureBotExists()
-
-		assert.Equal(t, "", botId)
-		assert.Equal(t, expectedErr, err)
-	})
-
-	t.Run("should return the stored bot ID", func(t *testing.T) {
-		expectedBotId := model.NewId()
-
-		api := setupAPI()
-		api.On("KVGet", BOT_USER_KEY).Return(mustMarshalJSON(expectedBotId), nil)
-		defer api.AssertExpectations(t)
-
-		p := &Plugin{}
-		p.API = api
-
-		botId, err := p.ensureBotExists()
-
-		assert.Equal(t, expectedBotId, botId)
-		assert.Nil(t, err)
-	})
-
-	t.Run("if a bot already exists, but is not in the KV store", func(t *testing.T) {
-		t.Run("should return an error if unable to get surveybot user", func(t *testing.T) {
-			expectedError := &model.AppError{
-				Message: "Unable to get surveybot user",
-			}
-
-			api := setupAPI()
-			api.On("KVGet", BOT_USER_KEY).Return(nil, nil)
-			api.On("CreateBot", mock.Anything).Return(nil, &model.AppError{})
-			api.On("GetUserByUsername", "surveybot").Return(nil, expectedError)
-			defer api.AssertExpectations(t)
-
-			p := &Plugin{}
-			p.API = api
-
-			botId, err := p.ensureBotExists()
-
-			assert.Equal(t, "", botId)
-			assert.Equal(t, expectedError, err)
-		})
-
-		t.Run("should return an error if unable to get bot", func(t *testing.T) {
-			expectedBotId := model.NewId()
-			expectedError := &model.AppError{
-				Message: "Unable to get bot",
-			}
-
-			api := setupAPI()
-			api.On("KVGet", BOT_USER_KEY).Return(nil, nil)
-			api.On("CreateBot", mock.Anything).Return(nil, &model.AppError{})
-			api.On("GetUserByUsername", "surveybot").Return(&model.User{
-				Id: expectedBotId,
-			}, nil)
-			api.On("GetBot", expectedBotId, true).Return(nil, expectedError)
-			defer api.AssertExpectations(t)
-
-			p := &Plugin{}
-			p.API = api
-
-			botId, err := p.ensureBotExists()
-
-			assert.Equal(t, "", botId)
-			assert.Equal(t, expectedError, err)
-		})
-
+	t.Run("if surveybot already exists", func(t *testing.T) {
 		t.Run("should find and return the existing bot ID", func(t *testing.T) {
 			expectedBotId := model.NewId()
 
 			api := setupAPI()
-			api.On("KVGet", BOT_USER_KEY).Return(nil, nil)
 			api.On("CreateBot", mock.Anything).Return(nil, &model.AppError{})
 			api.On("GetUserByUsername", "surveybot").Return(&model.User{
 				Id: expectedBotId,
@@ -106,7 +29,90 @@ func TestEnsureBotExists(t *testing.T) {
 			api.On("GetBot", expectedBotId, true).Return(&model.Bot{
 				UserId: expectedBotId,
 			}, nil)
-			api.On("KVSet", BOT_USER_KEY, mustMarshalJSON(expectedBotId)).Return(nil)
+			defer api.AssertExpectations(t)
+
+			p := &Plugin{}
+			p.API = api
+
+			botId, err := p.ensureBotExists()
+
+			assert.Equal(t, expectedBotId, botId)
+			assert.Nil(t, err)
+		})
+
+		t.Run("should return an error if unable to get user", func(t *testing.T) {
+			api := setupAPI()
+			api.On("CreateBot", mock.Anything).Return(nil, &model.AppError{})
+			api.On("GetUserByUsername", "surveybot").Return(nil, &model.AppError{})
+			api.On("LogError", mock.Anything, "err", mock.Anything)
+			defer api.AssertExpectations(t)
+
+			p := &Plugin{}
+			p.API = api
+
+			botId, err := p.ensureBotExists()
+
+			assert.Equal(t, "", botId)
+			assert.NotNil(t, err)
+		})
+
+		t.Run("should return an error if unable to get bot", func(t *testing.T) {
+			botUserId := model.NewId()
+
+			api := setupAPI()
+			api.On("CreateBot", mock.Anything).Return(nil, &model.AppError{})
+			api.On("GetUserByUsername", "surveybot").Return(&model.User{
+				Id: botUserId,
+			}, nil)
+			api.On("GetBot", botUserId, true).Return(nil, &model.AppError{})
+			api.On("LogError", mock.Anything, "err", mock.Anything)
+			defer api.AssertExpectations(t)
+
+			p := &Plugin{}
+			p.API = api
+
+			botId, err := p.ensureBotExists()
+
+			assert.Equal(t, "", botId)
+			assert.NotNil(t, err)
+		})
+	})
+
+	t.Run("if surveybot doesn't exist", func(t *testing.T) {
+		t.Run("should create the bot and return the ID", func(t *testing.T) {
+			expectedBotId := model.NewId()
+			profileImageBytes := []byte("profileImage")
+
+			api := setupAPI()
+			api.On("CreateBot", mock.Anything).Return(&model.Bot{
+				UserId: expectedBotId,
+			}, nil)
+			api.On("GetBundlePath").Return("", nil)
+			api.On("SetProfileImage", expectedBotId, profileImageBytes).Return(nil)
+			defer api.AssertExpectations(t)
+
+			p := &Plugin{
+				readFile: func(path string) ([]byte, error) {
+					return profileImageBytes, nil
+				},
+			}
+			p.API = api
+
+			botId, err := p.ensureBotExists()
+
+			assert.Equal(t, expectedBotId, botId)
+			assert.Nil(t, err)
+		})
+
+		t.Run("should log a warning if unable to set the profile picture, but still return the bot", func(t *testing.T) {
+			expectedBotId := model.NewId()
+
+			api := setupAPI()
+			api.On("CreateBot", mock.Anything).Return(&model.Bot{
+				UserId: expectedBotId,
+			}, nil)
+			api.On("GetBundlePath").Return("", &model.AppError{})
+			api.On("LogWarn", mock.Anything, "err", mock.Anything)
 			defer api.AssertExpectations(t)
 
 			p := &Plugin{}
@@ -118,104 +124,78 @@ func TestEnsureBotExists(t *testing.T) {
 			assert.Nil(t, err)
 		})
 	})
+}
 
-	t.Run("if a bot doesn't already exist", func(t *testing.T) {
-		t.Run("should return an error if unable to get the bundle path", func(t *testing.T) {
-			api := setupAPI()
-			api.On("KVGet", BOT_USER_KEY).Return(nil, nil)
-			api.On("CreateBot", mock.Anything).Return(&model.Bot{
-				UserId: model.NewId(),
-			}, nil)
-			api.On("GetBundlePath").Return("", &model.AppError{})
-			defer api.AssertExpectations(t)
+func TestSetBotProfileImage(t *testing.T) {
+	t.Run("should set profile image correctly", func(t *testing.T) {
+		botUserId := model.NewId()
+		profileImageBytes := []byte("profile image")
 
-			p := &Plugin{}
-			p.API = api
+		api := &plugintest.API{}
+		api.On("GetBundlePath").Return("/foo/bar", nil)
+		api.On("SetProfileImage", botUserId, profileImageBytes).Return(nil)
+		defer api.AssertExpectations(t)
 
-			botId, err := p.ensureBotExists()
+		p := &Plugin{
+			readFile: func(path string) ([]byte, error) {
+				assert.Equal(t, "/foo/bar/assets/icon-happy-bot-square@1x.png", path)
 
-			assert.Equal(t, "", botId)
-			assert.NotNil(t, err)
-		})
+				return profileImageBytes, nil
+			},
+		}
+		p.API = api
 
-		t.Run("should return an error if unable to read the profile picture", func(t *testing.T) {
-			api := setupAPI()
-			api.On("KVGet", BOT_USER_KEY).Return(nil, nil)
-			api.On("CreateBot", mock.Anything).Return(&model.Bot{
-				UserId: model.NewId(),
-			}, nil)
-			api.On("GetBundlePath").Return("", nil)
-			defer api.AssertExpectations(t)
+		assert.Nil(t, p.setBotProfileImage(botUserId))
+	})
 
-			p := &Plugin{
-				readFile: func(path string) ([]byte, error) {
-					return nil, &model.AppError{}
-				},
-			}
-			p.API = api
+	t.Run("should return an error when SetProfileImage fails", func(t *testing.T) {
+		botUserId := model.NewId()
+		profileImageBytes := []byte("profile image")
 
-			botId, err := p.ensureBotExists()
+		api := &plugintest.API{}
+		api.On("GetBundlePath").Return("/foo/bar", nil)
+		api.On("SetProfileImage", botUserId, profileImageBytes).Return(&model.AppError{})
+		defer api.AssertExpectations(t)
 
-			assert.Equal(t, "", botId)
-			assert.NotNil(t, err)
-		})
+		p := &Plugin{
+			readFile: func(path string) ([]byte, error) {
+				assert.Equal(t, "/foo/bar/assets/icon-happy-bot-square@1x.png", path)
 
-		t.Run("should log a warning if unable to set the profile picture, but still return the bot", func(t *testing.T) {
-			expectedBotId := model.NewId()
-			profileImageBytes := []byte("profileImage")
-			expectedError := &model.AppError{
-				Message: "Unable to set profile picture",
-			}
+				return profileImageBytes, nil
+			},
+		}
+		p.API = api
 
-			api := setupAPI()
-			api.On("KVGet", BOT_USER_KEY).Return(nil, nil)
-			api.On("CreateBot", mock.Anything).Return(&model.Bot{
-				UserId: expectedBotId,
-			}, nil)
-			api.On("GetBundlePath").Return("", nil)
-			api.On("SetProfileImage", expectedBotId, profileImageBytes).Return(expectedError)
-			api.On("LogWarn", mock.Anything, mock.Anything, expectedError)
-			api.On("KVSet", BOT_USER_KEY, mustMarshalJSON(expectedBotId)).Return(nil)
-			defer api.AssertExpectations(t)
+		assert.NotNil(t, p.setBotProfileImage(botUserId))
+	})
 
-			p := &Plugin{
-				readFile: func(path string) ([]byte, error) {
-					return profileImageBytes, nil
-				},
-			}
-			p.API = api
+	t.Run("should return an error when readFile fails", func(t *testing.T) {
+		botUserId := model.NewId()
 
-			botId, err := p.ensureBotExists()
+		api := &plugintest.API{}
+		api.On("GetBundlePath").Return("/foo/bar", nil)
+		defer api.AssertExpectations(t)
 
-			assert.Equal(t, expectedBotId, botId)
-			assert.Nil(t, err)
-		})
+		p := &Plugin{
+			readFile: func(path string) ([]byte, error) {
+				return nil, &model.AppError{}
+			},
+		}
+		p.API = api
 
-		t.Run("should create the bot and return the ID", func(t *testing.T) {
-			expectedBotId := model.NewId()
-			profileImageBytes := []byte("profileImage")
+		assert.NotNil(t, p.setBotProfileImage(botUserId))
+	})
 
-			api := setupAPI()
-			api.On("KVGet", BOT_USER_KEY).Return(nil, nil)
-			api.On("CreateBot", mock.Anything).Return(&model.Bot{
-				UserId: expectedBotId,
-			}, nil)
-			api.On("GetBundlePath").Return("", nil)
-			api.On("SetProfileImage", expectedBotId, profileImageBytes).Return(nil)
-			api.On("KVSet", BOT_USER_KEY, mustMarshalJSON(expectedBotId)).Return(nil)
-			defer api.AssertExpectations(t)
+	t.Run("should return an error when GetBundlePath fails", func(t *testing.T) {
+		botUserId := model.NewId()
 
-			p := &Plugin{
-				readFile: func(path string) ([]byte, error) {
-					return profileImageBytes, nil
-				},
-			}
-			p.API = api
+		api := &plugintest.API{}
+		api.On("GetBundlePath").Return("", &model.AppError{})
+		defer api.AssertExpectations(t)
 
-			botId, err := p.ensureBotExists()
+		p := &Plugin{}
+		p.API = api
 
-			assert.Equal(t, expectedBotId, botId)
-			assert.Nil(t, err)
-		})
+		assert.NotNil(t, p.setBotProfileImage(botUserId))
 	})
 }

@@ -12,7 +12,6 @@ import (
 
 const (
 	ADMIN_DM_NOTICE_KEY = "AdminDM-"
-	BOT_USER_KEY        = "Bot"
 	SERVER_UPGRADE_KEY  = "ServerUpgrade"
 	USER_SURVEY_KEY     = "UserSurvey-"
 
