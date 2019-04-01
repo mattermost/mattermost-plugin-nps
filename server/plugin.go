@@ -19,7 +19,7 @@ const (
 	SURVEYBOT_DESCRIPTION = "Surveybot collects user feedback to improve Mattermost. [Learn more](https://mattermost.com/pl/default-nps)."
 
 	DEFAULT_UPGRADE_CHECK_MAX_DELAY = 2 * time.Minute
-	DEAFULT_USER_SURVEY_MAX_DELAY   = 1 * time.Second
+	DEAFULT_USER_SURVEY_MAX_DELAY   = 3 * time.Second
 )
 
 type Plugin struct {
@@ -31,9 +31,6 @@ type Plugin struct {
 	// configuration is the active plugin configuration. Consult getConfiguration and
 	// setConfiguration for usage.
 	configuration *configuration
-
-	// activatedLock synchronizes access to activated.
-	activatedLock sync.RWMutex
 
 	// activated is used to track whether or not OnActivate has initialized the plugin state.
 	activated bool

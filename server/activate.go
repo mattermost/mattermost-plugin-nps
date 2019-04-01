@@ -23,11 +23,11 @@ func (p *Plugin) OnActivate() error {
 		p.serverVersion = serverVersion
 	}
 
-	if botUserId, err := p.ensureBotExists(); err != nil {
+	botUserId, err := p.ensureBotExists()
+	if err != nil {
 		return errors.Wrap(err, "failed to ensure bot user exists")
-	} else {
-		p.botUserId = botUserId
 	}
+	p.botUserId = botUserId
 
 	p.initializeClient()
 
@@ -42,16 +42,10 @@ func (p *Plugin) OnActivate() error {
 }
 
 func (p *Plugin) setActivated(activated bool) {
-	p.activatedLock.Lock()
-	defer p.activatedLock.Unlock()
-
 	p.activated = activated
 }
 
 func (p *Plugin) isActivated() bool {
-	p.activatedLock.RLock()
-	defer p.activatedLock.RUnlock()
-
 	return p.activated
 }
 
