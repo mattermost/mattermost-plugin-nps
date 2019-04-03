@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"path/filepath"
 
 	"github.com/blang/semver"
@@ -24,9 +23,11 @@ func (p *Plugin) OnActivate() error {
 		p.serverVersion = serverVersion
 	}
 
-	if err := p.ensureBotExists(); err != nil {
+	botUserId, err := p.ensureBotExists()
+	if err != nil {
 		return errors.Wrap(err, "failed to ensure bot user exists")
 	}
+	p.botUserId = botUserId
 
 	p.initializeClient()
 
@@ -35,22 +36,16 @@ func (p *Plugin) OnActivate() error {
 	p.setActivated(true)
 	p.API.LogDebug("NPS plugin activated")
 
-	p.checkForNextSurvey(p.serverVersion)
+	go p.checkForNextSurvey(p.serverVersion)
 
 	return nil
 }
 
 func (p *Plugin) setActivated(activated bool) {
-	p.activatedLock.Lock()
-	defer p.activatedLock.Unlock()
-
 	p.activated = activated
 }
 
 func (p *Plugin) isActivated() bool {
-	p.activatedLock.RLock()
-	defer p.activatedLock.RUnlock()
-
 	return p.activated
 }
 
@@ -59,69 +54,52 @@ func (p *Plugin) canSendDiagnostics() bool {
 	return enableDiagnostics != nil && *enableDiagnostics
 }
 
-func (p *Plugin) ensureBotExists() *model.AppError {
-	// Attempt to find an existing bot
-	var botUserId string
-	appErr := p.KVGet(BOT_USER_KEY, &botUserId)
-	if appErr != nil {
-		return appErr
-	}
+func (p *Plugin) ensureBotExists() (string, *model.AppError) {
+	p.API.LogInfo("Ensuring Surveybot exists")
 
-	if botUserId != "" {
-		// Bot already exists
-		p.botUserId = botUserId
-		return nil
-	}
+	bot, createErr := p.API.CreateBot(&model.Bot{
+		Username:    "surveybot",
+		DisplayName: "Surveybot",
+		Description: SURVEYBOT_DESCRIPTION,
+	})
+	if createErr != nil {
+		p.API.LogDebug("Failed to create Surveybot. Attempting to find existing one.", "err", createErr)
 
-	var bot *model.Bot
-
-	if user, err := p.API.GetUserByUsername("surveybot"); err == nil && user != nil {
-		// A surveybot user exists, so try to reclaim the existing bot account
-		p.API.LogDebug("Finding existing bot account")
+		// Unable to create the bot, so it should already exist
+		user, err := p.API.GetUserByUsername("surveybot")
+		if err != nil || user == nil {
+			p.API.LogError("Failed to find Surveybot user", "err", err)
+			return "", err
+		}
 
 		bot, err = p.API.GetBot(user.Id, true)
 		if err != nil {
-			return err
+			p.API.LogError("Failed to find Surveybot", "err", err)
+			return "", err
 		}
 
-		p.API.LogDebug("Found existing bot account")
+		p.API.LogDebug("Found Surveybot")
 	} else {
-		// Create a bot since one doesn't exist
-		p.API.LogDebug("Creating bot for NPS plugin")
-
-		bundlePath, err := p.API.GetBundlePath()
-		if err != nil {
-			return &model.AppError{Message: "Failed to get bundle path"}
+		if err := p.setBotProfileImage(bot.UserId); err != nil {
+			p.API.LogWarn("Failed to set profile image for bot", "err", err)
 		}
 
-		profileImage, err := ioutil.ReadFile(filepath.Join(bundlePath, "assets", "icon-happy-bot-square@1x.png"))
-		if err != nil {
-			return &model.AppError{Message: "Failed to read profile image"}
-		}
-
-		bot, appErr = p.API.CreateBot(&model.Bot{
-			Username:    "surveybot",
-			DisplayName: "Surveybot",
-			Description: SURVEYBOT_DESCRIPTION,
-		})
-		if appErr != nil {
-			return appErr
-		}
-
-		// Give it a profile picture
-		if appErr = p.API.SetProfileImage(bot.UserId, profileImage); appErr != nil {
-			p.API.LogWarn("Failed to set profile image for bot", "error", appErr)
-		}
-
-		p.API.LogDebug("Bot created for NPS plugin")
+		p.API.LogInfo("Surveybot created")
 	}
 
-	// Save the bot ID
-	if appErr := p.KVSet(BOT_USER_KEY, bot.UserId); appErr != nil {
-		return appErr
+	return bot.UserId, nil
+}
+
+func (p *Plugin) setBotProfileImage(botUserId string) *model.AppError {
+	bundlePath, err := p.API.GetBundlePath()
+	if err != nil {
+		return &model.AppError{Message: err.Error()}
 	}
 
-	p.botUserId = bot.UserId
+	profileImage, err := p.readFile(filepath.Join(bundlePath, "assets", "icon-happy-bot-square@1x.png"))
+	if err != nil {
+		return &model.AppError{Message: err.Error()}
+	}
 
-	return nil
+	return p.API.SetProfileImage(botUserId, profileImage)
 }
