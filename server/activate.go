@@ -31,8 +31,6 @@ func (p *Plugin) OnActivate() error {
 
 	p.initializeClient()
 
-	p.registerCommands()
-
 	p.setActivated(true)
 	p.API.LogDebug("NPS plugin activated")
 
