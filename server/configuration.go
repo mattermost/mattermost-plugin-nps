@@ -85,7 +85,7 @@ func (p *Plugin) OnConfigurationChange() error {
 	if p.isActivated() {
 		if configuration.EnableSurvey && !oldConfiguration.EnableSurvey {
 			// Check if a survey needs to be sent when the survey is enabled
-			go p.checkForNextSurvey(p.serverVersion)
+			go p.checkForNextSurvey(p.getServerVersion())
 		}
 	}
 

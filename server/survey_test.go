@@ -697,11 +697,10 @@ func TestShouldSendSurveyDM(t *testing.T) {
 				configuration: &configuration{
 					EnableSurvey: test.EnableSurvey,
 				},
-				serverVersion: test.ServerVersion,
 			}
 			p.SetAPI(api)
 
-			result := p.shouldSendSurveyDM(test.User, test.Now)
+			result := p.shouldSendSurveyDM(test.User, test.ServerVersion, test.Now)
 
 			assert.Equal(t, test.Expected, result)
 		})
@@ -711,7 +710,6 @@ func TestShouldSendSurveyDM(t *testing.T) {
 func TestSendSurveyDM(t *testing.T) {
 	t.Run("should send DM and mark survey as sent", func(t *testing.T) {
 		botUserId := model.NewId()
-		serverVersion := semver.MustParse("5.10.0")
 		user := &model.User{
 			Id:       model.NewId(),
 			Username: "testuser",
@@ -728,6 +726,7 @@ func TestSendSurveyDM(t *testing.T) {
 		})
 		api.On("GetDirectChannel", user.Id, botUserId).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
+		api.On("GetServerVersion").Return("5.10.0")
 		api.On("KVSet", USER_SURVEY_KEY+user.Id, mustMarshalJSON(&surveyState{
 			ServerVersion: semver.MustParse("5.10.0"),
 			SentAt:        toDate(2019, 03, 01),
@@ -736,8 +735,7 @@ func TestSendSurveyDM(t *testing.T) {
 		defer api.AssertExpectations(t)
 
 		p := Plugin{
-			botUserId:     botUserId,
-			serverVersion: serverVersion,
+			botUserId: botUserId,
 		}
 		p.SetAPI(api)
 
@@ -746,7 +744,6 @@ func TestSendSurveyDM(t *testing.T) {
 
 	t.Run("should log error from failed DM", func(t *testing.T) {
 		botUserId := model.NewId()
-		serverVersion := semver.MustParse("5.10.0")
 		user := &model.User{
 			Id:       model.NewId(),
 			Username: "testuser",
@@ -769,8 +766,7 @@ func TestSendSurveyDM(t *testing.T) {
 		defer api.AssertExpectations(t)
 
 		p := Plugin{
-			botUserId:     botUserId,
-			serverVersion: serverVersion,
+			botUserId: botUserId,
 		}
 		p.SetAPI(api)
 
@@ -779,7 +775,6 @@ func TestSendSurveyDM(t *testing.T) {
 
 	t.Run("should log error when failing to store sent survey", func(t *testing.T) {
 		botUserId := model.NewId()
-		serverVersion := semver.MustParse("5.10.0")
 		user := &model.User{
 			Id:       model.NewId(),
 			Username: "testuser",
@@ -798,6 +793,7 @@ func TestSendSurveyDM(t *testing.T) {
 		})
 		api.On("GetDirectChannel", user.Id, botUserId).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
+		api.On("GetServerVersion").Return("5.10.0")
 		api.On("KVSet", USER_SURVEY_KEY+user.Id, mustMarshalJSON(&surveyState{
 			ServerVersion: semver.MustParse("5.10.0"),
 			SentAt:        toDate(2019, 3, 1),
@@ -807,8 +803,7 @@ func TestSendSurveyDM(t *testing.T) {
 		defer api.AssertExpectations(t)
 
 		p := Plugin{
-			botUserId:     botUserId,
-			serverVersion: serverVersion,
+			botUserId: botUserId,
 		}
 		p.SetAPI(api)
 

@@ -85,7 +85,7 @@ func (p *Plugin) checkForDMs(userID string) *model.AppError {
 				p.sendAdminNoticeDM(user, notice)
 			}
 
-			if p.shouldSendSurveyDM(user, now) {
+			if p.shouldSendSurveyDM(user, p.getServerVersion(), now) {
 				p.sendSurveyDM(user, now)
 			}
 		}()

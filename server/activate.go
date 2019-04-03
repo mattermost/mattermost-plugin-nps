@@ -17,15 +17,14 @@ func (p *Plugin) OnActivate() error {
 		return errors.New(errMsg)
 	}
 
-	if serverVersion, err := semver.Parse(p.API.GetServerVersion()); err != nil {
-		return errors.Wrap(err, "failed to parse server version")
-	} else {
-		p.serverVersion = serverVersion
+	serverVersion := p.getServerVersion()
+	if serverVersion.Equals(semver.Version{}) {
+		return errors.New("Failed to get server version")
 	}
 
-	botUserId, err := p.ensureBotExists()
-	if err != nil {
-		return errors.Wrap(err, "failed to ensure bot user exists")
+	botUserId, appErr := p.ensureBotExists()
+	if appErr != nil {
+		return errors.Wrap(appErr, "Failed to ensure bot user exists")
 	}
 	p.botUserId = botUserId
 
@@ -34,9 +33,15 @@ func (p *Plugin) OnActivate() error {
 	p.setActivated(true)
 	p.API.LogDebug("NPS plugin activated")
 
-	go p.checkForNextSurvey(p.serverVersion)
+	go p.checkForNextSurvey(serverVersion)
 
 	return nil
+}
+
+func (p *Plugin) getServerVersion() semver.Version {
+	// Ignore any error since OnActivate will abort in the rare case that this happens
+	serverVersion, _ := semver.Parse(p.API.GetServerVersion())
+	return serverVersion
 }
 
 func (p *Plugin) setActivated(activated bool) {

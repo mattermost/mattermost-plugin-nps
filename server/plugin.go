@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/blang/semver"
 	"github.com/mattermost/mattermost-server/plugin"
 	analytics "github.com/segmentio/analytics-go"
 )
@@ -40,8 +39,6 @@ type Plugin struct {
 	// connectedLock is used to prevent multiple connected requests from being handled at the same time in order to
 	// prevent users from receiving duplicate Surveybot DMs.
 	connectedLock sync.Mutex
-
-	serverVersion semver.Version
 
 	botUserId string
 

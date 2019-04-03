@@ -254,7 +254,7 @@ type surveyState struct {
 	ScorePostId   string
 }
 
-func (p *Plugin) shouldSendSurveyDM(user *model.User, now time.Time) bool {
+func (p *Plugin) shouldSendSurveyDM(user *model.User, serverVersion semver.Version, now time.Time) bool {
 	if !p.getConfiguration().EnableSurvey {
 		// Surveys are disabled
 		return false
@@ -288,7 +288,7 @@ func (p *Plugin) shouldSendSurveyDM(user *model.User, now time.Time) bool {
 		return true
 	}
 
-	if state.ServerVersion.Major == p.serverVersion.Major && state.ServerVersion.Minor == p.serverVersion.Minor {
+	if state.ServerVersion.Major == serverVersion.Major && state.ServerVersion.Minor == serverVersion.Minor {
 		// Last survey occurred on the current version
 		return false
 	}
@@ -318,7 +318,7 @@ func (p *Plugin) sendSurveyDM(user *model.User, now time.Time) {
 
 	// Store that the survey has been sent
 	err = p.KVSet(USER_SURVEY_KEY+user.Id, &surveyState{
-		ServerVersion: p.serverVersion,
+		ServerVersion: p.getServerVersion(),
 		SentAt:        now,
 		ScorePostId:   post.Id,
 	})
