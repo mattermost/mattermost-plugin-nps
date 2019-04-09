@@ -27,9 +27,8 @@ const (
 	SURVEY_KEY = "Survey-%s"
 
 	// USER_SURVEY_KEY is used to store the userSurveyState tracking a user's progress through an NPS survey on the
-	// given version of Mattermost. It should contain the user's ID and server version like
-	// "UserSurvey-abc123-5.10.0".
-	USER_SURVEY_KEY = "UserSurvey-%s-%s"
+	// given version of Mattermost. It should contain the user's ID like "UserSurvey-abc123".
+	USER_SURVEY_KEY = "UserSurvey-%s"
 
 	SURVEYBOT_DESCRIPTION = "Surveybot collects user feedback to improve Mattermost. [Learn more](https://mattermost.com/pl/default-nps)."
 

@@ -305,28 +305,23 @@ func (p *Plugin) checkForSurveyDM(user *model.User, serverVersion semver.Version
 	}
 
 	// And that it has been long enough since the survey last occurred
-	var currentUserSurvey *userSurveyState
-	if err := p.KVGet(fmt.Sprintf(USER_SURVEY_KEY, user.Id, &serverVersion), &currentUserSurvey); err != nil {
+	var userSurvey *userSurveyState
+	if err := p.KVGet(fmt.Sprintf(USER_SURVEY_KEY, user.Id), &userSurvey); err != nil {
 		return false, err
 	}
 
-	if currentUserSurvey != nil {
-		// The user has already received this survey
-		return false, nil
-	}
+	if userSurvey != nil {
+		if userSurvey.ServerVersion.Equals(serverVersion) {
+			// The user has already received this survey
+			return false, nil
+		}
 
-	var latestUserSurvey *userSurveyState
-	if err := p.KVGet(fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest"), &latestUserSurvey); err != nil {
-		return false, err
-	}
-
-	if latestUserSurvey != nil {
-		if now.Sub(latestUserSurvey.SentAt) < MIN_TIME_BETWEEN_USER_SURVEYS {
+		if now.Sub(userSurvey.SentAt) < MIN_TIME_BETWEEN_USER_SURVEYS {
 			// Not enough time has passed since the user was last sent a survey
 			return false, nil
 		}
 
-		if now.Sub(latestUserSurvey.AnsweredAt) < MIN_TIME_BETWEEN_USER_SURVEYS {
+		if now.Sub(userSurvey.AnsweredAt) < MIN_TIME_BETWEEN_USER_SURVEYS {
 			// Not enough time has passed since the user last completed a survey
 			return false, nil
 		}
@@ -350,16 +345,10 @@ func (p *Plugin) sendSurveyDM(user *model.User, serverVersion semver.Version, no
 		ScorePostId:   post.Id,
 	}
 
-	// Store that the survey has been sent // TODO version-specific entries?
-	err = p.KVSet(fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion), userSurveyState)
+	// Store that the survey has been sent
+	err = p.KVSet(fmt.Sprintf(USER_SURVEY_KEY, user.Id), userSurveyState)
 	if err != nil {
 		p.API.LogError("Failed to save sent survey state. Survey will be resent on next refresh.", "err", err)
-		return err
-	}
-
-	err = p.KVSet(fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest"), userSurveyState)
-	if err != nil {
-		p.API.LogError("Failed to save latest survey state. Survey will be resent on next refresh.", "err", err)
 		return err
 	}
 
@@ -429,13 +418,13 @@ func (p *Plugin) buildFeedbackRequestPost() *model.Post {
 	}
 }
 
-func (p *Plugin) markSurveyAnswered(userID string, serverVersion semver.Version, now time.Time) *model.AppError {
+func (p *Plugin) markSurveyAnswered(userID string, now time.Time) *model.AppError {
 	var userSurvey *userSurveyState
-	if err := p.KVGet(fmt.Sprintf(USER_SURVEY_KEY, userID, serverVersion), &userSurvey); err != nil {
+	if err := p.KVGet(fmt.Sprintf(USER_SURVEY_KEY, userID), &userSurvey); err != nil {
 		return err
 	}
 
 	userSurvey.AnsweredAt = now
 
-	return p.KVSet(fmt.Sprintf(USER_SURVEY_KEY, userID, serverVersion), userSurvey)
+	return p.KVSet(fmt.Sprintf(USER_SURVEY_KEY, userID), userSurvey)
 }

@@ -406,13 +406,11 @@ func TestCheckForSurveyDM(t *testing.T) {
 			ServerVersion: serverVersion,
 			StartAt:       now,
 		}), nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion)).Return(nil, nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest")).Return(nil, nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(nil, nil)
 		api.On("GetConfig").Return(&model.Config{ServiceSettings: model.ServiceSettings{SiteURL: model.NewString("https://mattermost.example.com")}})
 		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
-		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion), newSurveyStateBytes).Return(nil)
-		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest"), newSurveyStateBytes).Return(nil)
+		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id), newSurveyStateBytes).Return(nil)
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
@@ -429,40 +427,6 @@ func TestCheckForSurveyDM(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
-	t.Run("should return error if unable to save latest survey state", func(t *testing.T) {
-		user := &model.User{
-			Id:       model.NewId(),
-			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
-		}
-
-		api := makeAPIMock()
-		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
-			ServerVersion: serverVersion,
-			StartAt:       now,
-		}), nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion)).Return(nil, nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest")).Return(nil, nil)
-		api.On("GetConfig").Return(&model.Config{ServiceSettings: model.ServiceSettings{SiteURL: model.NewString("https://mattermost.example.com")}})
-		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
-		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
-		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion), newSurveyStateBytes).Return(nil)
-		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest"), newSurveyStateBytes).Return(&model.AppError{})
-		defer api.AssertExpectations(t)
-
-		p := &Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		sent, err := p.checkForSurveyDM(user, serverVersion, now)
-
-		assert.True(t, sent)
-		assert.NotNil(t, err)
-	})
-
 	t.Run("should return error if unable to save survey state", func(t *testing.T) {
 		user := &model.User{
 			Id:       model.NewId(),
@@ -474,12 +438,11 @@ func TestCheckForSurveyDM(t *testing.T) {
 			ServerVersion: serverVersion,
 			StartAt:       now,
 		}), nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion)).Return(nil, nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest")).Return(nil, nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(nil, nil)
 		api.On("GetConfig").Return(&model.Config{ServiceSettings: model.ServiceSettings{SiteURL: model.NewString("https://mattermost.example.com")}})
 		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
-		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion), newSurveyStateBytes).Return(&model.AppError{})
+		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id), newSurveyStateBytes).Return(&model.AppError{})
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
@@ -507,8 +470,7 @@ func TestCheckForSurveyDM(t *testing.T) {
 			ServerVersion: serverVersion,
 			StartAt:       now,
 		}), nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion)).Return(nil, nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest")).Return(nil, nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(nil, nil)
 		api.On("GetConfig").Return(&model.Config{ServiceSettings: model.ServiceSettings{SiteURL: model.NewString("https://mattermost.example.com")}})
 		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(nil, &model.AppError{})
@@ -539,8 +501,7 @@ func TestCheckForSurveyDM(t *testing.T) {
 			ServerVersion: serverVersion,
 			StartAt:       now,
 		}), nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion)).Return(nil, nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest")).Return(mustMarshalJSON(&userSurveyState{
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(mustMarshalJSON(&userSurveyState{
 			ServerVersion: semver.MustParse("5.11.0"),
 			SentAt:        now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS),
 			AnsweredAt:    now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS),
@@ -548,8 +509,7 @@ func TestCheckForSurveyDM(t *testing.T) {
 		api.On("GetConfig").Return(&model.Config{ServiceSettings: model.ServiceSettings{SiteURL: model.NewString("https://mattermost.example.com")}})
 		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
-		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion), newSurveyStateBytes).Return(nil)
-		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest"), newSurveyStateBytes).Return(nil)
+		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id), newSurveyStateBytes).Return(nil)
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
@@ -577,8 +537,7 @@ func TestCheckForSurveyDM(t *testing.T) {
 			ServerVersion: serverVersion,
 			StartAt:       now,
 		}), nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion)).Return(nil, nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest")).Return(mustMarshalJSON(&userSurveyState{
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(mustMarshalJSON(&userSurveyState{
 			ServerVersion: semver.MustParse("5.11.0"),
 			SentAt:        now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS),
 			AnsweredAt:    now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS).Add(time.Millisecond),
@@ -610,8 +569,7 @@ func TestCheckForSurveyDM(t *testing.T) {
 			ServerVersion: serverVersion,
 			StartAt:       now,
 		}), nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion)).Return(nil, nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest")).Return(mustMarshalJSON(&userSurveyState{
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(mustMarshalJSON(&userSurveyState{
 			ServerVersion: semver.MustParse("5.11.0"),
 			SentAt:        now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS).Add(time.Millisecond),
 		}), nil)
@@ -642,7 +600,9 @@ func TestCheckForSurveyDM(t *testing.T) {
 			ServerVersion: serverVersion,
 			StartAt:       now,
 		}), nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion)).Return(mustMarshalJSON(&userSurveyState{}), nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(mustMarshalJSON(&userSurveyState{
+			ServerVersion: serverVersion,
+		}), nil)
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
@@ -670,7 +630,7 @@ func TestCheckForSurveyDM(t *testing.T) {
 			ServerVersion: serverVersion,
 			StartAt:       now,
 		}), nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion)).Return(nil, &model.AppError{})
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(nil, &model.AppError{})
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
@@ -815,11 +775,11 @@ func TestMarkSurveyAnswered(t *testing.T) {
 	userID := model.NewId()
 
 	api := &plugintest.API{}
-	api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, userID, serverVersion)).Return(mustMarshalJSON(&userSurveyState{
+	api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, userID)).Return(mustMarshalJSON(&userSurveyState{
 		ServerVersion: serverVersion,
 		SentAt:        toDate(2019, 3, 1),
 	}), nil)
-	api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, userID, serverVersion), mustMarshalJSON(&userSurveyState{
+	api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, userID), mustMarshalJSON(&userSurveyState{
 		ServerVersion: serverVersion,
 		SentAt:        toDate(2019, 3, 1),
 		AnsweredAt:    now,
@@ -829,7 +789,7 @@ func TestMarkSurveyAnswered(t *testing.T) {
 	p := Plugin{}
 	p.SetAPI(api)
 
-	err := p.markSurveyAnswered(userID, serverVersion, now)
+	err := p.markSurveyAnswered(userID, now)
 
 	assert.Nil(t, err)
 }

@@ -147,14 +147,7 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 
 	p.sendScore(score, userID, now.UnixNano()/int64(time.Millisecond))
 
-	serverVersion, err := p.GetServerVersion()
-	if err != nil {
-		p.API.LogError("Failed to get server version when handling NPS survey score", "err", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	if err := p.markSurveyAnswered(userID, serverVersion, now); err != nil {
+	if err := p.markSurveyAnswered(userID, now); err != nil {
 		p.API.LogWarn("Failed to mark survey as answered", "err", err)
 	}
 
