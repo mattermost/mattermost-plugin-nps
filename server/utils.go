@@ -4,27 +4,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"regexp"
 	"strings"
 	"time"
 
-	"github.com/blang/semver"
 	"github.com/mattermost/mattermost-server/model"
 )
 
-func (p *Plugin) GetServerVersion() (semver.Version, *model.AppError) {
-	versionString := p.API.GetServerVersion()
-
-	version, err := semver.Parse(versionString)
-	if err != nil {
-		return version, &model.AppError{Message: err.Error()}
-	}
-
-	// Remove the parts of the version that the NPS plugin doesn't care about
-	version.Patch = 0
-	version.Pre = nil
-	version.Build = nil
-
-	return version, nil
+// getServerVersion returns the current server version with only the major and minor version set. For example, both
+// 5.10.0 and 5.10.1 will be returned as "5.10.0" by this method.
+func getServerVersion(serverVersion string) string {
+	return regexp.MustCompile(`\.[1-9]\d*$`).ReplaceAllString(serverVersion, ".0")
 }
 
 func (p *Plugin) KVGet(key string, v interface{}) *model.AppError {

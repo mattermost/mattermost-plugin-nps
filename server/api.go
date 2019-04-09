@@ -71,13 +71,6 @@ func (p *Plugin) checkForDMs(userID string) *model.AppError {
 			return err
 		}
 
-		serverVersion, err := p.GetServerVersion()
-		if err != nil {
-			return err
-		}
-
-		now := time.Now()
-
 		go func() {
 			// Add a random delay to mitigate against the fact that the user may have multiple sessions hitting this
 			// API at the same time across different servers.
@@ -86,8 +79,10 @@ func (p *Plugin) checkForDMs(userID string) *model.AppError {
 			p.connectedLock.Lock()
 			defer p.connectedLock.Unlock()
 
-			p.checkForAdminNoticeDM(user, serverVersion)
-			p.checkForSurveyDM(user, serverVersion, now)
+			now := time.Now()
+
+			p.checkForAdminNoticeDM(user)
+			p.checkForSurveyDM(user, now)
 		}()
 	}
 

@@ -4,26 +4,19 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/blang/semver"
 	"github.com/mattermost/mattermost-server/model"
 )
 
 type serverUpgrade struct {
-	Version   semver.Version
-	UpgradeAt time.Time
+	ServerVersion string    `json:"server_version"`
+	UpgradeAt     time.Time `json:"upgrade_at"`
 }
 
 // checkForServerUpgrade checks to see if the plugin has been ran with this server version before. If the server
 // version has changed, it stores the time of upgrade and returns true. Otherwise, it returns false.
 func (p *Plugin) checkForServerUpgrade(now time.Time) (bool, *model.AppError) {
-	serverVersion, err := p.GetServerVersion()
-	if err != nil {
-		// Failed to get server version
-		return false, err
-	}
-
 	var storedUpgrade *serverUpgrade
-	if err := p.KVGet(fmt.Sprintf(SERVER_UPGRADE_KEY, serverVersion), &storedUpgrade); err != nil {
+	if err := p.KVGet(fmt.Sprintf(SERVER_UPGRADE_KEY, p.serverVersion), &storedUpgrade); err != nil {
 		// Failed to get stored version
 		return false, err
 	}
@@ -35,9 +28,9 @@ func (p *Plugin) checkForServerUpgrade(now time.Time) (bool, *model.AppError) {
 
 	// Note that this will see any major or minor version change as an upgrade, even if a downgrade has occurred
 
-	if err := p.KVSet(fmt.Sprintf(SERVER_UPGRADE_KEY, serverVersion), &serverUpgrade{
-		Version:   serverVersion,
-		UpgradeAt: now,
+	if err := p.KVSet(fmt.Sprintf(SERVER_UPGRADE_KEY, p.serverVersion), &serverUpgrade{
+		ServerVersion: p.serverVersion,
+		UpgradeAt:     now,
 	}); err != nil {
 		// Return false if we're unable to save the server version to prevent an upgrade from being seen multiple times
 		return false, err

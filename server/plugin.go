@@ -46,6 +46,9 @@ type Plugin struct {
 	// setConfiguration for usage.
 	configuration *configuration
 
+	// serverVersion is the current major/minor server version without the patch version included.
+	serverVersion string
+
 	// activated is used to track whether or not OnActivate has initialized the plugin state.
 	activated bool
 

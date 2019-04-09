@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/blang/semver"
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/plugin/plugintest"
 	"github.com/stretchr/testify/assert"
@@ -55,7 +54,7 @@ func TestSendAdminNoticeDMs(t *testing.T) {
 		},
 	}
 	survey := &surveyState{
-		ServerVersion: semver.MustParse("5.10.0"),
+		ServerVersion: "5.10.0",
 		StartAt:       time.Date(2009, time.November, 17, 23, 0, 0, 0, time.UTC),
 	}
 
@@ -173,7 +172,20 @@ func TestGetAdminUsers(t *testing.T) {
 
 func TestCheckForAdminNoticeDM(t *testing.T) {
 	botUserID := model.NewId()
-	serverVersion := semver.MustParse("5.12.0")
+	serverVersion := "5.12.0"
+
+	makePlugin := func(api *plugintest.API) *Plugin {
+		p := &Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+			serverVersion: serverVersion,
+		}
+		p.SetAPI(api)
+
+		return p
+	}
 
 	t.Run("should send notification DM", func(t *testing.T) {
 		user := &model.User{
@@ -194,15 +206,8 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 		})).Return(nil)
 		defer api.AssertExpectations(t)
 
-		p := Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		sent, err := p.checkForAdminNoticeDM(user, serverVersion)
+		p := makePlugin(api)
+		sent, err := p.checkForAdminNoticeDM(user)
 
 		assert.True(t, sent)
 		assert.Nil(t, err)
@@ -227,15 +232,8 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 		})).Return(&model.AppError{})
 		defer api.AssertExpectations(t)
 
-		p := Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		sent, err := p.checkForAdminNoticeDM(user, serverVersion)
+		p := makePlugin(api)
+		sent, err := p.checkForAdminNoticeDM(user)
 
 		assert.True(t, sent)
 		assert.NotNil(t, err)
@@ -256,15 +254,8 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 		api.On("CreatePost", mock.Anything).Return(nil, &model.AppError{})
 		defer api.AssertExpectations(t)
 
-		p := Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		sent, err := p.checkForAdminNoticeDM(user, serverVersion)
+		p := makePlugin(api)
+		sent, err := p.checkForAdminNoticeDM(user)
 
 		assert.True(t, sent)
 		assert.NotNil(t, err)
@@ -283,15 +274,8 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 		}), nil)
 		defer api.AssertExpectations(t)
 
-		p := Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		sent, err := p.checkForAdminNoticeDM(user, serverVersion)
+		p := makePlugin(api)
+		sent, err := p.checkForAdminNoticeDM(user)
 
 		assert.False(t, sent)
 		assert.Nil(t, err)
@@ -307,15 +291,8 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 		api.On("KVGet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, serverVersion)).Return(nil, nil)
 		defer api.AssertExpectations(t)
 
-		p := Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		sent, err := p.checkForAdminNoticeDM(user, serverVersion)
+		p := makePlugin(api)
+		sent, err := p.checkForAdminNoticeDM(user)
 
 		assert.False(t, sent)
 		assert.Nil(t, err)
@@ -331,15 +308,8 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 		api.On("KVGet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, serverVersion)).Return(nil, &model.AppError{})
 		defer api.AssertExpectations(t)
 
-		p := Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		sent, err := p.checkForAdminNoticeDM(user, serverVersion)
+		p := makePlugin(api)
+		sent, err := p.checkForAdminNoticeDM(user)
 
 		assert.False(t, sent)
 		assert.NotNil(t, err)
@@ -351,14 +321,8 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 			Roles: model.SYSTEM_USER_ROLE_ID,
 		}
 
-		p := Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-
-		sent, err := p.checkForAdminNoticeDM(user, serverVersion)
+		p := makePlugin(nil)
+		sent, err := p.checkForAdminNoticeDM(user)
 
 		assert.False(t, sent)
 		assert.Nil(t, err)
@@ -370,13 +334,9 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
 		}
 
-		p := Plugin{
-			configuration: &configuration{
-				EnableSurvey: false,
-			},
-		}
-
-		sent, err := p.checkForAdminNoticeDM(user, serverVersion)
+		p := makePlugin(nil)
+		p.configuration.EnableSurvey = false
+		sent, err := p.checkForAdminNoticeDM(user)
 
 		assert.False(t, sent)
 		assert.Nil(t, err)
@@ -387,13 +347,26 @@ func TestCheckForSurveyDM(t *testing.T) {
 	botUserID := model.NewId()
 	now := toDate(2019, time.March, 1)
 	postID := model.NewId()
-	serverVersion := semver.MustParse("5.12.0")
+	serverVersion := "5.12.0"
 
 	newSurveyStateBytes := mustMarshalJSON(&userSurveyState{
 		ScorePostId:   postID,
 		ServerVersion: serverVersion,
 		SentAt:        now,
 	})
+
+	makePlugin := func(api *plugintest.API) *Plugin {
+		p := &Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+			serverVersion: serverVersion,
+		}
+		p.SetAPI(api)
+
+		return p
+	}
 
 	t.Run("should send first ever survey DM", func(t *testing.T) {
 		user := &model.User{
@@ -413,15 +386,8 @@ func TestCheckForSurveyDM(t *testing.T) {
 		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id), newSurveyStateBytes).Return(nil)
 		defer api.AssertExpectations(t)
 
-		p := &Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+		p := makePlugin(api)
+		sent, err := p.checkForSurveyDM(user, now)
 
 		assert.True(t, sent)
 		assert.Nil(t, err)
@@ -445,15 +411,8 @@ func TestCheckForSurveyDM(t *testing.T) {
 		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id), newSurveyStateBytes).Return(&model.AppError{})
 		defer api.AssertExpectations(t)
 
-		p := &Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+		p := makePlugin(api)
+		sent, err := p.checkForSurveyDM(user, now)
 
 		assert.True(t, sent)
 		assert.NotNil(t, err)
@@ -476,15 +435,8 @@ func TestCheckForSurveyDM(t *testing.T) {
 		api.On("CreatePost", mock.Anything).Return(nil, &model.AppError{})
 		defer api.AssertExpectations(t)
 
-		p := &Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+		p := makePlugin(api)
+		sent, err := p.checkForSurveyDM(user, now)
 
 		assert.True(t, sent)
 		assert.NotNil(t, err)
@@ -502,7 +454,7 @@ func TestCheckForSurveyDM(t *testing.T) {
 			StartAt:       now,
 		}), nil)
 		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(mustMarshalJSON(&userSurveyState{
-			ServerVersion: semver.MustParse("5.11.0"),
+			ServerVersion: "5.11.0",
 			SentAt:        now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS),
 			AnsweredAt:    now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS),
 		}), nil)
@@ -512,15 +464,8 @@ func TestCheckForSurveyDM(t *testing.T) {
 		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id), newSurveyStateBytes).Return(nil)
 		defer api.AssertExpectations(t)
 
-		p := &Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+		p := makePlugin(api)
+		sent, err := p.checkForSurveyDM(user, now)
 
 		assert.True(t, sent)
 		assert.Nil(t, err)
@@ -538,21 +483,14 @@ func TestCheckForSurveyDM(t *testing.T) {
 			StartAt:       now,
 		}), nil)
 		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(mustMarshalJSON(&userSurveyState{
-			ServerVersion: semver.MustParse("5.11.0"),
+			ServerVersion: "5.11.0",
 			SentAt:        now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS),
 			AnsweredAt:    now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS).Add(time.Millisecond),
 		}), nil)
 		defer api.AssertExpectations(t)
 
-		p := &Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+		p := makePlugin(api)
+		sent, err := p.checkForSurveyDM(user, now)
 
 		assert.False(t, sent)
 		assert.Nil(t, err)
@@ -570,20 +508,13 @@ func TestCheckForSurveyDM(t *testing.T) {
 			StartAt:       now,
 		}), nil)
 		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(mustMarshalJSON(&userSurveyState{
-			ServerVersion: semver.MustParse("5.11.0"),
+			ServerVersion: "5.11.0",
 			SentAt:        now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS).Add(time.Millisecond),
 		}), nil)
 		defer api.AssertExpectations(t)
 
-		p := &Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+		p := makePlugin(api)
+		sent, err := p.checkForSurveyDM(user, now)
 
 		assert.False(t, sent)
 		assert.Nil(t, err)
@@ -605,15 +536,8 @@ func TestCheckForSurveyDM(t *testing.T) {
 		}), nil)
 		defer api.AssertExpectations(t)
 
-		p := &Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+		p := makePlugin(api)
+		sent, err := p.checkForSurveyDM(user, now)
 
 		assert.False(t, sent)
 		assert.Nil(t, err)
@@ -633,15 +557,8 @@ func TestCheckForSurveyDM(t *testing.T) {
 		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(nil, &model.AppError{})
 		defer api.AssertExpectations(t)
 
-		p := &Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+		p := makePlugin(api)
+		sent, err := p.checkForSurveyDM(user, now)
 
 		assert.False(t, sent)
 		assert.NotNil(t, err)
@@ -660,15 +577,8 @@ func TestCheckForSurveyDM(t *testing.T) {
 		}), nil)
 		defer api.AssertExpectations(t)
 
-		p := &Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+		p := makePlugin(api)
+		sent, err := p.checkForSurveyDM(user, now)
 
 		assert.False(t, sent)
 		assert.Nil(t, err)
@@ -684,15 +594,8 @@ func TestCheckForSurveyDM(t *testing.T) {
 		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(nil, nil)
 		defer api.AssertExpectations(t)
 
-		p := &Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+		p := makePlugin(api)
+		sent, err := p.checkForSurveyDM(user, now)
 
 		assert.False(t, sent)
 		assert.Nil(t, err)
@@ -708,15 +611,8 @@ func TestCheckForSurveyDM(t *testing.T) {
 		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(nil, &model.AppError{})
 		defer api.AssertExpectations(t)
 
-		p := &Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+		p := makePlugin(api)
+		sent, err := p.checkForSurveyDM(user, now)
 
 		assert.False(t, sent)
 		assert.NotNil(t, err)
@@ -731,15 +627,8 @@ func TestCheckForSurveyDM(t *testing.T) {
 		api := makeAPIMock()
 		defer api.AssertExpectations(t)
 
-		p := &Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+		p := makePlugin(api)
+		sent, err := p.checkForSurveyDM(user, now)
 
 		assert.False(t, sent)
 		assert.Nil(t, err)
@@ -754,15 +643,9 @@ func TestCheckForSurveyDM(t *testing.T) {
 		api := makeAPIMock()
 		defer api.AssertExpectations(t)
 
-		p := &Plugin{
-			botUserID: botUserID,
-			configuration: &configuration{
-				EnableSurvey: false,
-			},
-		}
-		p.SetAPI(api)
-
-		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+		p := makePlugin(api)
+		p.configuration.EnableSurvey = false
+		sent, err := p.checkForSurveyDM(user, now)
 
 		assert.False(t, sent)
 		assert.Nil(t, err)
@@ -771,7 +654,7 @@ func TestCheckForSurveyDM(t *testing.T) {
 
 func TestMarkSurveyAnswered(t *testing.T) {
 	now := toDate(2019, 3, 2)
-	serverVersion := semver.MustParse("5.8.0")
+	serverVersion := "5.8.0"
 	userID := model.NewId()
 
 	api := &plugintest.API{}

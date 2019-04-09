@@ -23,6 +23,8 @@ func (p *Plugin) OnActivate() error {
 	}
 	p.botUserID = botUserID
 
+	p.serverVersion = getServerVersion(p.API.GetServerVersion())
+
 	p.initializeClient()
 
 	p.API.LogDebug("NPS plugin activated")

@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/blang/semver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
@@ -14,43 +13,8 @@ import (
 )
 
 func TestGetServerVersion(t *testing.T) {
-	t.Run("should return the correct version", func(t *testing.T) {
-		api := makeAPIMock()
-		api.On("GetServerVersion").Return("5.10.0")
-
-		p := Plugin{}
-		p.SetAPI(api)
-
-		version, err := p.GetServerVersion()
-
-		assert.Equal(t, semver.MustParse("5.10.0"), version)
-		assert.Nil(t, err)
-	})
-
-	t.Run("should not return the patch number or pre-release version", func(t *testing.T) {
-		api := makeAPIMock()
-		api.On("GetServerVersion").Return("5.11.1-rc1")
-
-		p := Plugin{}
-		p.SetAPI(api)
-
-		version, err := p.GetServerVersion()
-
-		assert.Equal(t, semver.MustParse("5.11.0"), version)
-		assert.Nil(t, err)
-	})
-
-	t.Run("should return an error if the version cannot be paresed", func(t *testing.T) {
-		api := makeAPIMock()
-		api.On("GetServerVersion").Return("garbage")
-
-		p := Plugin{}
-		p.SetAPI(api)
-
-		version, err := p.GetServerVersion()
-
-		assert.Equal(t, semver.Version{}, version)
-		assert.NotNil(t, err)
+	t.Run("should set the patch number to 0", func(t *testing.T) {
+		assert.Equal(t, "5.11.0", getServerVersion("5.11.1"))
 	})
 }
 
@@ -58,6 +22,7 @@ func TestKVSet(t *testing.T) {
 	t.Run("should save a json encoded object in the KV store", func(t *testing.T) {
 		api := makeAPIMock()
 		api.On("KVSet", "key", []byte(`"value"`)).Return(nil)
+		defer api.AssertExpectations(t)
 
 		p := Plugin{}
 		p.SetAPI(api)
@@ -70,6 +35,7 @@ func TestKVSet(t *testing.T) {
 	t.Run("should return an error if saving the value in the KV store fails", func(t *testing.T) {
 		api := makeAPIMock()
 		api.On("KVSet", "key", mock.Anything).Return(&model.AppError{})
+		defer api.AssertExpectations(t)
 
 		p := Plugin{}
 		p.SetAPI(api)
@@ -84,6 +50,7 @@ func TestKVGet(t *testing.T) {
 	t.Run("should save a json encoded object in the KV store", func(t *testing.T) {
 		api := makeAPIMock()
 		api.On("KVGet", "key").Return([]byte(`"value"`), nil)
+		defer api.AssertExpectations(t)
 
 		p := Plugin{}
 		p.SetAPI(api)
@@ -98,6 +65,7 @@ func TestKVGet(t *testing.T) {
 	t.Run("should not modify value and return nil when an object doesn't exist in the KV store", func(t *testing.T) {
 		api := makeAPIMock()
 		api.On("KVGet", "key").Return(nil, nil)
+		defer api.AssertExpectations(t)
 
 		p := Plugin{}
 		p.SetAPI(api)
@@ -112,6 +80,7 @@ func TestKVGet(t *testing.T) {
 	t.Run("should return an error if getting the value from the KV store fails", func(t *testing.T) {
 		api := makeAPIMock()
 		api.On("KVGet", "key").Return(nil, &model.AppError{})
+		defer api.AssertExpectations(t)
 
 		p := Plugin{}
 		p.SetAPI(api)
@@ -126,6 +95,7 @@ func TestKVGet(t *testing.T) {
 	t.Run("should return an error if decoding the value fails", func(t *testing.T) {
 		api := makeAPIMock()
 		api.On("KVGet", "key").Return([]byte(`"value`), nil)
+		defer api.AssertExpectations(t)
 
 		p := Plugin{}
 		p.SetAPI(api)
@@ -152,6 +122,7 @@ func TestCreateBotDMPost(t *testing.T) {
 			Message:   "test",
 			UserId:    "botUserID",
 		}, nil)
+		defer api.AssertExpectations(t)
 
 		p := Plugin{
 			botUserID: "botUserID",
@@ -170,6 +141,7 @@ func TestCreateBotDMPost(t *testing.T) {
 	t.Run("should return an error if unable to get the DM channel", func(t *testing.T) {
 		api := makeAPIMock()
 		api.On("GetDirectChannel", "userID", "botUserID").Return(nil, &model.AppError{})
+		defer api.AssertExpectations(t)
 
 		p := Plugin{
 			botUserID: "botUserID",
@@ -187,6 +159,7 @@ func TestCreateBotDMPost(t *testing.T) {
 		api := makeAPIMock()
 		api.On("GetDirectChannel", "userID", "botUserID").Return(&model.Channel{Id: "channelID"}, nil)
 		api.On("CreatePost", mock.Anything).Return(nil, &model.AppError{})
+		defer api.AssertExpectations(t)
 
 		p := Plugin{
 			botUserID: "botUserID",

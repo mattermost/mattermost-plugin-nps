@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/blang/semver"
 	"github.com/mattermost/mattermost-server/model"
 )
 
@@ -30,22 +29,22 @@ const (
 )
 
 type adminNotice struct {
-	Sent          bool           `json:"sent"`
-	ServerVersion semver.Version `json:"server_version"`
-	SurveyStartAt time.Time      `json:"survey_start_at"`
+	Sent          bool      `json:"sent"`
+	ServerVersion string    `json:"server_version"`
+	SurveyStartAt time.Time `json:"survey_start_at"`
 }
 
 type surveyState struct {
-	ServerVersion semver.Version `json:"server_version"`
-	CreateAt      time.Time      `json:"create_at"`
-	StartAt       time.Time      `json:"start_at"`
+	ServerVersion string    `json:"server_version"`
+	CreateAt      time.Time `json:"create_at"`
+	StartAt       time.Time `json:"start_at"`
 }
 
 type userSurveyState struct {
-	ServerVersion semver.Version `json:"server_version"`
-	SentAt        time.Time      `json:"sent_at"`
-	AnsweredAt    time.Time      `json:"answered_at"`
-	ScorePostId   string         `json:"score_post_id"`
+	ServerVersion string    `json:"server_version"`
+	SentAt        time.Time `json:"sent_at"`
+	AnsweredAt    time.Time `json:"answered_at"`
+	ScorePostId   string    `json:"score_post_id"`
 }
 
 // checkForNextSurvey schedules a new NPS survey if a major or minor version change has occurred. Returns whether or
@@ -69,12 +68,6 @@ func (p *Plugin) checkForNextSurvey(now time.Time) bool {
 		return false
 	}
 
-	serverVersion, err := p.GetServerVersion()
-	if err != nil {
-		p.API.LogError("Failed to get server version when scheduling survey", "err", err)
-		return false
-	}
-
 	var nextSurvey *surveyState
 	if err := p.KVGet(fmt.Sprintf(SURVEY_KEY, nextSurvey.ServerVersion), nextSurvey); err != nil {
 		p.API.LogError("Failed to get survey state", "err", err)
@@ -87,14 +80,14 @@ func (p *Plugin) checkForNextSurvey(now time.Time) bool {
 	}
 
 	nextSurvey = &surveyState{
-		ServerVersion: serverVersion,
+		ServerVersion: p.serverVersion,
 		CreateAt:      now,
 		StartAt:       now.Add(TIME_UNTIL_SURVEY),
 	}
 
 	p.API.LogInfo(fmt.Sprintf("Scheduling next survey for %s", nextSurvey.StartAt.Format("Jan 2, 2006")))
 
-	if err := p.KVSet(fmt.Sprintf(SURVEY_KEY, serverVersion), nextSurvey); err != nil {
+	if err := p.KVSet(fmt.Sprintf(SURVEY_KEY, p.serverVersion), nextSurvey); err != nil {
 		p.API.LogError("Failed to schedule next survey", "err", err)
 		return false
 	}
@@ -214,7 +207,7 @@ func (p *Plugin) getAdminUsers(perPage int) ([]*model.User, *model.AppError) {
 	return admins, nil
 }
 
-func (p *Plugin) checkForAdminNoticeDM(user *model.User, serverVersion semver.Version) (bool, *model.AppError) {
+func (p *Plugin) checkForAdminNoticeDM(user *model.User) (bool, *model.AppError) {
 	if !p.getConfiguration().EnableSurvey {
 		// Surveys are disabled
 		return false, nil
@@ -225,7 +218,7 @@ func (p *Plugin) checkForAdminNoticeDM(user *model.User, serverVersion semver.Ve
 	}
 
 	var notice *adminNotice
-	if err := p.KVGet(fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, serverVersion), &notice); err != nil {
+	if err := p.KVGet(fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, p.serverVersion), &notice); err != nil {
 		return false, err
 	}
 
@@ -278,7 +271,7 @@ func (p *Plugin) buildAdminNoticePost(surveyStartAt time.Time) *model.Post {
 	}
 }
 
-func (p *Plugin) checkForSurveyDM(user *model.User, serverVersion semver.Version, now time.Time) (bool, *model.AppError) {
+func (p *Plugin) checkForSurveyDM(user *model.User, now time.Time) (bool, *model.AppError) {
 	if !p.getConfiguration().EnableSurvey {
 		// Surveys are disabled
 		return false, nil
@@ -290,7 +283,7 @@ func (p *Plugin) checkForSurveyDM(user *model.User, serverVersion semver.Version
 	}
 
 	var survey *surveyState
-	if err := p.KVGet(fmt.Sprintf(SURVEY_KEY, serverVersion), &survey); err != nil {
+	if err := p.KVGet(fmt.Sprintf(SURVEY_KEY, p.serverVersion), &survey); err != nil {
 		return false, err
 	}
 
@@ -311,7 +304,7 @@ func (p *Plugin) checkForSurveyDM(user *model.User, serverVersion semver.Version
 	}
 
 	if userSurvey != nil {
-		if userSurvey.ServerVersion.Equals(serverVersion) {
+		if userSurvey.ServerVersion == p.serverVersion {
 			// The user has already received this survey
 			return false, nil
 		}
@@ -327,10 +320,10 @@ func (p *Plugin) checkForSurveyDM(user *model.User, serverVersion semver.Version
 		}
 	}
 
-	return true, p.sendSurveyDM(user, serverVersion, now)
+	return true, p.sendSurveyDM(user, now)
 }
 
-func (p *Plugin) sendSurveyDM(user *model.User, serverVersion semver.Version, now time.Time) *model.AppError {
+func (p *Plugin) sendSurveyDM(user *model.User, now time.Time) *model.AppError {
 	p.API.LogDebug("Sending survey DM", "user_id", user.Id)
 
 	// Send the DM
@@ -340,7 +333,7 @@ func (p *Plugin) sendSurveyDM(user *model.User, serverVersion semver.Version, no
 	}
 
 	userSurveyState := &userSurveyState{
-		ServerVersion: serverVersion,
+		ServerVersion: p.serverVersion,
 		SentAt:        now,
 		ScorePostId:   post.Id,
 	}
