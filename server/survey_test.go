@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -11,94 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
-
-func TestShouldScheduleSurvey(t *testing.T) {
-	for _, test := range []struct {
-		Name           string
-		CurrentVersion semver.Version
-		LastUpgrade    *serverUpgrade
-		Expected       bool
-	}{
-		{
-			Name:           "No previous version stored",
-			CurrentVersion: semver.MustParse("5.10.0"),
-			LastUpgrade:    nil,
-			Expected:       true,
-		},
-		{
-			Name:           "Stored version is different by a major version",
-			CurrentVersion: semver.MustParse("5.10.0"),
-			LastUpgrade:    &serverUpgrade{Version: semver.MustParse("4.10.0")},
-			Expected:       true,
-		},
-		{
-			Name:           "Stored version is different by a minor version",
-			CurrentVersion: semver.MustParse("5.10.0"),
-			LastUpgrade:    &serverUpgrade{Version: semver.MustParse("5.9.0")},
-			Expected:       true,
-		},
-		{
-			Name:           "Stored version is different by a patch version",
-			CurrentVersion: semver.MustParse("5.10.1"),
-			LastUpgrade:    &serverUpgrade{Version: semver.MustParse("5.10.0")},
-			Expected:       false,
-		},
-		{
-			Name:           "Stored version is the same",
-			CurrentVersion: semver.MustParse("5.10.0"),
-			LastUpgrade:    &serverUpgrade{Version: semver.MustParse("5.10.0")},
-			Expected:       false,
-		},
-		{
-			Name:           "Stored version is newer",
-			CurrentVersion: semver.MustParse("4.10.0"),
-			LastUpgrade:    &serverUpgrade{Version: semver.MustParse("5.10.0")},
-			Expected:       false,
-		},
-	} {
-		t.Run(test.Name, func(t *testing.T) {
-			assert.Equal(t, test.Expected, shouldScheduleSurvey(test.CurrentVersion, test.LastUpgrade))
-		})
-	}
-}
-
-func TestShouldSendAdminNotices(t *testing.T) {
-	for _, test := range []struct {
-		Name        string
-		Now         time.Time
-		LastUpgrade *serverUpgrade
-		Expected    bool
-	}{
-		{
-			Name:        "No previous time stored",
-			Now:         time.Date(2009, time.November, 10, 23, 30, 0, 0, time.UTC),
-			LastUpgrade: nil,
-			Expected:    true,
-		},
-		{
-			Name:        "Last survey sent on the same day",
-			Now:         time.Date(2009, time.November, 10, 23, 30, 0, 0, time.UTC),
-			LastUpgrade: &serverUpgrade{Timestamp: time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)},
-			Expected:    false,
-		},
-		{
-			Name:        "Last survey sent under one week ago",
-			Now:         time.Date(2009, time.November, 17, 22, 59, 59, 999999, time.UTC),
-			LastUpgrade: &serverUpgrade{Timestamp: time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)},
-			Expected:    false,
-		},
-		{
-			Name:        "Last survey sent one week ago",
-			Now:         time.Date(2009, time.November, 17, 23, 0, 0, 0, time.UTC),
-			LastUpgrade: &serverUpgrade{Timestamp: time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)},
-			Expected:    true,
-		},
-	} {
-		t.Run(test.Name, func(t *testing.T) {
-			assert.Equal(t, test.Expected, shouldSendAdminNotices(test.Now, test.LastUpgrade))
-		})
-	}
-}
 
 func TestSendAdminNoticeEmails(t *testing.T) {
 	admins := []*model.User{
@@ -142,24 +54,28 @@ func TestSendAdminNoticeDMs(t *testing.T) {
 			Id: model.NewId(),
 		},
 	}
-
-	nextSurvey := time.Date(2009, time.November, 17, 23, 0, 0, 0, time.UTC)
+	survey := &surveyState{
+		ServerVersion: semver.MustParse("5.10.0"),
+		StartAt:       time.Date(2009, time.November, 17, 23, 0, 0, 0, time.UTC),
+	}
 
 	api := &plugintest.API{}
-	api.On("KVSet", ADMIN_DM_NOTICE_KEY+admins[0].Id, mustMarshalJSON(&adminNotice{
-		Sent:       false,
-		NextSurvey: nextSurvey,
+	api.On("KVSet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, admins[0].Id, survey.ServerVersion), mustMarshalJSON(&adminNotice{
+		Sent:          false,
+		ServerVersion: survey.ServerVersion,
+		SurveyStartAt: survey.StartAt,
 	})).Return(nil)
-	api.On("KVSet", ADMIN_DM_NOTICE_KEY+admins[1].Id, mustMarshalJSON(&adminNotice{
-		Sent:       false,
-		NextSurvey: nextSurvey,
+	api.On("KVSet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, admins[1].Id, survey.ServerVersion), mustMarshalJSON(&adminNotice{
+		Sent:          false,
+		ServerVersion: survey.ServerVersion,
+		SurveyStartAt: survey.StartAt,
 	})).Return(nil)
 	defer api.AssertExpectations(t)
 
 	p := Plugin{}
 	p.SetAPI(api)
 
-	p.sendAdminNoticeDMs(admins, nextSurvey)
+	p.sendAdminNoticeDMs(admins, survey)
 }
 
 func TestGetAdminUsers(t *testing.T) {
@@ -256,144 +172,199 @@ func TestGetAdminUsers(t *testing.T) {
 }
 
 func TestCheckForAdminNoticeDM(t *testing.T) {
-	t.Run("not a system admin", func(t *testing.T) {
+	botUserID := model.NewId()
+	serverVersion := semver.MustParse("5.12.0")
+
+	t.Run("should send notification DM", func(t *testing.T) {
 		user := &model.User{
+			Id:    model.NewId(),
+			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
+		}
+
+		api := makeAPIMock()
+		api.On("KVGet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, serverVersion)).Return(mustMarshalJSON(&adminNotice{
+			Sent:          false,
+			ServerVersion: serverVersion,
+		}), nil)
+		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
+		api.On("CreatePost", mock.Anything).Return(&model.Post{}, nil)
+		api.On("KVSet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, serverVersion), mustMarshalJSON(&adminNotice{
+			Sent:          true,
+			ServerVersion: serverVersion,
+		})).Return(nil)
+		defer api.AssertExpectations(t)
+
+		p := Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
+		p.SetAPI(api)
+
+		sent, err := p.checkForAdminNoticeDM(user, serverVersion)
+
+		assert.True(t, sent)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should return error if failing to save that the notice was sent", func(t *testing.T) {
+		user := &model.User{
+			Id:    model.NewId(),
+			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
+		}
+
+		api := makeAPIMock()
+		api.On("KVGet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, serverVersion)).Return(mustMarshalJSON(&adminNotice{
+			Sent:          false,
+			ServerVersion: serverVersion,
+		}), nil)
+		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
+		api.On("CreatePost", mock.Anything).Return(&model.Post{}, nil)
+		api.On("KVSet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, serverVersion), mustMarshalJSON(&adminNotice{
+			Sent:          true,
+			ServerVersion: serverVersion,
+		})).Return(&model.AppError{})
+		defer api.AssertExpectations(t)
+
+		p := Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
+		p.SetAPI(api)
+
+		sent, err := p.checkForAdminNoticeDM(user, serverVersion)
+
+		assert.True(t, sent)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("should return error if unable to send the DM", func(t *testing.T) {
+		user := &model.User{
+			Id:    model.NewId(),
+			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
+		}
+
+		api := makeAPIMock()
+		api.On("KVGet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, serverVersion)).Return(mustMarshalJSON(&adminNotice{
+			Sent:          false,
+			ServerVersion: serverVersion,
+		}), nil)
+		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
+		api.On("CreatePost", mock.Anything).Return(nil, &model.AppError{})
+		defer api.AssertExpectations(t)
+
+		p := Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
+		p.SetAPI(api)
+
+		sent, err := p.checkForAdminNoticeDM(user, serverVersion)
+
+		assert.True(t, sent)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("should not resend notification that was already sent", func(t *testing.T) {
+		user := &model.User{
+			Id:    model.NewId(),
+			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
+		}
+
+		api := makeAPIMock()
+		api.On("KVGet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, serverVersion)).Return(mustMarshalJSON(&adminNotice{
+			Sent:          true,
+			ServerVersion: serverVersion,
+		}), nil)
+		defer api.AssertExpectations(t)
+
+		p := Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
+		p.SetAPI(api)
+
+		sent, err := p.checkForAdminNoticeDM(user, serverVersion)
+
+		assert.False(t, sent)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should not resend notification if none are needed", func(t *testing.T) {
+		user := &model.User{
+			Id:    model.NewId(),
+			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
+		}
+
+		api := makeAPIMock()
+		api.On("KVGet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, serverVersion)).Return(nil, nil)
+		defer api.AssertExpectations(t)
+
+		p := Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
+		p.SetAPI(api)
+
+		sent, err := p.checkForAdminNoticeDM(user, serverVersion)
+
+		assert.False(t, sent)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should return error if unable to get pending notice", func(t *testing.T) {
+		user := &model.User{
+			Id:    model.NewId(),
+			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
+		}
+
+		api := makeAPIMock()
+		api.On("KVGet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, serverVersion)).Return(nil, &model.AppError{})
+		defer api.AssertExpectations(t)
+
+		p := Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
+		p.SetAPI(api)
+
+		sent, err := p.checkForAdminNoticeDM(user, serverVersion)
+
+		assert.False(t, sent)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("should not send notification to non-admin", func(t *testing.T) {
+		user := &model.User{
+			Id:    model.NewId(),
 			Roles: model.SYSTEM_USER_ROLE_ID,
 		}
 
 		p := Plugin{
+			botUserID: botUserID,
 			configuration: &configuration{
 				EnableSurvey: true,
 			},
 		}
 
-		notice := p.checkForAdminNoticeDM(user)
+		sent, err := p.checkForAdminNoticeDM(user, serverVersion)
 
-		assert.Nil(t, notice)
+		assert.False(t, sent)
+		assert.Nil(t, err)
 	})
 
-	t.Run("should log error when KVGet fails", func(t *testing.T) {
-		user := &model.User{
-			Id:    model.NewId(),
-			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
-		}
-
-		appErr := &model.AppError{}
-
-		api := &plugintest.API{}
-		api.On("KVGet", ADMIN_DM_NOTICE_KEY+user.Id).Return(nil, appErr)
-		api.On("LogError", mock.Anything, "err", appErr)
-		defer api.AssertExpectations(t)
-
-		p := Plugin{
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		notice := p.checkForAdminNoticeDM(user)
-
-		assert.Nil(t, notice)
-	})
-
-	t.Run("shouldn't error when no notice is stored", func(t *testing.T) {
-		user := &model.User{
-			Id:    model.NewId(),
-			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
-		}
-
-		api := &plugintest.API{}
-		api.On("KVGet", ADMIN_DM_NOTICE_KEY+user.Id).Return(nil, nil)
-		defer api.AssertExpectations(t)
-
-		p := Plugin{
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		notice := p.checkForAdminNoticeDM(user)
-
-		assert.Nil(t, notice)
-	})
-
-	t.Run("should log error when decoding fails", func(t *testing.T) {
-		user := &model.User{
-			Id:    model.NewId(),
-			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
-		}
-
-		api := &plugintest.API{}
-		api.On("KVGet", ADMIN_DM_NOTICE_KEY+user.Id).Return([]byte("garbage"), nil)
-		api.On("LogError", mock.Anything, "err", mock.Anything)
-		defer api.AssertExpectations(t)
-
-		p := Plugin{
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		notice := p.checkForAdminNoticeDM(user)
-
-		assert.Nil(t, notice)
-	})
-
-	t.Run("shouldn't return notice when already sent", func(t *testing.T) {
-		user := &model.User{
-			Id:    model.NewId(),
-			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
-		}
-
-		api := &plugintest.API{}
-		api.On("KVGet", ADMIN_DM_NOTICE_KEY+user.Id).Return(mustMarshalJSON(&adminNotice{
-			Sent: true,
-		}), nil)
-		defer api.AssertExpectations(t)
-
-		p := Plugin{
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		notice := p.checkForAdminNoticeDM(user)
-
-		assert.Nil(t, notice)
-	})
-
-	t.Run("should return unsent notice", func(t *testing.T) {
-		user := &model.User{
-			Id:    model.NewId(),
-			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
-		}
-
-		nextSurvey := time.Date(2009, time.November, 17, 23, 0, 0, 0, time.UTC)
-
-		api := &plugintest.API{}
-		api.On("KVGet", ADMIN_DM_NOTICE_KEY+user.Id).Return(mustMarshalJSON(&adminNotice{
-			Sent:       false,
-			NextSurvey: nextSurvey,
-		}), nil)
-		defer api.AssertExpectations(t)
-
-		p := Plugin{
-			configuration: &configuration{
-				EnableSurvey: true,
-			},
-		}
-		p.SetAPI(api)
-
-		notice := p.checkForAdminNoticeDM(user)
-
-		assert.Equal(t, &adminNotice{Sent: false, NextSurvey: nextSurvey}, notice)
-	})
-
-	t.Run("should not send notice when surveys are disabled", func(t *testing.T) {
+	t.Run("should not send notification when survey is disabled", func(t *testing.T) {
 		user := &model.User{
 			Id:    model.NewId(),
 			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
@@ -405,424 +376,451 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 			},
 		}
 
-		notice := p.checkForAdminNoticeDM(user)
+		sent, err := p.checkForAdminNoticeDM(user, serverVersion)
 
-		assert.Nil(t, notice)
+		assert.False(t, sent)
+		assert.Nil(t, err)
 	})
 }
 
-func TestSendAdminNoticeDM(t *testing.T) {
-	t.Run("should send DM and mark notice as sent", func(t *testing.T) {
-		botUserId := model.NewId()
-		user := &model.User{
-			Id: model.NewId(),
-		}
-		notice := &adminNotice{
-			NextSurvey: time.Date(2009, time.November, 17, 23, 0, 0, 0, time.UTC),
-			Sent:       false,
-		}
+func TestCheckForSurveyDM(t *testing.T) {
+	botUserID := model.NewId()
+	now := toDate(2019, time.March, 1)
+	postID := model.NewId()
+	serverVersion := semver.MustParse("5.12.0")
 
-		api := &plugintest.API{}
-		api.On("LogDebug", "Sending admin notice DM", "user_id", user.Id)
-		api.On("GetDirectChannel", user.Id, botUserId).Return(&model.Channel{}, nil)
-		api.On("CreatePost", mock.Anything).Return(nil, nil)
-		api.On("KVSet", ADMIN_DM_NOTICE_KEY+user.Id, mustMarshalJSON(&adminNotice{
-			Sent:       true,
-			NextSurvey: notice.NextSurvey,
-		})).Return(nil)
-		defer api.AssertExpectations(t)
-
-		p := Plugin{
-			botUserId: botUserId,
-		}
-		p.SetAPI(api)
-
-		p.sendAdminNoticeDM(user, notice)
+	newSurveyStateBytes := mustMarshalJSON(&userSurveyState{
+		ScorePostId:   postID,
+		ServerVersion: serverVersion,
+		SentAt:        now,
 	})
 
-	t.Run("should log error from failed DM", func(t *testing.T) {
-		botUserId := model.NewId()
-		user := &model.User{
-			Id: model.NewId(),
-		}
-		notice := &adminNotice{
-			NextSurvey: time.Date(2009, time.November, 17, 23, 0, 0, 0, time.UTC),
-			Sent:       false,
-		}
-
-		appErr := &model.AppError{}
-
-		api := &plugintest.API{}
-		api.On("LogDebug", "Sending admin notice DM", "user_id", user.Id)
-		api.On("GetDirectChannel", user.Id, botUserId).Return(&model.Channel{}, nil)
-		api.On("CreatePost", mock.Anything).Return(nil, appErr)
-		api.On("LogError", mock.Anything, "user_id", user.Id, "err", appErr)
-		api.On("LogError", mock.Anything, "err", appErr)
-		defer api.AssertExpectations(t)
-
-		p := Plugin{
-			botUserId: botUserId,
-		}
-		p.SetAPI(api)
-
-		p.sendAdminNoticeDM(user, notice)
-	})
-
-	t.Run("should log error when failing to store sent notice", func(t *testing.T) {
-		botUserId := model.NewId()
-		user := &model.User{
-			Id: model.NewId(),
-		}
-		notice := &adminNotice{
-			NextSurvey: time.Date(2009, time.November, 17, 23, 0, 0, 0, time.UTC),
-			Sent:       false,
-		}
-
-		appErr := &model.AppError{}
-
-		api := &plugintest.API{}
-		api.On("LogDebug", "Sending admin notice DM", "user_id", user.Id)
-		api.On("GetDirectChannel", user.Id, botUserId).Return(&model.Channel{}, nil)
-		api.On("CreatePost", mock.Anything).Return(nil, nil)
-		api.On("KVSet", ADMIN_DM_NOTICE_KEY+user.Id, mustMarshalJSON(&adminNotice{
-			Sent:       true,
-			NextSurvey: notice.NextSurvey,
-		})).Return(appErr)
-		api.On("LogError", mock.Anything, "err", appErr)
-		defer api.AssertExpectations(t)
-
-		p := Plugin{
-			botUserId: botUserId,
-		}
-		p.SetAPI(api)
-
-		p.sendAdminNoticeDM(user, notice)
-	})
-}
-
-func TestShouldSendSurveyDM(t *testing.T) {
-	for _, test := range []struct {
-		Name          string
-		User          *model.User
-		Now           time.Time
-		EnableSurvey  bool
-		LastUpgrade   *serverUpgrade
-		SurveyState   *surveyState
-		ServerVersion semver.Version
-		Expected      bool
-	}{
-		{
-			Name: "should send survey",
-			User: &model.User{
-				Id:       model.NewId(),
-				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
-			},
-			Now:          toDate(2019, time.April, 1),
-			EnableSurvey: true,
-			LastUpgrade: &serverUpgrade{
-				Timestamp: toDate(2019, time.March, 11),
-			},
-			SurveyState: &surveyState{
-				ServerVersion: semver.MustParse("5.9.0"),
-				SentAt:        toDate(2019, time.January, 1),
-				AnsweredAt:    toDate(2019, time.January, 1),
-			},
-			ServerVersion: semver.MustParse("5.10.0"),
-			Expected:      true,
-		},
-		{
-			Name: "unable to get last upgrade",
-			User: &model.User{
-				Id:       model.NewId(),
-				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
-			},
-			Now:          toDate(2019, time.April, 1),
-			EnableSurvey: true,
-			LastUpgrade:  nil,
-			SurveyState: &surveyState{
-				ServerVersion: semver.MustParse("5.9.0"),
-				SentAt:        toDate(2019, time.January, 1),
-				AnsweredAt:    toDate(2019, time.January, 1),
-			},
-			ServerVersion: semver.MustParse("5.10.0"),
-			Expected:      false,
-		},
-		{
-			Name: "should not send too soon after upgrade",
-			User: &model.User{
-				Id:       model.NewId(),
-				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
-			},
-			Now:          toDate(2019, time.April, 1),
-			EnableSurvey: true,
-			LastUpgrade: &serverUpgrade{
-				Timestamp: toDate(2019, time.March, 12),
-			},
-			SurveyState: &surveyState{
-				ServerVersion: semver.MustParse("5.9.0"),
-				SentAt:        toDate(2019, time.January, 1),
-				AnsweredAt:    toDate(2019, time.January, 1),
-			},
-			ServerVersion: semver.MustParse("5.10.0"),
-			Expected:      false,
-		},
-		{
-			Name: "should not send for recently created user",
-			User: &model.User{
-				Id:       model.NewId(),
-				CreateAt: toDate(2019, time.March, 12).UnixNano() / int64(time.Millisecond),
-			},
-			Now:          toDate(2019, time.April, 1),
-			EnableSurvey: true,
-			LastUpgrade: &serverUpgrade{
-				Timestamp: toDate(2019, time.March, 11),
-			},
-			SurveyState: &surveyState{
-				ServerVersion: semver.MustParse("5.9.0"),
-				SentAt:        toDate(2019, time.January, 1),
-				AnsweredAt:    toDate(2019, time.January, 1),
-			},
-			ServerVersion: semver.MustParse("5.10.0"),
-			Expected:      false,
-		},
-		{
-			Name: "should still send with no stored survey state",
-			User: &model.User{
-				Id:       model.NewId(),
-				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
-			},
-			Now:          toDate(2019, time.April, 1),
-			EnableSurvey: true,
-			LastUpgrade: &serverUpgrade{
-				Timestamp: toDate(2019, time.March, 11),
-			},
-			SurveyState:   nil,
-			ServerVersion: semver.MustParse("5.10.0"),
-			Expected:      true,
-		},
-		{
-			Name: "should not send on same server version",
-			User: &model.User{
-				Id:       model.NewId(),
-				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
-			},
-			Now:          toDate(2019, time.April, 1),
-			EnableSurvey: true,
-			LastUpgrade: &serverUpgrade{
-				Timestamp: toDate(2019, time.March, 11),
-			},
-			SurveyState: &surveyState{
-				ServerVersion: semver.MustParse("5.10.0"),
-				SentAt:        toDate(2019, time.January, 1),
-				AnsweredAt:    toDate(2019, time.January, 1),
-			},
-			ServerVersion: semver.MustParse("5.10.0"),
-			Expected:      false,
-		},
-		{
-			Name: "should not send too soon after sending last survey",
-			User: &model.User{
-				Id:       model.NewId(),
-				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
-			},
-			Now:          toDate(2019, time.April, 1),
-			EnableSurvey: true,
-			LastUpgrade: &serverUpgrade{
-				Timestamp: toDate(2019, time.March, 11),
-			},
-			SurveyState: &surveyState{
-				ServerVersion: semver.MustParse("5.9.0"),
-				SentAt:        toDate(2019, time.January, 2),
-				AnsweredAt:    toDate(2019, time.January, 1),
-			},
-			ServerVersion: semver.MustParse("5.10.0"),
-			Expected:      false,
-		},
-		{
-			Name: "should send too soon after answering last survey",
-			User: &model.User{
-				Id:       model.NewId(),
-				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
-			},
-			Now:          toDate(2019, time.April, 1),
-			EnableSurvey: true,
-			LastUpgrade: &serverUpgrade{
-				Timestamp: toDate(2019, time.March, 11),
-			},
-			SurveyState: &surveyState{
-				ServerVersion: semver.MustParse("5.9.0"),
-				SentAt:        toDate(2019, time.January, 1),
-				AnsweredAt:    toDate(2019, time.January, 2),
-			},
-			ServerVersion: semver.MustParse("5.10.0"),
-			Expected:      false,
-		},
-		{
-			Name: "should not send survey when disabled",
-			User: &model.User{
-				Id:       model.NewId(),
-				CreateAt: toDate(2019, time.March, 11).UnixNano() / int64(time.Millisecond),
-			},
-			Now:          toDate(2019, time.April, 1),
-			EnableSurvey: false,
-			LastUpgrade: &serverUpgrade{
-				Timestamp: toDate(2019, time.March, 11),
-			},
-			SurveyState: &surveyState{
-				ServerVersion: semver.MustParse("5.9.0"),
-				SentAt:        toDate(2019, time.January, 1),
-				AnsweredAt:    toDate(2019, time.January, 1),
-			},
-			ServerVersion: semver.MustParse("5.10.0"),
-			Expected:      false,
-		},
-	} {
-		t.Run(test.Name, func(t *testing.T) {
-			var lastUpgradeBytes []byte
-			if test.LastUpgrade != nil {
-				lastUpgradeBytes, _ = json.Marshal(test.LastUpgrade)
-			}
-			var surveyStateBytes []byte
-			if test.SurveyState != nil {
-				surveyStateBytes, _ = json.Marshal(test.SurveyState)
-			}
-
-			api := &plugintest.API{}
-			api.On("KVGet", SERVER_UPGRADE_KEY).Return(lastUpgradeBytes, nil).Maybe()
-			api.On("KVGet", USER_SURVEY_KEY+test.User.Id).Return(surveyStateBytes, nil).Maybe()
-			api.On("LogError", mock.Anything, mock.Anything, mock.Anything).Maybe()
-			defer api.AssertExpectations(t)
-
-			p := Plugin{
-				configuration: &configuration{
-					EnableSurvey: test.EnableSurvey,
-				},
-			}
-			p.SetAPI(api)
-
-			result := p.shouldSendSurveyDM(test.User, test.ServerVersion, test.Now)
-
-			assert.Equal(t, test.Expected, result)
-		})
-	}
-}
-
-func TestSendSurveyDM(t *testing.T) {
-	t.Run("should send DM and mark survey as sent", func(t *testing.T) {
-		botUserId := model.NewId()
+	t.Run("should send first ever survey DM", func(t *testing.T) {
 		user := &model.User{
 			Id:       model.NewId(),
-			Username: "testuser",
+			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
 		}
-		now := toDate(2019, time.March, 1)
-		postID := model.NewId()
 
-		api := &plugintest.API{}
-		api.On("LogDebug", "Sending survey DM", "user_id", user.Id)
-		api.On("GetConfig").Return(&model.Config{
-			ServiceSettings: model.ServiceSettings{
-				SiteURL: model.NewString("https://mattermost.example.com"),
-			},
-		})
-		api.On("GetDirectChannel", user.Id, botUserId).Return(&model.Channel{}, nil)
+		api := makeAPIMock()
+		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+			ServerVersion: serverVersion,
+			StartAt:       now,
+		}), nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion)).Return(nil, nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest")).Return(nil, nil)
+		api.On("GetConfig").Return(&model.Config{ServiceSettings: model.ServiceSettings{SiteURL: model.NewString("https://mattermost.example.com")}})
+		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
-		api.On("GetServerVersion").Return("5.10.0")
-		api.On("KVSet", USER_SURVEY_KEY+user.Id, mustMarshalJSON(&surveyState{
-			ServerVersion: semver.MustParse("5.10.0"),
-			SentAt:        toDate(2019, 03, 01),
-			ScorePostId:   postID,
-		})).Return(nil)
+		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion), newSurveyStateBytes).Return(nil)
+		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest"), newSurveyStateBytes).Return(nil)
 		defer api.AssertExpectations(t)
 
-		p := Plugin{
-			botUserId: botUserId,
+		p := &Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
 		}
 		p.SetAPI(api)
 
-		p.sendSurveyDM(user, now)
+		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+
+		assert.True(t, sent)
+		assert.Nil(t, err)
 	})
 
-	t.Run("should log error from failed DM", func(t *testing.T) {
-		botUserId := model.NewId()
+	t.Run("should return error if unable to save latest survey state", func(t *testing.T) {
 		user := &model.User{
 			Id:       model.NewId(),
-			Username: "testuser",
+			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
 		}
-		now := toDate(2019, time.March, 1)
 
-		appErr := &model.AppError{}
-
-		api := &plugintest.API{}
-		api.On("LogDebug", "Sending survey DM", "user_id", user.Id)
-		api.On("GetConfig").Return(&model.Config{
-			ServiceSettings: model.ServiceSettings{
-				SiteURL: model.NewString("https://mattermost.example.com"),
-			},
-		})
-		api.On("GetDirectChannel", user.Id, botUserId).Return(&model.Channel{}, nil)
-		api.On("CreatePost", mock.Anything).Return(nil, appErr)
-		api.On("LogError", mock.Anything, "user_id", user.Id, "err", appErr)
-		api.On("LogError", mock.Anything, "err", appErr)
-		defer api.AssertExpectations(t)
-
-		p := Plugin{
-			botUserId: botUserId,
-		}
-		p.SetAPI(api)
-
-		p.sendSurveyDM(user, now)
-	})
-
-	t.Run("should log error when failing to store sent survey", func(t *testing.T) {
-		botUserId := model.NewId()
-		user := &model.User{
-			Id:       model.NewId(),
-			Username: "testuser",
-		}
-		now := toDate(2019, time.March, 1)
-		postID := model.NewId()
-
-		appErr := &model.AppError{}
-
-		api := &plugintest.API{}
-		api.On("LogDebug", "Sending survey DM", "user_id", user.Id)
-		api.On("GetConfig").Return(&model.Config{
-			ServiceSettings: model.ServiceSettings{
-				SiteURL: model.NewString("https://mattermost.example.com"),
-			},
-		})
-		api.On("GetDirectChannel", user.Id, botUserId).Return(&model.Channel{}, nil)
+		api := makeAPIMock()
+		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+			ServerVersion: serverVersion,
+			StartAt:       now,
+		}), nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion)).Return(nil, nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest")).Return(nil, nil)
+		api.On("GetConfig").Return(&model.Config{ServiceSettings: model.ServiceSettings{SiteURL: model.NewString("https://mattermost.example.com")}})
+		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
-		api.On("GetServerVersion").Return("5.10.0")
-		api.On("KVSet", USER_SURVEY_KEY+user.Id, mustMarshalJSON(&surveyState{
-			ServerVersion: semver.MustParse("5.10.0"),
-			SentAt:        toDate(2019, 3, 1),
-			ScorePostId:   postID,
-		})).Return(appErr)
-		api.On("LogError", mock.Anything, "err", appErr)
+		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion), newSurveyStateBytes).Return(nil)
+		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest"), newSurveyStateBytes).Return(&model.AppError{})
 		defer api.AssertExpectations(t)
 
-		p := Plugin{
-			botUserId: botUserId,
+		p := &Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
 		}
 		p.SetAPI(api)
 
-		p.sendSurveyDM(user, now)
+		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+
+		assert.True(t, sent)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("should return error if unable to save survey state", func(t *testing.T) {
+		user := &model.User{
+			Id:       model.NewId(),
+			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+		}
+
+		api := makeAPIMock()
+		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+			ServerVersion: serverVersion,
+			StartAt:       now,
+		}), nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion)).Return(nil, nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest")).Return(nil, nil)
+		api.On("GetConfig").Return(&model.Config{ServiceSettings: model.ServiceSettings{SiteURL: model.NewString("https://mattermost.example.com")}})
+		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
+		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
+		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion), newSurveyStateBytes).Return(&model.AppError{})
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
+		p.SetAPI(api)
+
+		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+
+		assert.True(t, sent)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("should return error if unable to send DM", func(t *testing.T) {
+		user := &model.User{
+			Id:       model.NewId(),
+			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+		}
+
+		api := makeAPIMock()
+		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+			ServerVersion: serverVersion,
+			StartAt:       now,
+		}), nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion)).Return(nil, nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest")).Return(nil, nil)
+		api.On("GetConfig").Return(&model.Config{ServiceSettings: model.ServiceSettings{SiteURL: model.NewString("https://mattermost.example.com")}})
+		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
+		api.On("CreatePost", mock.Anything).Return(nil, &model.AppError{})
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
+		p.SetAPI(api)
+
+		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+
+		assert.True(t, sent)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("should send survey DM if it's been long enough since the last survey", func(t *testing.T) {
+		user := &model.User{
+			Id:       model.NewId(),
+			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+		}
+
+		api := makeAPIMock()
+		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+			ServerVersion: serverVersion,
+			StartAt:       now,
+		}), nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion)).Return(nil, nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest")).Return(mustMarshalJSON(&userSurveyState{
+			ServerVersion: semver.MustParse("5.11.0"),
+			SentAt:        now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS),
+			AnsweredAt:    now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS),
+		}), nil)
+		api.On("GetConfig").Return(&model.Config{ServiceSettings: model.ServiceSettings{SiteURL: model.NewString("https://mattermost.example.com")}})
+		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
+		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
+		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion), newSurveyStateBytes).Return(nil)
+		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest"), newSurveyStateBytes).Return(nil)
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
+		p.SetAPI(api)
+
+		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+
+		assert.True(t, sent)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should not send survey or return error if last survey was answered too recently", func(t *testing.T) {
+		user := &model.User{
+			Id:       model.NewId(),
+			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+		}
+
+		api := makeAPIMock()
+		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+			ServerVersion: serverVersion,
+			StartAt:       now,
+		}), nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion)).Return(nil, nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest")).Return(mustMarshalJSON(&userSurveyState{
+			ServerVersion: semver.MustParse("5.11.0"),
+			SentAt:        now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS),
+			AnsweredAt:    now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS).Add(time.Millisecond),
+		}), nil)
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
+		p.SetAPI(api)
+
+		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+
+		assert.False(t, sent)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should not send survey or return error if last survey was sent too recently", func(t *testing.T) {
+		user := &model.User{
+			Id:       model.NewId(),
+			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+		}
+
+		api := makeAPIMock()
+		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+			ServerVersion: serverVersion,
+			StartAt:       now,
+		}), nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion)).Return(nil, nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest")).Return(mustMarshalJSON(&userSurveyState{
+			ServerVersion: semver.MustParse("5.11.0"),
+			SentAt:        now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS).Add(time.Millisecond),
+		}), nil)
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
+		p.SetAPI(api)
+
+		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+
+		assert.False(t, sent)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should not send survey or return error if survey was already sent", func(t *testing.T) {
+		user := &model.User{
+			Id:       model.NewId(),
+			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+		}
+
+		api := makeAPIMock()
+		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+			ServerVersion: serverVersion,
+			StartAt:       now,
+		}), nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion)).Return(mustMarshalJSON(&userSurveyState{}), nil)
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
+		p.SetAPI(api)
+
+		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+
+		assert.False(t, sent)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should return error if unable to get user survey state", func(t *testing.T) {
+		user := &model.User{
+			Id:       model.NewId(),
+			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+		}
+
+		api := makeAPIMock()
+		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+			ServerVersion: serverVersion,
+			StartAt:       now,
+		}), nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion)).Return(nil, &model.AppError{})
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
+		p.SetAPI(api)
+
+		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+
+		assert.False(t, sent)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("should not send survey or return error if survey hasn't started yet", func(t *testing.T) {
+		user := &model.User{
+			Id:       model.NewId(),
+			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+		}
+
+		api := makeAPIMock()
+		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+			ServerVersion: serverVersion,
+			StartAt:       now.Add(time.Millisecond),
+		}), nil)
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
+		p.SetAPI(api)
+
+		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+
+		assert.False(t, sent)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should not send survey or return error if there's no survey scheduled", func(t *testing.T) {
+		user := &model.User{
+			Id:       model.NewId(),
+			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+		}
+
+		api := makeAPIMock()
+		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(nil, nil)
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
+		p.SetAPI(api)
+
+		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+
+		assert.False(t, sent)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should return error if unable to get the scheduled survey", func(t *testing.T) {
+		user := &model.User{
+			Id:       model.NewId(),
+			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+		}
+
+		api := makeAPIMock()
+		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(nil, &model.AppError{})
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
+		p.SetAPI(api)
+
+		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+
+		assert.False(t, sent)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("should not send survey or return error if the user hasn't existed for long enough", func(t *testing.T) {
+		user := &model.User{
+			Id:       model.NewId(),
+			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).Add(time.Minute).UnixNano() / int64(time.Millisecond),
+		}
+
+		api := makeAPIMock()
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+		}
+		p.SetAPI(api)
+
+		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+
+		assert.False(t, sent)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should not send survey or return error if surveys are disabled", func(t *testing.T) {
+		user := &model.User{
+			Id:       model.NewId(),
+			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+		}
+
+		api := makeAPIMock()
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			botUserID: botUserID,
+			configuration: &configuration{
+				EnableSurvey: false,
+			},
+		}
+		p.SetAPI(api)
+
+		sent, err := p.checkForSurveyDM(user, serverVersion, now)
+
+		assert.False(t, sent)
+		assert.Nil(t, err)
 	})
 }
 
 func TestMarkSurveyAnswered(t *testing.T) {
+	now := toDate(2019, 3, 2)
+	serverVersion := semver.MustParse("5.8.0")
 	userID := model.NewId()
 
-	now := toDate(2019, 3, 2)
-
 	api := &plugintest.API{}
-	api.On("KVGet", USER_SURVEY_KEY+userID).Return(mustMarshalJSON(&surveyState{
-		ServerVersion: semver.MustParse("5.8.0"),
+	api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, userID, serverVersion)).Return(mustMarshalJSON(&userSurveyState{
+		ServerVersion: serverVersion,
 		SentAt:        toDate(2019, 3, 1),
 	}), nil)
-	api.On("KVSet", USER_SURVEY_KEY+userID, mustMarshalJSON(&surveyState{
-		ServerVersion: semver.MustParse("5.8.0"),
+	api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, userID, serverVersion), mustMarshalJSON(&userSurveyState{
+		ServerVersion: serverVersion,
 		SentAt:        toDate(2019, 3, 1),
 		AnsweredAt:    now,
 	})).Return(nil)
@@ -831,7 +829,7 @@ func TestMarkSurveyAnswered(t *testing.T) {
 	p := Plugin{}
 	p.SetAPI(api)
 
-	err := p.markSurveyAnswered(userID, now)
+	err := p.markSurveyAnswered(userID, serverVersion, now)
 
 	assert.Nil(t, err)
 }

@@ -2,8 +2,8 @@ package main
 
 import (
 	"path/filepath"
+	"time"
 
-	"github.com/blang/semver"
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/pkg/errors"
 )
@@ -17,31 +17,28 @@ func (p *Plugin) OnActivate() error {
 		return errors.New(errMsg)
 	}
 
-	serverVersion := p.getServerVersion()
-	if serverVersion.Equals(semver.Version{}) {
-		return errors.New("Failed to get server version")
-	}
-
-	botUserId, appErr := p.ensureBotExists()
+	botUserID, appErr := p.ensureBotExists()
 	if appErr != nil {
 		return errors.Wrap(appErr, "Failed to ensure bot user exists")
 	}
-	p.botUserId = botUserId
+	p.botUserID = botUserID
 
 	p.initializeClient()
 
-	p.setActivated(true)
 	p.API.LogDebug("NPS plugin activated")
 
-	go p.checkForNextSurvey(serverVersion)
+	now := time.Now().UTC()
+
+	upgraded, appErr := p.checkForServerUpgrade(now)
+	if upgraded {
+		p.API.LogInfo("Upgrade detected. Checking if a survey should be scheduled.")
+
+		go p.checkForNextSurvey(time.Now().UTC())
+	}
+
+	p.setActivated(true)
 
 	return nil
-}
-
-func (p *Plugin) getServerVersion() semver.Version {
-	// Ignore any error since OnActivate will abort in the rare case that this happens
-	serverVersion, _ := semver.Parse(p.API.GetServerVersion())
-	return serverVersion
 }
 
 func (p *Plugin) setActivated(activated bool) {
@@ -93,7 +90,7 @@ func (p *Plugin) ensureBotExists() (string, *model.AppError) {
 	return bot.UserId, nil
 }
 
-func (p *Plugin) setBotProfileImage(botUserId string) *model.AppError {
+func (p *Plugin) setBotProfileImage(botUserID string) *model.AppError {
 	bundlePath, err := p.API.GetBundlePath()
 	if err != nil {
 		return &model.AppError{Message: err.Error()}
@@ -104,5 +101,5 @@ func (p *Plugin) setBotProfileImage(botUserId string) *model.AppError {
 		return &model.AppError{Message: err.Error()}
 	}
 
-	return p.API.SetProfileImage(botUserId, profileImage)
+	return p.API.SetProfileImage(botUserID, profileImage)
 }

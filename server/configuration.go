@@ -2,6 +2,7 @@ package main
 
 import (
 	"reflect"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -85,7 +86,7 @@ func (p *Plugin) OnConfigurationChange() error {
 	if p.isActivated() {
 		if configuration.EnableSurvey && !oldConfiguration.EnableSurvey {
 			// Check if a survey needs to be sent when the survey is enabled
-			go p.checkForNextSurvey(p.getServerVersion())
+			go p.checkForNextSurvey(time.Now().UTC())
 		}
 	}
 

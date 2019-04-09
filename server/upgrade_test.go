@@ -1,46 +1,101 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/blang/semver"
-	"github.com/mattermost/mattermost-server/plugin/plugintest"
+	"github.com/mattermost/mattermost-server/model"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetLastServerUpgrade(t *testing.T) {
-	t.Run("nothing stored", func(t *testing.T) {
-		api := &plugintest.API{}
-		api.On("KVGet", SERVER_UPGRADE_KEY).Return(nil, nil)
+func TestCheckForServerUpgrade(t *testing.T) {
+	now := time.Unix(1552599223, 0).UTC()
+	version := "5.10.0"
+
+	t.Run("should return true when an upgrade has occurred", func(t *testing.T) {
+		api := makeAPIMock()
+		api.On("GetServerVersion").Return(version)
+		api.On("KVGet", fmt.Sprintf(SERVER_UPGRADE_KEY, version)).Return(nil, nil)
+		api.On("KVSet", fmt.Sprintf(SERVER_UPGRADE_KEY, version), mustMarshalJSON(&serverUpgrade{
+			Version:   semver.MustParse(version),
+			UpgradeAt: now,
+		})).Return(nil)
 		defer api.AssertExpectations(t)
 
 		p := Plugin{}
 		p.SetAPI(api)
 
-		upgrade, err := p.getLastServerUpgrade()
-		assert.Nil(t, upgrade)
+		upgraded, err := p.checkForServerUpgrade(now)
+
+		assert.True(t, upgraded)
 		assert.Nil(t, err)
 	})
 
-	t.Run("something stored", func(t *testing.T) {
-		timestamp := time.Unix(1552599223, 0).UTC()
-
-		api := &plugintest.API{}
-		api.On("KVGet", SERVER_UPGRADE_KEY).Return(mustMarshalJSON(&serverUpgrade{
-			Version:   semver.MustParse("5.10.0"),
-			Timestamp: timestamp,
+	t.Run("should return false when an upgrade has not occurred", func(t *testing.T) {
+		api := makeAPIMock()
+		api.On("GetServerVersion").Return(version)
+		api.On("KVGet", fmt.Sprintf(SERVER_UPGRADE_KEY, version)).Return(mustMarshalJSON(&serverUpgrade{
+			Version:   semver.MustParse(version),
+			UpgradeAt: now,
 		}), nil)
 		defer api.AssertExpectations(t)
 
 		p := Plugin{}
 		p.SetAPI(api)
 
-		upgrade, err := p.getLastServerUpgrade()
-		assert.Equal(t, &serverUpgrade{
-			Version:   semver.MustParse("5.10.0"),
-			Timestamp: timestamp,
-		}, upgrade)
+		upgraded, err := p.checkForServerUpgrade(now)
+
+		assert.False(t, upgraded)
 		assert.Nil(t, err)
+	})
+
+	t.Run("should return an error if unable to get the current server version", func(t *testing.T) {
+		api := makeAPIMock()
+		api.On("GetServerVersion").Return("garbage")
+		defer api.AssertExpectations(t)
+
+		p := Plugin{}
+		p.SetAPI(api)
+
+		upgraded, err := p.checkForServerUpgrade(now)
+
+		assert.False(t, upgraded)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("should return an error if unable to get the stored server version", func(t *testing.T) {
+		api := makeAPIMock()
+		api.On("GetServerVersion").Return(version)
+		api.On("KVGet", fmt.Sprintf(SERVER_UPGRADE_KEY, version)).Return(nil, &model.AppError{})
+		defer api.AssertExpectations(t)
+
+		p := Plugin{}
+		p.SetAPI(api)
+
+		upgraded, err := p.checkForServerUpgrade(now)
+
+		assert.False(t, upgraded)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("should return an error if unable to store the new server version", func(t *testing.T) {
+		api := makeAPIMock()
+		api.On("GetServerVersion").Return(version)
+		api.On("KVGet", fmt.Sprintf(SERVER_UPGRADE_KEY, version)).Return(nil, nil)
+		api.On("KVSet", fmt.Sprintf(SERVER_UPGRADE_KEY, version), mustMarshalJSON(&serverUpgrade{
+			Version:   semver.MustParse(version),
+			UpgradeAt: now,
+		})).Return(&model.AppError{})
+		defer api.AssertExpectations(t)
+
+		p := Plugin{}
+		p.SetAPI(api)
+
+		upgraded, err := p.checkForServerUpgrade(now)
+
+		assert.False(t, upgraded)
+		assert.NotNil(t, err)
 	})
 }

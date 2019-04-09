@@ -71,6 +71,11 @@ func (p *Plugin) checkForDMs(userID string) *model.AppError {
 			return err
 		}
 
+		serverVersion, err := p.GetServerVersion()
+		if err != nil {
+			return err
+		}
+
 		now := time.Now()
 
 		go func() {
@@ -81,13 +86,8 @@ func (p *Plugin) checkForDMs(userID string) *model.AppError {
 			p.connectedLock.Lock()
 			defer p.connectedLock.Unlock()
 
-			if notice := p.checkForAdminNoticeDM(user); notice != nil {
-				p.sendAdminNoticeDM(user, notice)
-			}
-
-			if p.shouldSendSurveyDM(user, p.getServerVersion(), now) {
-				p.sendSurveyDM(user, now)
-			}
+			p.checkForAdminNoticeDM(user, serverVersion)
+			p.checkForSurveyDM(user, serverVersion, now)
 		}()
 	}
 
@@ -147,7 +147,14 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 
 	p.sendScore(score, userID, now.UnixNano()/int64(time.Millisecond))
 
-	if err := p.markSurveyAnswered(userID, now); err != nil {
+	serverVersion, err := p.GetServerVersion()
+	if err != nil {
+		p.API.LogError("Failed to get server version when handling NPS survey score", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if err := p.markSurveyAnswered(userID, serverVersion, now); err != nil {
 		p.API.LogWarn("Failed to mark survey as answered", "err", err)
 	}
 

@@ -30,8 +30,22 @@ const (
 )
 
 type adminNotice struct {
-	Sent       bool
-	NextSurvey time.Time
+	Sent          bool           `json:"sent"`
+	ServerVersion semver.Version `json:"server_version"`
+	SurveyStartAt time.Time      `json:"survey_start_at"`
+}
+
+type surveyState struct {
+	ServerVersion semver.Version `json:"server_version"`
+	CreateAt      time.Time      `json:"create_at"`
+	StartAt       time.Time      `json:"start_at"`
+}
+
+type userSurveyState struct {
+	ServerVersion semver.Version `json:"server_version"`
+	SentAt        time.Time      `json:"sent_at"`
+	AnsweredAt    time.Time      `json:"answered_at"`
+	ScorePostId   string         `json:"score_post_id"`
 }
 
 // checkForNextSurvey schedules a new NPS survey if a major or minor version change has occurred. Returns whether or
@@ -39,71 +53,88 @@ type adminNotice struct {
 //
 // Note that this only sends an email to admins to notify them that a survey has been scheduled. The web app plugin is
 // in charge of checking and actually triggering the survey.
-func (p *Plugin) checkForNextSurvey(currentVersion semver.Version) bool {
+func (p *Plugin) checkForNextSurvey(now time.Time) bool {
 	// Add a random delay to mitigate against the fact that multiple instances of the plugin may be trying to start up across
 	// different servers and we have no real way to synchronize between them.
 	p.sleepUpTo(p.upgradeCheckMaxDelay)
 
+	// TODO replace this with a proper HA-friendly lock
 	p.surveyLock.Lock()
 	defer p.surveyLock.Unlock()
 
 	if !p.getConfiguration().EnableSurvey {
 		// Surveys are disabled, so return false without updating the stored version. If surveys are re-enabled, the
 		// plugin will then detect an upgrade (if one occurred) and schedule the next survey.
-		p.API.LogDebug("Not sending NPS survey because survey is disabled")
+		p.API.LogInfo("Not sending NPS survey because survey is disabled")
 		return false
 	}
 
-	lastUpgrade, _ := p.getLastServerUpgrade()
-
-	if !shouldScheduleSurvey(currentVersion, lastUpgrade) {
-		// No version change
-		p.API.LogDebug("No server version change detected. Not scheduling a new survey.")
+	serverVersion, err := p.GetServerVersion()
+	if err != nil {
+		p.API.LogError("Failed to get server version when scheduling survey", "err", err)
 		return false
 	}
 
-	now := time.Now().UTC()
-	nextSurvey := now.Add(TIME_UNTIL_SURVEY)
+	var nextSurvey *surveyState
+	if err := p.KVGet(fmt.Sprintf(SURVEY_KEY, nextSurvey.ServerVersion), nextSurvey); err != nil {
+		p.API.LogError("Failed to get survey state", "err", err)
+		return false
+	}
 
-	if lastUpgrade == nil {
-		p.API.LogInfo(fmt.Sprintf("NPS plugin installed. Scheduling NPS survey for %s", nextSurvey.Format("Jan 2, 2006")))
+	if nextSurvey != nil {
+		p.API.LogInfo(fmt.Sprintf("Survey already scheduled for %s", nextSurvey.StartAt.Format("Jan 2, 2006")))
+		return false
+	}
+
+	nextSurvey = &surveyState{
+		ServerVersion: serverVersion,
+		CreateAt:      now,
+		StartAt:       now.Add(TIME_UNTIL_SURVEY),
+	}
+
+	p.API.LogInfo(fmt.Sprintf("Scheduling next survey for %s", nextSurvey.StartAt.Format("Jan 2, 2006")))
+
+	if err := p.KVSet(fmt.Sprintf(SURVEY_KEY, serverVersion), nextSurvey); err != nil {
+		p.API.LogError("Failed to schedule next survey", "err", err)
+		return false
+	}
+
+	if sent, err := p.sendAdminNotices(now, nextSurvey); err != nil {
+		p.API.LogError("Failed to send notification of next survey to admins", "err", err)
+		return false
+	} else if !sent {
+		p.API.LogInfo("Not sending notification of next survey to admins since they already received one recently")
 	} else {
-		p.API.LogInfo(fmt.Sprintf("Version change detected from %s to %s. Scheduling NPS survey for %s", lastUpgrade.Version, currentVersion, nextSurvey.Format("Jan 2, 2006")))
-	}
-
-	if shouldSendAdminNotices(now, lastUpgrade) {
-		p.sendAdminNotices(nextSurvey)
-	}
-
-	if err := p.storeServerUpgrade(&serverUpgrade{
-		Version:   currentVersion,
-		Timestamp: now,
-	}); err != nil {
-		p.API.LogError("Failed to store time of server upgrade. The next NPS survey may not occur.", "err", err)
+		p.API.LogInfo("Sent notification of next survey to admins")
 	}
 
 	return true
 }
 
-func shouldScheduleSurvey(currentVersion semver.Version, lastUpgrade *serverUpgrade) bool {
-	return lastUpgrade == nil || currentVersion.Major > lastUpgrade.Version.Major || currentVersion.Minor > lastUpgrade.Version.Minor
-}
+func (p *Plugin) sendAdminNotices(now time.Time, nextSurvey *surveyState) (bool, error) {
+	var lastSentAt *time.Time
+	if err := p.KVGet(LAST_ADMIN_NOTICE_KEY, lastSentAt); err != nil {
+		return false, err
+	}
 
-func shouldSendAdminNotices(now time.Time, lastUpgrade *serverUpgrade) bool {
-	// Only send a "survey scheduled" email if it has been at least 7 days since the last time we've sent one to
-	// prevent spamming admins when multiple upgrades are done within a short period.
-	return lastUpgrade == nil || now.Sub(lastUpgrade.Timestamp) >= MIN_TIME_BETWEEN_SURVEY_EMAILS
-}
+	if lastSentAt != nil && now.Sub(*lastSentAt) < MIN_TIME_BETWEEN_SURVEY_EMAILS {
+		// Not enough time has passed since the last survey notification, so don't send a new one
+		return false, nil
+	}
 
-func (p *Plugin) sendAdminNotices(nextSurvey time.Time) {
 	admins, err := p.getAdminUsers(ADMIN_USERS_PER_PAGE)
 	if err != nil {
-		p.API.LogError("Failed to get system admins to send admin notices", "err", err)
-		return
+		return false, err
 	}
 
 	p.sendAdminNoticeEmails(admins)
 	p.sendAdminNoticeDMs(admins, nextSurvey)
+
+	if err := p.KVSet(LAST_ADMIN_NOTICE_KEY, now); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (p *Plugin) sendAdminNoticeEmails(admins []*model.User) {
@@ -138,12 +169,13 @@ func (p *Plugin) sendAdminNoticeEmails(admins []*model.User) {
 	}
 }
 
-func (p *Plugin) sendAdminNoticeDMs(admins []*model.User, nextSurvey time.Time) {
+func (p *Plugin) sendAdminNoticeDMs(admins []*model.User, nextSurvey *surveyState) {
 	// Actual DMs will be sent when the admins next log in, so just mark that they're scheduled to receive one
 	for _, admin := range admins {
-		err := p.KVSet(ADMIN_DM_NOTICE_KEY+admin.Id, &adminNotice{
-			Sent:       false,
-			NextSurvey: nextSurvey,
+		err := p.KVSet(fmt.Sprintf(ADMIN_DM_NOTICE_KEY, admin.Id, nextSurvey.ServerVersion), &adminNotice{
+			Sent:          false,
+			ServerVersion: nextSurvey.ServerVersion,
+			SurveyStartAt: nextSurvey.StartAt,
 		})
 		if err != nil {
 			p.API.LogError("Failed to store scheduled admin notice", "err", err)
@@ -182,35 +214,32 @@ func (p *Plugin) getAdminUsers(perPage int) ([]*model.User, *model.AppError) {
 	return admins, nil
 }
 
-func (p *Plugin) checkForAdminNoticeDM(user *model.User) *adminNotice {
+func (p *Plugin) checkForAdminNoticeDM(user *model.User, serverVersion semver.Version) (bool, *model.AppError) {
 	if !p.getConfiguration().EnableSurvey {
 		// Surveys are disabled
-		return nil
+		return false, nil
 	}
 
 	if !isSystemAdmin(user) {
-		return nil
+		return false, nil
 	}
 
 	var notice *adminNotice
-	err := p.KVGet(ADMIN_DM_NOTICE_KEY+user.Id, &notice)
-
-	if err != nil {
-		p.API.LogError("Failed to get scheduled admin notice", "err", err)
-		return nil
+	if err := p.KVGet(fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, serverVersion), &notice); err != nil {
+		return false, err
 	}
 
 	if notice == nil {
 		// No notice stored for this user, likely because they were created after the survey was scheduled
-		return nil
+		return false, nil
 	}
 
 	if notice.Sent {
 		// Already sent
-		return nil
+		return false, nil
 	}
 
-	return notice
+	return true, p.sendAdminNoticeDM(user, notice)
 }
 
 func isSystemAdmin(user *model.User) bool {
@@ -223,108 +252,118 @@ func isSystemAdmin(user *model.User) bool {
 	return false
 }
 
-func (p *Plugin) sendAdminNoticeDM(user *model.User, notice *adminNotice) {
+func (p *Plugin) sendAdminNoticeDM(user *model.User, notice *adminNotice) *model.AppError {
 	p.API.LogDebug("Sending admin notice DM", "user_id", user.Id)
 
 	// Send the DM
-	if _, err := p.CreateBotDMPost(user.Id, p.buildAdminNoticePost(notice.NextSurvey)); err != nil {
-		p.API.LogError("Failed to send admin notice", "err", err)
-		return
+	if _, err := p.CreateBotDMPost(user.Id, p.buildAdminNoticePost(notice.SurveyStartAt)); err != nil {
+		return err
 	}
 
 	// Store that the DM has been sent
 	notice.Sent = true
 
-	if err := p.KVSet(ADMIN_DM_NOTICE_KEY+user.Id, notice); err != nil {
+	if err := p.KVSet(fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, notice.ServerVersion), notice); err != nil {
 		p.API.LogError("Failed to save sent admin notice. Admin notice will be resent on next refresh.", "err", err)
+		return err
 	}
+
+	return nil
 }
 
-func (p *Plugin) buildAdminNoticePost(nextSurvey time.Time) *model.Post {
+func (p *Plugin) buildAdminNoticePost(surveyStartAt time.Time) *model.Post {
 	return &model.Post{
-		Message: fmt.Sprintf(adminDMBody, nextSurvey.Format("January 2, 2006"), manifest.Id),
+		Message: fmt.Sprintf(adminDMBody, surveyStartAt.Format("January 2, 2006"), manifest.Id),
 		Type:    "custom_nps_admin_notice",
 	}
 }
 
-type surveyState struct {
-	ServerVersion semver.Version
-	SentAt        time.Time
-	AnsweredAt    time.Time
-	ScorePostId   string
-}
-
-func (p *Plugin) shouldSendSurveyDM(user *model.User, serverVersion semver.Version, now time.Time) bool {
+func (p *Plugin) checkForSurveyDM(user *model.User, serverVersion semver.Version, now time.Time) (bool, *model.AppError) {
 	if !p.getConfiguration().EnableSurvey {
 		// Surveys are disabled
-		return false
+		return false, nil
 	}
 
-	// Only send the survey once it has been 21 days since the last upgrade
-	lastUpgrade, err := p.getLastServerUpgrade()
-	if lastUpgrade == nil || err != nil {
-		p.API.LogError("Failed to get date of last upgrade")
-		return false
-	}
-
-	if now.Sub(lastUpgrade.Timestamp) < TIME_UNTIL_SURVEY {
-		return false
-	}
-
-	// And the user has existed for at least as long
 	if now.Sub(time.Unix(user.CreateAt/1000, 0)) < TIME_UNTIL_SURVEY {
-		return false
+		// The user hasn't existed for long enough to receive a survey
+		return false, nil
+	}
+
+	var survey *surveyState
+	if err := p.KVGet(fmt.Sprintf(SURVEY_KEY, serverVersion), &survey); err != nil {
+		return false, err
+	}
+
+	if survey == nil {
+		// No survey scheduled
+		return false, nil
+	}
+
+	if now.Before(survey.StartAt) {
+		// Survey hasn't started yet
+		return false, nil
 	}
 
 	// And that it has been long enough since the survey last occurred
-	var state *surveyState
-	if err := p.KVGet(USER_SURVEY_KEY+user.Id, &state); err != nil {
-		p.API.LogError("Failed to get user survey state", "err", err)
-		return false
+	var currentUserSurvey *userSurveyState
+	if err := p.KVGet(fmt.Sprintf(USER_SURVEY_KEY, user.Id, &serverVersion), &currentUserSurvey); err != nil {
+		return false, err
 	}
 
-	if state == nil {
-		// The user hasn't answered a survey before
-		return true
+	if currentUserSurvey != nil {
+		// The user has already received this survey
+		return false, nil
 	}
 
-	if state.ServerVersion.Major == serverVersion.Major && state.ServerVersion.Minor == serverVersion.Minor {
-		// Last survey occurred on the current version
-		return false
+	var latestUserSurvey *userSurveyState
+	if err := p.KVGet(fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest"), &latestUserSurvey); err != nil {
+		return false, err
 	}
 
-	if now.Sub(state.SentAt) < MIN_TIME_BETWEEN_USER_SURVEYS {
-		// Not enough time since last survey was sent
-		return false
+	if latestUserSurvey != nil {
+		if now.Sub(latestUserSurvey.SentAt) < MIN_TIME_BETWEEN_USER_SURVEYS {
+			// Not enough time has passed since the user was last sent a survey
+			return false, nil
+		}
+
+		if now.Sub(latestUserSurvey.AnsweredAt) < MIN_TIME_BETWEEN_USER_SURVEYS {
+			// Not enough time has passed since the user last completed a survey
+			return false, nil
+		}
 	}
 
-	if now.Sub(state.AnsweredAt) < MIN_TIME_BETWEEN_USER_SURVEYS {
-		// Not enough time since last survey was completed
-		return false
-	}
-
-	return true
+	return true, p.sendSurveyDM(user, serverVersion, now)
 }
 
-func (p *Plugin) sendSurveyDM(user *model.User, now time.Time) {
+func (p *Plugin) sendSurveyDM(user *model.User, serverVersion semver.Version, now time.Time) *model.AppError {
 	p.API.LogDebug("Sending survey DM", "user_id", user.Id)
 
 	// Send the DM
 	post, err := p.CreateBotDMPost(user.Id, p.buildSurveyPost(user))
 	if err != nil {
-		p.API.LogError("Failed to send survey", "err", err)
-		return
+		return err
 	}
 
-	// Store that the survey has been sent
-	err = p.KVSet(USER_SURVEY_KEY+user.Id, &surveyState{
-		ServerVersion: p.getServerVersion(),
+	userSurveyState := &userSurveyState{
+		ServerVersion: serverVersion,
 		SentAt:        now,
 		ScorePostId:   post.Id,
-	})
+	}
+
+	// Store that the survey has been sent // TODO version-specific entries?
+	err = p.KVSet(fmt.Sprintf(USER_SURVEY_KEY, user.Id, serverVersion), userSurveyState)
 	if err != nil {
 		p.API.LogError("Failed to save sent survey state. Survey will be resent on next refresh.", "err", err)
+		return err
 	}
+
+	err = p.KVSet(fmt.Sprintf(USER_SURVEY_KEY, user.Id, "latest"), userSurveyState)
+	if err != nil {
+		p.API.LogError("Failed to save latest survey state. Survey will be resent on next refresh.", "err", err)
+		return err
+	}
+
+	return nil
 }
 
 func (p *Plugin) buildSurveyPost(user *model.User) *model.Post {
@@ -390,13 +429,13 @@ func (p *Plugin) buildFeedbackRequestPost() *model.Post {
 	}
 }
 
-func (p *Plugin) markSurveyAnswered(userID string, now time.Time) *model.AppError {
-	var state *surveyState
-	if err := p.KVGet(USER_SURVEY_KEY+userID, &state); err != nil {
+func (p *Plugin) markSurveyAnswered(userID string, serverVersion semver.Version, now time.Time) *model.AppError {
+	var userSurvey *userSurveyState
+	if err := p.KVGet(fmt.Sprintf(USER_SURVEY_KEY, userID, serverVersion), &userSurvey); err != nil {
 		return err
 	}
 
-	state.AnsweredAt = now
+	userSurvey.AnsweredAt = now
 
-	return p.KVSet(USER_SURVEY_KEY+userID, &state)
+	return p.KVSet(fmt.Sprintf(USER_SURVEY_KEY, userID, serverVersion), userSurvey)
 }

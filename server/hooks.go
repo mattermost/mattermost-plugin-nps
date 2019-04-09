@@ -7,7 +7,7 @@ import (
 
 func (p *Plugin) ChannelHasBeenCreated(c *plugin.Context, channel *model.Channel) {
 	// Set the description for any DM channels opened between Surveybot and a user
-	if !p.isBotDMChannel(channel) {
+	if !p.IsBotDMChannel(channel) {
 		return
 	}
 
@@ -23,7 +23,7 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 		return
 	}
 
-	if post.UserId == p.botUserId {
+	if post.UserId == p.botUserID {
 		return
 	}
 
@@ -34,7 +34,7 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 		return
 	}
 
-	if !p.isBotDMChannel(channel) {
+	if !p.IsBotDMChannel(channel) {
 		return
 	}
 
