@@ -17,34 +17,36 @@ const (
 func (p *Plugin) initializeClient() {
 	client := analytics.New(SEGMENT_KEY)
 
-	client.Identify(&analytics.Identify{
-		UserId: p.API.GetDiagnosticId(),
-	})
+	if !p.blockSegmentEvents {
+		client.Identify(&analytics.Identify{
+			UserId: p.API.GetDiagnosticId(),
+		})
+	}
 
 	p.client = client
 }
 
 func (p *Plugin) sendScore(score int, userID string, timestamp int64) {
-	p.sendToSegment(NPS_SCORE, p.getEventProperties(userID, timestamp, map[string]interface{}{
+	p.sendToSegment(NPS_SCORE, userID, timestamp, map[string]interface{}{
 		"score": score,
-	}))
+	})
 }
 
 func (p *Plugin) sendFeedback(feedback string, userID string, timestamp int64) {
-	p.sendToSegment(NPS_FEEDBACK, p.getEventProperties(userID, timestamp, map[string]interface{}{
+	p.sendToSegment(NPS_FEEDBACK, userID, timestamp, map[string]interface{}{
 		"feedback": feedback,
-	}))
+	})
 }
 
-func (p *Plugin) sendToSegment(event string, properties map[string]interface{}) {
-	if !p.canSendDiagnostics() {
+func (p *Plugin) sendToSegment(event string, userID string, timestamp int64, properties map[string]interface{}) {
+	if !p.canSendDiagnostics() || p.blockSegmentEvents {
 		return
 	}
 
 	track := &analytics.Track{
 		Event:      event,
 		UserId:     p.API.GetDiagnosticId(),
-		Properties: properties,
+		Properties: p.getEventProperties(userID, timestamp, properties),
 	}
 
 	p.client.Track(track)

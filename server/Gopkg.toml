@@ -5,7 +5,7 @@
 
 [[constraint]]
   name = "github.com/mattermost/mattermost-server"
-  branch = "release-5.10"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/stretchr/testify"

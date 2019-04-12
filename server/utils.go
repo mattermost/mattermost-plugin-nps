@@ -75,8 +75,8 @@ func (p *Plugin) IsBotDMChannel(channel *model.Channel) bool {
 }
 
 func (p *Plugin) sleepUpTo(maxDelay time.Duration) {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	delay := time.Duration(r.Int63n(int64(maxDelay)))
+	r := rand.New(rand.NewSource(p.now().UnixNano()))
+	delay := time.Duration(r.Int63n(int64(maxDelay) + 1))
 
 	time.Sleep(delay)
 }

@@ -71,6 +71,12 @@ type Plugin struct {
 	// NPS survey.
 	userSurveyMaxDelay time.Duration
 
+	// blockSegmentEvents prevents the plugin from sending events to Segment during testing.
+	blockSegmentEvents bool
+
+	// now provides access to time.Now in a way that is mockable for unit testing.
+	now func() time.Time
+
 	// readFile provides access to ioutil.ReadFile in a way that is mockable for unit testing.
 	readFile func(path string) ([]byte, error)
 }
@@ -80,6 +86,7 @@ func NewPlugin() *Plugin {
 		upgradeCheckMaxDelay: DEFAULT_UPGRADE_CHECK_MAX_DELAY,
 		userSurveyMaxDelay:   DEAFULT_USER_SURVEY_MAX_DELAY,
 
+		now:      time.Now,
 		readFile: ioutil.ReadFile,
 	}
 }

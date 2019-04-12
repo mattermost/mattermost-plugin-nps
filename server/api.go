@@ -12,21 +12,23 @@ import (
 	"github.com/mattermost/mattermost-server/plugin"
 )
 
+type apiHandler func(w http.ResponseWriter, r *http.Request)
+
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	routes := []struct {
 		Path    string
 		Method  string
-		Handler func(http.ResponseWriter, *http.Request)
+		Handler apiHandler
 	}{
 		{
 			Path:    "/api/v1/connected",
 			Method:  http.MethodPost,
-			Handler: p.userConnected,
+			Handler: requiresUserId(p.userConnected),
 		},
 		{
 			Path:    "/api/v1/score",
 			Method:  http.MethodPost,
-			Handler: p.submitScore,
+			Handler: requiresUserId(p.submitScore),
 		},
 	}
 
@@ -48,10 +50,6 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 
 func (p *Plugin) userConnected(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("Mattermost-User-ID")
-	if userID == "" {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
 
 	err := p.checkForDMs(userID)
 	if err != nil {
@@ -79,7 +77,7 @@ func (p *Plugin) checkForDMs(userID string) *model.AppError {
 			p.connectedLock.Lock()
 			defer p.connectedLock.Unlock()
 
-			now := time.Now()
+			now := p.now().UTC()
 
 			p.checkForAdminNoticeDM(user)
 			p.checkForSurveyDM(user, now)
@@ -91,10 +89,6 @@ func (p *Plugin) checkForDMs(userID string) *model.AppError {
 
 func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("Mattermost-User-ID")
-	if userID == "" {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
 
 	var surveyResponse *model.PostActionIntegrationRequest
 	if err := json.NewDecoder(io.LimitReader(r.Body, 2048)).Decode(&surveyResponse); err != nil {
@@ -109,12 +103,6 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, ok := surveyResponse.Context["selected_option"].(string); !ok {
-		p.API.LogError("Score response contains invalid score")
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
 	user, err := p.API.GetUser(userID)
 	if err != nil {
 		p.API.LogError("Failed to get user", "user_id", userID, "err", err)
@@ -124,11 +112,7 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var score int
-	if i, err := strconv.ParseInt(surveyResponse.Context["selected_option"].(string), 10, 0); err != nil {
-		p.API.LogError("Score response contains invalid score")
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	} else if i < 0 || i > 10 {
+	if i, err := getScore(surveyResponse.Context["selected_option"].(string)); err != nil {
 		p.API.LogError("Score response contains invalid score")
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -138,7 +122,7 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 
 	p.API.LogDebug(fmt.Sprintf("Received score of %d from %s", score, r.Header.Get("Mattermost-User-ID")))
 
-	now := time.Now().UTC()
+	now := p.now().UTC()
 
 	p.sendScore(score, userID, now.UnixNano()/int64(time.Millisecond))
 
@@ -155,4 +139,28 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(response.ToJson())
+}
+
+func getScore(selectedOption string) (int64, error) {
+	score, err := strconv.ParseInt(selectedOption, 10, 0)
+	if err != nil {
+		return 0, err
+	}
+
+	if score < 0 || score > 10 {
+		return 0, fmt.Errorf("score out of range")
+	}
+
+	return score, nil
+}
+
+func requiresUserId(handler apiHandler) apiHandler {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if userID := r.Header.Get("Mattermost-User-ID"); userID == "" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		handler(w, r)
+	}
 }

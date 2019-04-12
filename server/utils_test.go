@@ -241,11 +241,13 @@ func mustMarshalJSON(v interface{}) []byte {
 	return data
 }
 
-func mustUnmarshalJSON(data []byte, v interface{}) {
+func mustUnmarshalJSON(data []byte, v interface{}) interface{} {
 	err := json.Unmarshal(data, v)
 	if err != nil {
 		panic(err)
 	}
+
+	return v
 }
 
 func toDate(year int, month time.Month, day int) time.Time {

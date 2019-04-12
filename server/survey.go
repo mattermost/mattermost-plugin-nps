@@ -69,7 +69,7 @@ func (p *Plugin) checkForNextSurvey(now time.Time) bool {
 	}
 
 	var nextSurvey *surveyState
-	if err := p.KVGet(fmt.Sprintf(SURVEY_KEY, nextSurvey.ServerVersion), nextSurvey); err != nil {
+	if err := p.KVGet(fmt.Sprintf(SURVEY_KEY, p.serverVersion), &nextSurvey); err != nil {
 		p.API.LogError("Failed to get survey state", "err", err)
 		return false
 	}
@@ -106,7 +106,7 @@ func (p *Plugin) checkForNextSurvey(now time.Time) bool {
 
 func (p *Plugin) sendAdminNotices(now time.Time, nextSurvey *surveyState) (bool, error) {
 	var lastSentAt *time.Time
-	if err := p.KVGet(LAST_ADMIN_NOTICE_KEY, lastSentAt); err != nil {
+	if err := p.KVGet(LAST_ADMIN_NOTICE_KEY, &lastSentAt); err != nil {
 		return false, err
 	}
 

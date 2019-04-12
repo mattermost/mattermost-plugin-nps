@@ -11,6 +11,205 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+func TestCheckForNextSurvey(t *testing.T) {
+	adminEmail := model.NewId()
+	adminId := model.NewId()
+	now := func() time.Time {
+		return toDate(2019, time.April, 1)
+	}
+	serverVersion := "5.10.0"
+	surveyKey := fmt.Sprintf(SURVEY_KEY, serverVersion)
+
+	makeAPIMock := func() *plugintest.API {
+		api := &plugintest.API{}
+		api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything).Maybe()
+		api.On("LogInfo", mock.Anything).Maybe()
+		return api
+	}
+
+	t.Run("should schedule survey and send admin notices", func(t *testing.T) {
+		api := makeAPIMock()
+		api.On("KVGet", surveyKey).Return(nil, nil)
+		api.On("KVSet", surveyKey, mustMarshalJSON(&surveyState{
+			ServerVersion: serverVersion,
+			CreateAt:      now(),
+			StartAt:       now().Add(TIME_UNTIL_SURVEY),
+		})).Return(nil)
+		api.On("KVGet", LAST_ADMIN_NOTICE_KEY).Return(nil, nil)
+		api.On("GetUsers", mock.Anything).Return([]*model.User{
+			{
+				Id:    adminId,
+				Email: adminEmail,
+			},
+		}, nil)
+		api.On("GetConfig").Return(&model.Config{
+			ServiceSettings: model.ServiceSettings{
+				SiteURL: model.NewString("https://mattermost.example.com"),
+			},
+			TeamSettings: model.TeamSettings{
+				SiteName: model.NewString("SiteName"),
+			},
+		})
+		api.On("SendMail", adminEmail, mock.Anything, mock.Anything).Return(nil)
+		api.On("KVSet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, adminId, serverVersion), mock.Anything).Return(nil)
+		api.On("KVSet", LAST_ADMIN_NOTICE_KEY, mustMarshalJSON(now())).Return(nil)
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+			now:           now,
+			serverVersion: serverVersion,
+		}
+		p.SetAPI(api)
+
+		result := p.checkForNextSurvey(now())
+
+		assert.True(t, result)
+	})
+
+	t.Run("should not send survey or notices if a survey has already been sent for this version", func(t *testing.T) {
+		api := makeAPIMock()
+		api.On("KVGet", surveyKey).Return(mustMarshalJSON(&surveyState{}), nil)
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+			now:           now,
+			serverVersion: serverVersion,
+		}
+		p.SetAPI(api)
+
+		result := p.checkForNextSurvey(now())
+
+		assert.False(t, result)
+	})
+
+	t.Run("should not send survey or notices survey is disabled", func(t *testing.T) {
+		api := makeAPIMock()
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			configuration: &configuration{
+				EnableSurvey: false,
+			},
+			now:           now,
+			serverVersion: serverVersion,
+		}
+		p.SetAPI(api)
+
+		result := p.checkForNextSurvey(now())
+
+		assert.False(t, result)
+	})
+}
+
+func TestSendAdminNotices(t *testing.T) {
+	adminEmail := model.NewId()
+	adminId := model.NewId()
+	now := func() time.Time {
+		return toDate(2019, time.April, 1)
+	}
+	serverVersion := "5.10.0"
+
+	t.Run("should send notices if they've never been sent before", func(t *testing.T) {
+		api := makeAPIMock()
+		api.On("KVGet", LAST_ADMIN_NOTICE_KEY).Return(nil, nil)
+		api.On("GetUsers", mock.Anything).Return([]*model.User{
+			{
+				Id:    adminId,
+				Email: adminEmail,
+			},
+		}, nil)
+		api.On("GetConfig").Return(&model.Config{
+			ServiceSettings: model.ServiceSettings{
+				SiteURL: model.NewString("https://mattermost.example.com"),
+			},
+			TeamSettings: model.TeamSettings{
+				SiteName: model.NewString("SiteName"),
+			},
+		})
+		api.On("SendMail", adminEmail, mock.Anything, mock.Anything).Return(nil)
+		api.On("KVSet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, adminId, serverVersion), mock.Anything).Return(nil)
+		api.On("KVSet", LAST_ADMIN_NOTICE_KEY, mustMarshalJSON(now())).Return(nil)
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+			serverVersion: serverVersion,
+		}
+		p.SetAPI(api)
+
+		result, err := p.sendAdminNotices(now(), &surveyState{
+			ServerVersion: serverVersion,
+		})
+
+		assert.True(t, result)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should send notices if they were last sent over 7 days ago", func(t *testing.T) {
+		api := makeAPIMock()
+		api.On("KVGet", LAST_ADMIN_NOTICE_KEY).Return(mustMarshalJSON(now().Add(-8*24*time.Hour)), nil)
+		api.On("GetUsers", mock.Anything).Return([]*model.User{
+			{
+				Id:    adminId,
+				Email: adminEmail,
+			},
+		}, nil)
+		api.On("GetConfig").Return(&model.Config{
+			ServiceSettings: model.ServiceSettings{
+				SiteURL: model.NewString("https://mattermost.example.com"),
+			},
+			TeamSettings: model.TeamSettings{
+				SiteName: model.NewString("SiteName"),
+			},
+		})
+		api.On("SendMail", adminEmail, mock.Anything, mock.Anything).Return(nil)
+		api.On("KVSet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, adminId, serverVersion), mock.Anything).Return(nil)
+		api.On("KVSet", LAST_ADMIN_NOTICE_KEY, mustMarshalJSON(now())).Return(nil)
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			configuration: &configuration{
+				EnableSurvey: true,
+			},
+			serverVersion: serverVersion,
+		}
+		p.SetAPI(api)
+
+		result, err := p.sendAdminNotices(now(), &surveyState{
+			ServerVersion: serverVersion,
+		})
+
+		assert.True(t, result)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should not send notices if they were last sent less than 7 days ago", func(t *testing.T) {
+		api := makeAPIMock()
+		api.On("KVGet", LAST_ADMIN_NOTICE_KEY).Return(mustMarshalJSON(now().Add(-6*24*time.Hour)), nil)
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			serverVersion: serverVersion,
+		}
+		p.SetAPI(api)
+
+		result, err := p.sendAdminNotices(now(), &surveyState{
+			ServerVersion: serverVersion,
+		})
+
+		assert.False(t, result)
+		assert.Nil(t, err)
+	})
+}
+
 func TestSendAdminNoticeEmails(t *testing.T) {
 	admins := []*model.User{
 		{

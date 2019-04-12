@@ -2,7 +2,6 @@ package main
 
 import (
 	"path/filepath"
-	"time"
 
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/pkg/errors"
@@ -29,13 +28,13 @@ func (p *Plugin) OnActivate() error {
 
 	p.API.LogDebug("NPS plugin activated")
 
-	now := time.Now().UTC()
+	now := p.now().UTC()
 
 	upgraded, appErr := p.checkForServerUpgrade(now)
 	if upgraded {
 		p.API.LogInfo("Upgrade detected. Checking if a survey should be scheduled.")
 
-		go p.checkForNextSurvey(time.Now().UTC())
+		go p.checkForNextSurvey(now)
 	}
 
 	p.setActivated(true)

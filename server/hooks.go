@@ -23,18 +23,30 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 		return
 	}
 
+	// Make sure that Surveybot doesn't respond to itself
 	if post.UserId == p.botUserID {
 		return
 	}
 
-	// Respond to any written feedback that the bot receives
+	// Make sure this is a post sent directly to Surveybot
 	channel, err := p.API.GetChannel(post.ChannelId)
 	if err != nil {
-		p.API.LogWarn("Unable to get channel for post to send Surveybot response", "err", err)
+		p.API.LogError("Unable to get channel for Surveybot feedback", "err", err)
 		return
 	}
 
 	if !p.IsBotDMChannel(channel) {
+		return
+	}
+
+	// Make sure this is not a post sent by another bot
+	user, err := p.API.GetUser(post.UserId)
+	if err != nil {
+		p.API.LogError("Unable to get sender for Surveybot feedback", "err", err)
+		return
+	}
+
+	if user.IsBot {
 		return
 	}
 
