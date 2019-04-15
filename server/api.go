@@ -80,8 +80,13 @@ func (p *Plugin) checkForDMs(userID string) *model.AppError {
 
 			now := p.now().UTC()
 
-			p.checkForAdminNoticeDM(user)
-			p.checkForSurveyDM(user, now)
+			if _, err := p.checkForAdminNoticeDM(user); err != nil {
+				p.API.LogError("Failed to check for notice of scheduled survey for user", "err", err, "user_id", userID)
+			}
+
+			if _, err := p.checkForSurveyDM(user, now); err != nil {
+				p.API.LogError("Failed to check for survey for user", "err", err, "user_id", userID)
+			}
 		}()
 	}
 
@@ -104,9 +109,9 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := p.API.GetUser(userID)
-	if err != nil {
-		p.API.LogError("Failed to get user", "user_id", userID, "err", err)
+	user, appErr := p.API.GetUser(userID)
+	if appErr != nil {
+		p.API.LogError("Failed to get user", "user_id", userID, "err", appErr)
 
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -125,10 +130,14 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 
 	now := p.now().UTC()
 
-	p.sendScore(score, userID, now.UnixNano()/int64(time.Millisecond))
+	if err := p.sendScore(score, userID, now.UnixNano()/int64(time.Millisecond)); err != nil {
+		p.API.LogError("Failed to send Surveybot feedback to Segment", "err", err.Error())
 
-	if err := p.markSurveyAnswered(userID, now); err != nil {
-		p.API.LogWarn("Failed to mark survey as answered", "err", err)
+		// Still appear to the end user as if their feedback was actually sent
+	}
+
+	if appErr := p.markSurveyAnswered(userID, now); appErr != nil {
+		p.API.LogWarn("Failed to mark survey as answered", "err", appErr)
 	}
 
 	p.CreateBotDMPost(userID, p.buildFeedbackRequestPost())

@@ -14,33 +14,37 @@ const (
 	SEGMENT_KEY = "5xaDYWpjOoCKmJNNKK6fg1DacwZ7ZVZc"
 )
 
-func (p *Plugin) initializeClient() {
+func (p *Plugin) initializeClient() error {
 	client := analytics.New(SEGMENT_KEY)
 
 	if !p.blockSegmentEvents {
-		client.Identify(&analytics.Identify{
+		if err := client.Identify(&analytics.Identify{
 			UserId: p.API.GetDiagnosticId(),
-		})
+		}); err != nil {
+			return err
+		}
 	}
 
 	p.client = client
+
+	return nil
 }
 
-func (p *Plugin) sendScore(score int, userID string, timestamp int64) {
-	p.sendToSegment(NPS_SCORE, userID, timestamp, map[string]interface{}{
+func (p *Plugin) sendScore(score int, userID string, timestamp int64) error {
+	return p.sendToSegment(NPS_SCORE, userID, timestamp, map[string]interface{}{
 		"score": score,
 	})
 }
 
-func (p *Plugin) sendFeedback(feedback string, userID string, timestamp int64) {
-	p.sendToSegment(NPS_FEEDBACK, userID, timestamp, map[string]interface{}{
+func (p *Plugin) sendFeedback(feedback string, userID string, timestamp int64) error {
+	return p.sendToSegment(NPS_FEEDBACK, userID, timestamp, map[string]interface{}{
 		"feedback": feedback,
 	})
 }
 
-func (p *Plugin) sendToSegment(event string, userID string, timestamp int64, properties map[string]interface{}) {
+func (p *Plugin) sendToSegment(event string, userID string, timestamp int64, properties map[string]interface{}) error {
 	if !p.canSendDiagnostics() || p.blockSegmentEvents {
-		return
+		return nil
 	}
 
 	track := &analytics.Track{
@@ -49,7 +53,7 @@ func (p *Plugin) sendToSegment(event string, userID string, timestamp int64, pro
 		Properties: p.getEventProperties(userID, timestamp, properties),
 	}
 
-	p.client.Track(track)
+	return p.client.Track(track)
 }
 
 func (p *Plugin) getEventProperties(userID string, timestamp int64, other map[string]interface{}) map[string]interface{} {

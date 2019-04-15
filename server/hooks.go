@@ -29,9 +29,9 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 	}
 
 	// Make sure this is a post sent directly to Surveybot
-	channel, err := p.API.GetChannel(post.ChannelId)
-	if err != nil {
-		p.API.LogError("Unable to get channel for Surveybot feedback", "err", err)
+	channel, appErr := p.API.GetChannel(post.ChannelId)
+	if appErr != nil {
+		p.API.LogError("Unable to get channel for Surveybot feedback", "err", appErr)
 		return
 	}
 
@@ -40,9 +40,9 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 	}
 
 	// Make sure this is not a post sent by another bot
-	user, err := p.API.GetUser(post.UserId)
-	if err != nil {
-		p.API.LogError("Unable to get sender for Surveybot feedback", "err", err)
+	user, appErr := p.API.GetUser(post.UserId)
+	if appErr != nil {
+		p.API.LogError("Unable to get sender for Surveybot feedback", "err", appErr)
 		return
 	}
 
@@ -51,14 +51,18 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 	}
 
 	// Send the feedback to Segment
-	p.sendFeedback(post.Message, post.UserId, post.CreateAt)
+	if err := p.sendFeedback(post.Message, post.UserId, post.CreateAt); err != nil {
+		p.API.LogError("Failed to send Surveybot feedback to Segment", "err", err.Error())
+
+		// Still appear to the end user as if their feedback was actually sent
+	}
 
 	// Respond to the feedback
-	_, err = p.CreateBotDMPost(post.UserId, &model.Post{
+	_, appErr = p.CreateBotDMPost(post.UserId, &model.Post{
 		Message: feedbackResponseBody,
 		Type:    "custom_nps_thanks",
 	})
-	if err != nil {
+	if appErr != nil {
 		p.API.LogError("Failed to respond to Surveybot feedback")
 	}
 }
