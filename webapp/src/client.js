@@ -16,6 +16,8 @@ export class Client {
             options.headers = {};
         }
 
+        options.headers['X-Requested-With'] = 'XMLHttpRequest';
+
         if (options.method && options.method.toLowerCase() !== 'get') {
             options.headers[HEADER_X_CSRF_TOKEN] = getCSRFFromCookie();
         }
