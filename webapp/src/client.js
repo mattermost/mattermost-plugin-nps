@@ -4,6 +4,7 @@ const HEADER_X_CSRF_TOKEN = 'X-CSRF-Token';
 
 export class Client {
     constructor() {
+        this.csrf = getCSRFFromCookie();
         this.url = `/plugins/${pluginId}/api/v1`;
     }
 
@@ -19,7 +20,7 @@ export class Client {
         options.headers['X-Requested-With'] = 'XMLHttpRequest';
 
         if (options.method && options.method.toLowerCase() !== 'get') {
-            options.headers[HEADER_X_CSRF_TOKEN] = getCSRFFromCookie();
+            options.headers[HEADER_X_CSRF_TOKEN] = this.csrf;
         }
 
         try {
