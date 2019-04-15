@@ -10,6 +10,7 @@ import (
 
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/plugin"
+	"github.com/pkg/errors"
 )
 
 type apiHandler func(w http.ResponseWriter, r *http.Request)
@@ -148,7 +149,7 @@ func getScore(selectedOption string) (int64, error) {
 	}
 
 	if score < 0 || score > 10 {
-		return 0, fmt.Errorf("score out of range")
+		return 0, errors.New("score out of range")
 	}
 
 	return score, nil
