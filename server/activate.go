@@ -30,8 +30,9 @@ func (p *Plugin) OnActivate() error {
 
 	now := p.now().UTC()
 
-	upgraded, appErr := p.checkForServerUpgrade(now)
-	if upgraded {
+	if upgraded, appErr := p.checkForServerUpgrade(now); appErr != nil {
+		return appErr
+	} else if upgraded {
 		p.API.LogInfo("Upgrade detected. Checking if a survey should be scheduled.")
 
 		go p.checkForNextSurvey(now)

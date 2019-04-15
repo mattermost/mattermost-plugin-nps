@@ -13,6 +13,8 @@ import (
 
 func TestOnActivate(t *testing.T) {
 	botUserID := model.NewId()
+	now := toDate(2019, time.March, 1)
+	serverVersion := "5.10.0"
 
 	makeAPIMock := func() *plugintest.API {
 		api := &plugintest.API{}
@@ -22,9 +24,37 @@ func TestOnActivate(t *testing.T) {
 	}
 
 	t.Run("should set up Plugin correctly", func(t *testing.T) {
-		now := toDate(2019, time.March, 1)
-		serverVersion := "5.10.0"
+		api := makeAPIMock()
+		api.On("GetConfig").Return(&model.Config{
+			LogSettings: model.LogSettings{
+				EnableDiagnostics: model.NewBool(true),
+			},
+		})
+		api.On("CreateBot", mock.Anything).Return(nil, &model.AppError{})
+		api.On("GetUserByUsername", "surveybot").Return(&model.User{Id: botUserID}, nil)
+		api.On("GetBot", botUserID, true).Return(&model.Bot{UserId: botUserID}, nil)
+		api.On("GetServerVersion").Return(serverVersion)
+		api.On("KVGet", fmt.Sprintf(SERVER_UPGRADE_KEY, serverVersion)).Return(mustMarshalJSON(&serverUpgrade{}), nil)
+		defer api.AssertExpectations(t)
 
+		p := &Plugin{
+			blockSegmentEvents: true,
+			now: func() time.Time {
+				return now
+			},
+		}
+		p.SetAPI(api)
+
+		err := p.OnActivate()
+
+		assert.Nil(t, err)
+
+		assert.Equal(t, botUserID, p.botUserID)
+		assert.Equal(t, serverVersion, p.serverVersion)
+		assert.NotNil(t, p.client)
+	})
+
+	t.Run("should return an error if unable to check for an upgrade", func(t *testing.T) {
 		api := makeAPIMock()
 		api.On("GetConfig").Return(&model.Config{
 			LogSettings: model.LogSettings{
@@ -48,7 +78,7 @@ func TestOnActivate(t *testing.T) {
 
 		err := p.OnActivate()
 
-		assert.Nil(t, err)
+		assert.NotNil(t, err)
 
 		assert.Equal(t, botUserID, p.botUserID)
 		assert.Equal(t, serverVersion, p.serverVersion)
