@@ -9,15 +9,15 @@ import (
 )
 
 func TestGetEventProperties(t *testing.T) {
-	userId := model.NewId()
+	userID := model.NewId()
 	userCreateAt := int64(1546304461000)
 	timestamp := int64(1552331717000)
 
 	serverVersion := "5.10.0"
 	systemInstallDate := int64(1497898133094)
-	diagnosticId := model.NewId()
+	diagnosticID := model.NewId()
 
-	licenseId := model.NewId()
+	licenseID := model.NewId()
 	skuShortName := model.NewId()
 
 	for _, test := range []struct {
@@ -33,28 +33,28 @@ func TestGetEventProperties(t *testing.T) {
 
 				api.On("GetSystemInstallDate").Return(systemInstallDate, nil)
 
-				api.On("GetUser", userId).Return(&model.User{
-					Id:       userId,
+				api.On("GetUser", userID).Return(&model.User{
+					Id:       userID,
 					CreateAt: userCreateAt,
 					Roles:    "system_user",
 				}, nil)
 
 				api.On("GetLicense").Return(&model.License{
-					Id:           licenseId,
+					Id:           licenseID,
 					SkuShortName: skuShortName,
 				})
 
 				return api
 			},
 			Expected: map[string]interface{}{
-				"user_id":             userId,
+				"user_id":             userID,
 				"timestamp":           timestamp,
 				"server_version":      serverVersion,
 				"server_install_date": systemInstallDate,
-				"server_id":           diagnosticId,
+				"server_id":           diagnosticID,
 				"user_role":           "user",
 				"user_create_at":      userCreateAt,
-				"license_id":          licenseId,
+				"license_id":          licenseID,
 				"license_sku":         skuShortName,
 			},
 		},
@@ -65,28 +65,28 @@ func TestGetEventProperties(t *testing.T) {
 
 				api.On("GetSystemInstallDate").Return(int64(0), &model.AppError{})
 
-				api.On("GetUser", userId).Return(&model.User{
-					Id:       userId,
+				api.On("GetUser", userID).Return(&model.User{
+					Id:       userID,
 					CreateAt: userCreateAt,
 					Roles:    "system_user",
 				}, nil)
 
 				api.On("GetLicense").Return(&model.License{
-					Id:           licenseId,
+					Id:           licenseID,
 					SkuShortName: skuShortName,
 				})
 
 				return api
 			},
 			Expected: map[string]interface{}{
-				"user_id":             userId,
+				"user_id":             userID,
 				"timestamp":           timestamp,
 				"server_version":      serverVersion,
 				"server_install_date": int64(0),
-				"server_id":           diagnosticId,
+				"server_id":           diagnosticID,
 				"user_role":           "user",
 				"user_create_at":      userCreateAt,
-				"license_id":          licenseId,
+				"license_id":          licenseID,
 				"license_sku":         skuShortName,
 			},
 		},
@@ -95,26 +95,26 @@ func TestGetEventProperties(t *testing.T) {
 			SetupAPI: func() *plugintest.API {
 				api := &plugintest.API{}
 
-				api.On("GetUser", userId).Return(nil, &model.AppError{})
+				api.On("GetUser", userID).Return(nil, &model.AppError{})
 
 				api.On("GetSystemInstallDate").Return(systemInstallDate, nil)
 
 				api.On("GetLicense").Return(&model.License{
-					Id:           licenseId,
+					Id:           licenseID,
 					SkuShortName: skuShortName,
 				})
 
 				return api
 			},
 			Expected: map[string]interface{}{
-				"user_id":             userId,
+				"user_id":             userID,
 				"timestamp":           timestamp,
 				"server_version":      serverVersion,
 				"server_install_date": systemInstallDate,
-				"server_id":           diagnosticId,
+				"server_id":           diagnosticID,
 				"user_role":           "",
 				"user_create_at":      int64(0),
-				"license_id":          licenseId,
+				"license_id":          licenseID,
 				"license_sku":         skuShortName,
 			},
 		},
@@ -123,8 +123,8 @@ func TestGetEventProperties(t *testing.T) {
 			SetupAPI: func() *plugintest.API {
 				api := &plugintest.API{}
 
-				api.On("GetUser", userId).Return(&model.User{
-					Id:       userId,
+				api.On("GetUser", userID).Return(&model.User{
+					Id:       userID,
 					CreateAt: userCreateAt,
 					Roles:    "system_user",
 				}, nil)
@@ -136,11 +136,11 @@ func TestGetEventProperties(t *testing.T) {
 				return api
 			},
 			Expected: map[string]interface{}{
-				"user_id":             userId,
+				"user_id":             userID,
 				"timestamp":           timestamp,
 				"server_version":      serverVersion,
 				"server_install_date": systemInstallDate,
-				"server_id":           diagnosticId,
+				"server_id":           diagnosticID,
 				"user_role":           "user",
 				"user_create_at":      userCreateAt,
 				"license_id":          "",
@@ -154,14 +154,14 @@ func TestGetEventProperties(t *testing.T) {
 
 				api.On("GetSystemInstallDate").Return(systemInstallDate, nil)
 
-				api.On("GetUser", userId).Return(&model.User{
-					Id:       userId,
+				api.On("GetUser", userID).Return(&model.User{
+					Id:       userID,
 					CreateAt: userCreateAt,
 					Roles:    "system_user",
 				}, nil)
 
 				api.On("GetLicense").Return(&model.License{
-					Id:           licenseId,
+					Id:           licenseID,
 					SkuShortName: skuShortName,
 				})
 
@@ -172,14 +172,14 @@ func TestGetEventProperties(t *testing.T) {
 				"other_2": "abcd",
 			},
 			Expected: map[string]interface{}{
-				"user_id":             userId,
+				"user_id":             userID,
 				"timestamp":           timestamp,
 				"server_version":      serverVersion,
 				"server_install_date": systemInstallDate,
-				"server_id":           diagnosticId,
+				"server_id":           diagnosticID,
 				"user_role":           "user",
 				"user_create_at":      userCreateAt,
-				"license_id":          licenseId,
+				"license_id":          licenseID,
 				"license_sku":         skuShortName,
 				"other_1":             1234,
 				"other_2":             "abcd",
@@ -191,14 +191,14 @@ func TestGetEventProperties(t *testing.T) {
 			defer api.AssertExpectations(t)
 
 			api.On("GetServerVersion").Return("5.10.0")
-			api.On("GetDiagnosticId").Return(diagnosticId)
+			api.On("GetDiagnosticId").Return(diagnosticID)
 
-			api.On("GetTeamMembersForUser", userId, 0, 50).Return([]*model.TeamMember{}, nil).Maybe()
+			api.On("GetTeamMembersForUser", userID, 0, 50).Return([]*model.TeamMember{}, nil).Maybe()
 
 			p := Plugin{}
 			p.SetAPI(api)
 
-			assert.Equal(t, test.Expected, p.getEventProperties(userId, timestamp, test.OtherProperties))
+			assert.Equal(t, test.Expected, p.getEventProperties(userID, timestamp, test.OtherProperties))
 		})
 	}
 }

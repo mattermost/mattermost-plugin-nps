@@ -14,47 +14,53 @@ const (
 	SEGMENT_KEY = "5xaDYWpjOoCKmJNNKK6fg1DacwZ7ZVZc"
 )
 
-func (p *Plugin) initializeClient() {
+func (p *Plugin) initializeClient() error {
 	client := analytics.New(SEGMENT_KEY)
 
-	client.Identify(&analytics.Identify{
-		UserId: p.API.GetDiagnosticId(),
-	})
+	if !p.blockSegmentEvents {
+		if err := client.Identify(&analytics.Identify{
+			UserId: p.API.GetDiagnosticId(),
+		}); err != nil {
+			return err
+		}
+	}
 
 	p.client = client
+
+	return nil
 }
 
-func (p *Plugin) sendScore(score int, userId string, timestamp int64) {
-	p.sendToSegment(NPS_SCORE, p.getEventProperties(userId, timestamp, map[string]interface{}{
+func (p *Plugin) sendScore(score int, userID string, timestamp int64) error {
+	return p.sendToSegment(NPS_SCORE, userID, timestamp, map[string]interface{}{
 		"score": score,
-	}))
+	})
 }
 
-func (p *Plugin) sendFeedback(feedback string, userId string, timestamp int64) {
-	p.sendToSegment(NPS_FEEDBACK, p.getEventProperties(userId, timestamp, map[string]interface{}{
+func (p *Plugin) sendFeedback(feedback string, userID string, timestamp int64) error {
+	return p.sendToSegment(NPS_FEEDBACK, userID, timestamp, map[string]interface{}{
 		"feedback": feedback,
-	}))
+	})
 }
 
-func (p *Plugin) sendToSegment(event string, properties map[string]interface{}) {
-	if !p.canSendDiagnostics() {
-		return
+func (p *Plugin) sendToSegment(event string, userID string, timestamp int64, properties map[string]interface{}) error {
+	if !p.canSendDiagnostics() || p.blockSegmentEvents {
+		return nil
 	}
 
 	track := &analytics.Track{
 		Event:      event,
 		UserId:     p.API.GetDiagnosticId(),
-		Properties: properties,
+		Properties: p.getEventProperties(userID, timestamp, properties),
 	}
 
-	p.client.Track(track)
+	return p.client.Track(track)
 }
 
-func (p *Plugin) getEventProperties(userId string, timestamp int64, other map[string]interface{}) map[string]interface{} {
+func (p *Plugin) getEventProperties(userID string, timestamp int64, other map[string]interface{}) map[string]interface{} {
 	properties := map[string]interface{}{
-		"user_id":        userId,
+		"user_id":        userID,
 		"timestamp":      timestamp,
-		"server_version": p.API.GetServerVersion(),
+		"server_version": p.API.GetServerVersion(), // Note that this calls the API directly, so it gets the full version (including patch version)
 		"server_id":      p.API.GetDiagnosticId(),
 	}
 
@@ -64,7 +70,7 @@ func (p *Plugin) getEventProperties(userId string, timestamp int64, other map[st
 		properties["server_install_date"] = systemInstallDate
 	}
 
-	if user, err := p.API.GetUser(userId); err != nil {
+	if user, err := p.API.GetUser(userID); err != nil {
 		properties["user_role"] = ""
 		properties["user_create_at"] = int64(0)
 	} else {
@@ -88,23 +94,13 @@ func (p *Plugin) getEventProperties(userId string, timestamp int64, other map[st
 }
 
 func (p *Plugin) getUserRole(user *model.User) string {
-	if p.isUserSystemAdmin(user) {
+	if isSystemAdmin(user) {
 		return "system_admin"
 	} else if p.isUserTeamAdmin(user) {
 		return "team_admin"
 	} else {
 		return "user"
 	}
-}
-
-func (p *Plugin) isUserSystemAdmin(user *model.User) bool {
-	for _, role := range strings.Fields(user.Roles) {
-		if role == model.SYSTEM_ADMIN_ROLE_ID {
-			return true
-		}
-	}
-
-	return false
 }
 
 func (p *Plugin) isUserTeamAdmin(user *model.User) bool {

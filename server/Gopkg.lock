@@ -102,8 +102,7 @@
   revision = "1d33003b386959af197ba96475f198c114627b5e"
 
 [[projects]]
-  branch = "release-5.10"
-  digest = "1:895e5e267bdfb83a59c87e35ddd1289ea8aa4c67692485df9a3776935f657984"
+  digest = "1:77c91150dbdad987cb9a3cce01cee3ebcfb05ab346f2e450009f4d2d6a53bf36"
   name = "github.com/mattermost/mattermost-server"
   packages = [
     "mlog",
@@ -117,7 +116,8 @@
     "utils/markdown",
   ]
   pruneopts = "NUT"
-  revision = "cbf74d865ebb078691f6c54522d5d03df7fed1e9"
+  revision = "dc70ab42034da17eaf23be5a86abae81b3f1cd21"
+  version = "v5.10.0"
 
 [[projects]]
   digest = "1:18b773b92ac82a451c1276bd2776c1e55ce057ee202691ab33c8d6690efcc048"
@@ -205,11 +205,12 @@
   version = "v0.1.1"
 
 [[projects]]
-  digest = "1:81d363777b015e85bd42b978b80f4f5ecdaa43e11452ba8ff7ea93db3ce166bd"
+  digest = "1:72cea38d2957d95d18be2287ef9d4b06b89796d2e3070bc7f796bea3a4844381"
   name = "github.com/stretchr/testify"
   packages = [
     "assert",
     "mock",
+    "require",
   ]
   pruneopts = "NUT"
   revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
@@ -392,7 +393,6 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/blang/semver",
     "github.com/mattermost/mattermost-server/model",
     "github.com/mattermost/mattermost-server/plugin",
     "github.com/mattermost/mattermost-server/plugin/plugintest",

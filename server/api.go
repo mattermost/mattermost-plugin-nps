@@ -10,23 +10,26 @@ import (
 
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/plugin"
+	"github.com/pkg/errors"
 )
+
+type apiHandler func(w http.ResponseWriter, r *http.Request)
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	routes := []struct {
 		Path    string
 		Method  string
-		Handler func(http.ResponseWriter, *http.Request)
+		Handler apiHandler
 	}{
 		{
 			Path:    "/api/v1/connected",
 			Method:  http.MethodPost,
-			Handler: p.userConnected,
+			Handler: requiresUserId(p.userConnected),
 		},
 		{
 			Path:    "/api/v1/score",
 			Method:  http.MethodPost,
-			Handler: p.submitScore,
+			Handler: requiresUserId(p.submitScore),
 		},
 	}
 
@@ -48,10 +51,6 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 
 func (p *Plugin) userConnected(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("Mattermost-User-ID")
-	if userID == "" {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
 
 	err := p.checkForDMs(userID)
 	if err != nil {
@@ -71,8 +70,6 @@ func (p *Plugin) checkForDMs(userID string) *model.AppError {
 			return err
 		}
 
-		now := time.Now()
-
 		go func() {
 			// Add a random delay to mitigate against the fact that the user may have multiple sessions hitting this
 			// API at the same time across different servers.
@@ -81,12 +78,14 @@ func (p *Plugin) checkForDMs(userID string) *model.AppError {
 			p.connectedLock.Lock()
 			defer p.connectedLock.Unlock()
 
-			if notice := p.checkForAdminNoticeDM(user); notice != nil {
-				p.sendAdminNoticeDM(user, notice)
+			now := p.now().UTC()
+
+			if _, err := p.checkForAdminNoticeDM(user); err != nil {
+				p.API.LogError("Failed to check for notice of scheduled survey for user", "err", err, "user_id", userID)
 			}
 
-			if p.shouldSendSurveyDM(user, now) {
-				p.sendSurveyDM(user, now)
+			if _, err := p.checkForSurveyDM(user, now); err != nil {
+				p.API.LogError("Failed to check for survey for user", "err", err, "user_id", userID)
 			}
 		}()
 	}
@@ -96,10 +95,6 @@ func (p *Plugin) checkForDMs(userID string) *model.AppError {
 
 func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("Mattermost-User-ID")
-	if userID == "" {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
 
 	var surveyResponse *model.PostActionIntegrationRequest
 	if err := json.NewDecoder(io.LimitReader(r.Body, 2048)).Decode(&surveyResponse); err != nil {
@@ -114,26 +109,16 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, ok := surveyResponse.Context["selected_option"].(string); !ok {
-		p.API.LogError("Score response contains invalid score")
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	user, err := p.API.GetUser(userID)
-	if err != nil {
-		p.API.LogError("Failed to get user", "user_id", userID, "err", err)
+	user, appErr := p.API.GetUser(userID)
+	if appErr != nil {
+		p.API.LogError("Failed to get user", "user_id", userID, "err", appErr)
 
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	var score int
-	if i, err := strconv.ParseInt(surveyResponse.Context["selected_option"].(string), 10, 0); err != nil {
-		p.API.LogError("Score response contains invalid score")
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	} else if i < 0 || i > 10 {
+	if i, err := getScore(surveyResponse.Context["selected_option"].(string)); err != nil {
 		p.API.LogError("Score response contains invalid score")
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -143,12 +128,16 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 
 	p.API.LogDebug(fmt.Sprintf("Received score of %d from %s", score, r.Header.Get("Mattermost-User-ID")))
 
-	now := time.Now().UTC()
+	now := p.now().UTC()
 
-	p.sendScore(score, userID, now.UnixNano()/int64(time.Millisecond))
+	if err := p.sendScore(score, userID, now.UnixNano()/int64(time.Millisecond)); err != nil {
+		p.API.LogError("Failed to send Surveybot feedback to Segment", "err", err.Error())
 
-	if err := p.markSurveyAnswered(userID, now); err != nil {
-		p.API.LogWarn("Failed to mark survey as answered", "err", err)
+		// Still appear to the end user as if their feedback was actually sent
+	}
+
+	if appErr := p.markSurveyAnswered(userID, now); appErr != nil {
+		p.API.LogWarn("Failed to mark survey as answered", "err", appErr)
 	}
 
 	p.CreateBotDMPost(userID, p.buildFeedbackRequestPost())
@@ -160,4 +149,28 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(response.ToJson())
+}
+
+func getScore(selectedOption string) (int64, error) {
+	score, err := strconv.ParseInt(selectedOption, 10, 0)
+	if err != nil {
+		return 0, err
+	}
+
+	if score < 0 || score > 10 {
+		return 0, errors.New("score out of range")
+	}
+
+	return score, nil
+}
+
+func requiresUserId(handler apiHandler) apiHandler {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if userID := r.Header.Get("Mattermost-User-ID"); userID == "" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		handler(w, r)
+	}
 }

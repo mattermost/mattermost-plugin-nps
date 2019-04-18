@@ -1,13 +1,128 @@
 package main
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/plugin/plugintest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
+
+func TestOnActivate(t *testing.T) {
+	botUserID := model.NewId()
+	now := toDate(2019, time.March, 1)
+	serverVersion := "5.10.0"
+
+	makeAPIMock := func() *plugintest.API {
+		api := &plugintest.API{}
+		api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything).Maybe()
+		api.On("LogInfo", mock.Anything).Maybe()
+		return api
+	}
+
+	t.Run("should set up Plugin correctly", func(t *testing.T) {
+		api := makeAPIMock()
+		api.On("GetConfig").Return(&model.Config{
+			LogSettings: model.LogSettings{
+				EnableDiagnostics: model.NewBool(true),
+			},
+		})
+		api.On("CreateBot", mock.Anything).Return(nil, &model.AppError{})
+		api.On("GetUserByUsername", "surveybot").Return(&model.User{Id: botUserID}, nil)
+		api.On("GetBot", botUserID, true).Return(&model.Bot{UserId: botUserID}, nil)
+		api.On("GetServerVersion").Return(serverVersion)
+		api.On("KVGet", fmt.Sprintf(SERVER_UPGRADE_KEY, serverVersion)).Return(mustMarshalJSON(&serverUpgrade{}), nil)
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			blockSegmentEvents: true,
+			now: func() time.Time {
+				return now
+			},
+		}
+		p.SetAPI(api)
+
+		err := p.OnActivate()
+
+		assert.Nil(t, err)
+
+		assert.Equal(t, botUserID, p.botUserID)
+		assert.Equal(t, serverVersion, p.serverVersion)
+		assert.NotNil(t, p.client)
+	})
+
+	t.Run("should return an error if unable to check for an upgrade", func(t *testing.T) {
+		api := makeAPIMock()
+		api.On("GetConfig").Return(&model.Config{
+			LogSettings: model.LogSettings{
+				EnableDiagnostics: model.NewBool(true),
+			},
+		})
+		api.On("CreateBot", mock.Anything).Return(nil, &model.AppError{})
+		api.On("GetUserByUsername", "surveybot").Return(&model.User{Id: botUserID}, nil)
+		api.On("GetBot", botUserID, true).Return(&model.Bot{UserId: botUserID}, nil)
+		api.On("GetServerVersion").Return(serverVersion)
+		api.On("KVGet", fmt.Sprintf(SERVER_UPGRADE_KEY, serverVersion)).Return(nil, &model.AppError{})
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			blockSegmentEvents: true,
+			now: func() time.Time {
+				return now
+			},
+		}
+		p.SetAPI(api)
+
+		err := p.OnActivate()
+
+		assert.NotNil(t, err)
+
+		assert.Equal(t, botUserID, p.botUserID)
+		assert.Equal(t, serverVersion, p.serverVersion)
+		assert.NotNil(t, p.client)
+	})
+
+	t.Run("should return an error when get Surveybot", func(t *testing.T) {
+		api := makeAPIMock()
+		api.On("GetConfig").Return(&model.Config{
+			LogSettings: model.LogSettings{
+				EnableDiagnostics: model.NewBool(true),
+			},
+		})
+		api.On("CreateBot", mock.Anything).Return(nil, &model.AppError{})
+		api.On("GetUserByUsername", "surveybot").Return(nil, &model.AppError{})
+		api.On("LogError", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{}
+		p.SetAPI(api)
+
+		err := p.OnActivate()
+
+		assert.NotNil(t, err)
+	})
+
+	t.Run("should return an error when diagnostics are not enabled", func(t *testing.T) {
+		api := makeAPIMock()
+		api.On("GetConfig").Return(&model.Config{
+			LogSettings: model.LogSettings{
+				EnableDiagnostics: model.NewBool(false),
+			},
+		})
+		api.On("LogError", mock.Anything)
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{}
+		p.SetAPI(api)
+
+		err := p.OnActivate()
+
+		assert.NotNil(t, err)
+	})
+}
 
 func TestEnsureBotExists(t *testing.T) {
 	setupAPI := func() *plugintest.API {
