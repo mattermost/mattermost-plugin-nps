@@ -70,6 +70,9 @@ func TestSubmitScore(t *testing.T) {
 
 		// Disabling diagnostics allows the handler to run, but prevents data from being sent to Segment
 		api.On("GetConfig").Return(&model.Config{
+			ServiceSettings: model.ServiceSettings{
+				SiteURL: model.NewString("https://mattermost.example.com"),
+			},
 			LogSettings: model.LogSettings{
 				EnableDiagnostics: model.NewBool(false),
 			},
@@ -116,6 +119,41 @@ func TestSubmitScore(t *testing.T) {
 		assert.IsType(t, &model.PostActionIntegrationResponse{}, mustUnmarshalJSON(body, &model.PostActionIntegrationResponse{}))
 	})
 
+	t.Run("should not respond for feedback if the user changes their score", func(t *testing.T) {
+		api := makeAPIMock()
+		api.On("GetUser", userID).Return(&model.User{
+			Id: userID,
+		}, nil)
+		api.On("KVGet", userSurveyKey).Return(mustMarshalJSON(&userSurveyState{
+			AnsweredAt: now.Add(-time.Minute),
+		}), nil)
+		defer api.AssertExpectations(t)
+
+		p := Plugin{
+			botUserID: botUserID,
+			now: func() time.Time {
+				return now
+			},
+		}
+		p.SetAPI(api)
+
+		recorder := httptest.NewRecorder()
+		request := httptest.NewRequest(http.MethodPost, "/score", bytes.NewReader(mustMarshalJSON(&model.PostActionIntegrationRequest{
+			Context: map[string]interface{}{
+				"selected_option": "10",
+			},
+		})))
+		request.Header.Set("Mattermost-User-ID", userID)
+
+		p.submitScore(recorder, request)
+
+		result := recorder.Result()
+		body, _ := ioutil.ReadAll(result.Body)
+
+		assert.Equal(t, http.StatusOK, result.StatusCode)
+		assert.IsType(t, &model.PostActionIntegrationResponse{}, mustUnmarshalJSON(body, &model.PostActionIntegrationResponse{}))
+	})
+
 	t.Run("should only log warning if unable to mark survey answered", func(t *testing.T) {
 		api := makeAPIMock()
 		api.On("GetUser", userID).Return(&model.User{
@@ -123,8 +161,6 @@ func TestSubmitScore(t *testing.T) {
 		}, nil)
 		api.On("KVGet", userSurveyKey).Return(nil, &model.AppError{})
 		api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything)
-		api.On("GetDirectChannel", userID, botUserID).Return(&model.Channel{}, nil)
-		api.On("CreatePost", mock.Anything).Return(&model.Post{}, nil)
 		defer api.AssertExpectations(t)
 
 		p := Plugin{

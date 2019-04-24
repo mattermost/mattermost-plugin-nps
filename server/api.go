@@ -136,11 +136,15 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 		// Still appear to the end user as if their feedback was actually sent
 	}
 
-	if appErr := p.markSurveyAnswered(userID, now); appErr != nil {
+	isFirstResponse, appErr := p.markSurveyAnswered(userID, now)
+	if appErr != nil {
 		p.API.LogWarn("Failed to mark survey as answered", "err", appErr)
 	}
 
-	p.CreateBotDMPost(userID, p.buildFeedbackRequestPost())
+	// Thank the user for their feedback when they first answer the survey
+	if isFirstResponse {
+		p.CreateBotDMPost(userID, p.buildFeedbackRequestPost())
+	}
 
 	// Send response to update score post
 	response := model.PostActionIntegrationResponse{

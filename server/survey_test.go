@@ -852,26 +852,51 @@ func TestCheckForSurveyDM(t *testing.T) {
 }
 
 func TestMarkSurveyAnswered(t *testing.T) {
-	now := toDate(2019, 3, 2)
-	serverVersion := "5.8.0"
-	userID := model.NewId()
+	t.Run("should mark survey as answered", func(t *testing.T) {
+		now := toDate(2019, 3, 2)
+		serverVersion := "5.8.0"
+		userID := model.NewId()
 
-	api := &plugintest.API{}
-	api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, userID)).Return(mustMarshalJSON(&userSurveyState{
-		ServerVersion: serverVersion,
-		SentAt:        toDate(2019, 3, 1),
-	}), nil)
-	api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, userID), mustMarshalJSON(&userSurveyState{
-		ServerVersion: serverVersion,
-		SentAt:        toDate(2019, 3, 1),
-		AnsweredAt:    now,
-	})).Return(nil)
-	defer api.AssertExpectations(t)
+		api := &plugintest.API{}
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, userID)).Return(mustMarshalJSON(&userSurveyState{
+			ServerVersion: serverVersion,
+			SentAt:        toDate(2019, 3, 1),
+		}), nil)
+		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, userID), mustMarshalJSON(&userSurveyState{
+			ServerVersion: serverVersion,
+			SentAt:        toDate(2019, 3, 1),
+			AnsweredAt:    now,
+		})).Return(nil)
+		defer api.AssertExpectations(t)
 
-	p := Plugin{}
-	p.SetAPI(api)
+		p := Plugin{}
+		p.SetAPI(api)
 
-	err := p.markSurveyAnswered(userID, now)
+		marked, err := p.markSurveyAnswered(userID, now)
 
-	assert.Nil(t, err)
+		assert.True(t, marked)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should return false if survey was already answered", func(t *testing.T) {
+		now := toDate(2019, 3, 2)
+		serverVersion := "5.8.0"
+		userID := model.NewId()
+
+		api := &plugintest.API{}
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, userID)).Return(mustMarshalJSON(&userSurveyState{
+			ServerVersion: serverVersion,
+			SentAt:        toDate(2019, 3, 1),
+			AnsweredAt:    now.Add(-time.Minute),
+		}), nil)
+		defer api.AssertExpectations(t)
+
+		p := Plugin{}
+		p.SetAPI(api)
+
+		marked, err := p.markSurveyAnswered(userID, now)
+
+		assert.False(t, marked)
+		assert.Nil(t, err)
+	})
 }

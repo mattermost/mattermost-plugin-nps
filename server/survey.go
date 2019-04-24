@@ -349,6 +349,21 @@ func (p *Plugin) sendSurveyDM(user *model.User, now time.Time) *model.AppError {
 }
 
 func (p *Plugin) buildSurveyPost(user *model.User) *model.Post {
+	return &model.Post{
+		Message: fmt.Sprintf(surveyBody, user.Username),
+		Type:    "custom_nps_survey",
+		Props: map[string]interface{}{
+			"attachments": []*model.SlackAttachment{
+				{
+					Title:   surveyDropdownTitle,
+					Actions: []*model.PostAction{p.buildSurveyPostAction()},
+				},
+			},
+		},
+	}
+}
+
+func (p *Plugin) buildSurveyPostAction() *model.PostAction {
 	var options []*model.PostActionOptions
 	for i := 10; i >= 0; i-- {
 		text := strconv.Itoa(i)
@@ -366,7 +381,7 @@ func (p *Plugin) buildSurveyPost(user *model.User) *model.Post {
 
 	siteURL := *p.API.GetConfig().ServiceSettings.SiteURL
 
-	action := &model.PostAction{
+	return &model.PostAction{
 		Name:    "Select an option...",
 		Type:    model.POST_ACTION_TYPE_SELECT,
 		Options: options,
@@ -374,30 +389,21 @@ func (p *Plugin) buildSurveyPost(user *model.User) *model.Post {
 			URL: fmt.Sprintf("%s/plugins/%s/api/v1/score", siteURL, manifest.Id),
 		},
 	}
+}
+
+func (p *Plugin) buildAnsweredSurveyPost(user *model.User, score int) *model.Post {
+	action := p.buildSurveyPostAction()
+	action.DefaultOption = strconv.Itoa(score)
 
 	return &model.Post{
-		Message: fmt.Sprintf(surveyBody, user.Username),
 		Type:    "custom_nps_survey",
+		Message: fmt.Sprintf(surveyBody, user.Username),
 		Props: map[string]interface{}{
 			"attachments": []*model.SlackAttachment{
 				{
 					Title:   surveyDropdownTitle,
+					Text:    fmt.Sprintf(surveyAnsweredBody, score),
 					Actions: []*model.PostAction{action},
-				},
-			},
-		},
-	}
-}
-
-func (p *Plugin) buildAnsweredSurveyPost(user *model.User, score int) *model.Post {
-	return &model.Post{
-		Type:    "custom_nps_survey",
-		Message: fmt.Sprintf(surveyBody, user.Username),
-		Props: map[string]interface{}{
-			"attachments": []*model.SlackAttachment{
-				{
-					Title: surveyDropdownTitle,
-					Text:  fmt.Sprintf(surveyAnsweredBody, score),
 				},
 			},
 		},
@@ -411,13 +417,22 @@ func (p *Plugin) buildFeedbackRequestPost() *model.Post {
 	}
 }
 
-func (p *Plugin) markSurveyAnswered(userID string, now time.Time) *model.AppError {
+func (p *Plugin) markSurveyAnswered(userID string, now time.Time) (bool, *model.AppError) {
 	var userSurvey *userSurveyState
 	if err := p.KVGet(fmt.Sprintf(USER_SURVEY_KEY, userID), &userSurvey); err != nil {
-		return err
+		return false, err
+	}
+
+	if !userSurvey.AnsweredAt.IsZero() {
+		// Survey was already answered
+		return false, nil
 	}
 
 	userSurvey.AnsweredAt = now
 
-	return p.KVSet(fmt.Sprintf(USER_SURVEY_KEY, userID), userSurvey)
+	if err := p.KVSet(fmt.Sprintf(USER_SURVEY_KEY, userID), userSurvey); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
