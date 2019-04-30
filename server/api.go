@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -30,6 +32,11 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 			Path:    "/api/v1/score",
 			Method:  http.MethodPost,
 			Handler: requiresUserId(p.submitScore),
+		},
+		{
+			Path:    "/assets/icon-happy-bot.svg",
+			Method:  http.MethodGet,
+			Handler: p.getBotIconSVG,
 		},
 	}
 
@@ -166,6 +173,28 @@ func getScore(selectedOption string) (int64, error) {
 	}
 
 	return score, nil
+}
+
+func (p *Plugin) getBotIconSVG(w http.ResponseWriter, r *http.Request) {
+	bundlePath, appErr := p.API.GetBundlePath()
+	if appErr != nil {
+		p.API.LogError("Failed to get bundle path for bot icon", "err", appErr)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	img, err := os.Open(filepath.Join(bundlePath, "assets", "icon-happy-bot.svg"))
+	if err != nil {
+		p.API.LogError("Failed to get bot icon", "err", err)
+		http.NotFound(w, r)
+		return
+	}
+	defer img.Close()
+
+	w.Header().Set("Cache-Control", "max-age=31556926, public")
+	w.Header().Set("Content-Type", "image/svg+xml")
+
+	io.Copy(w, img)
 }
 
 func requiresUserId(handler apiHandler) apiHandler {
