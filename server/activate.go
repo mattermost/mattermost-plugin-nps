@@ -43,6 +43,8 @@ func (p *Plugin) OnActivate() error {
 
 	p.setActivated(true)
 
+	p.API.RegisterCommand(getCommand())
+
 	return nil
 }
 
