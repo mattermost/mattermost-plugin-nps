@@ -32,8 +32,8 @@ const (
 
 	SURVEYBOT_DESCRIPTION = "Surveybot collects user feedback to improve Mattermost. [Learn more](https://mattermost.com/pl/default-nps)."
 
-	DEFAULT_UPGRADE_CHECK_MAX_DELAY = 2 * time.Minute
-	DEAFULT_USER_SURVEY_MAX_DELAY   = 3 * time.Second
+	DEFAULT_UPGRADE_CHECK_MAX_DELAY = time.Millisecond
+	DEAFULT_USER_SURVEY_MAX_DELAY   = time.Millisecond
 )
 
 type Plugin struct {
