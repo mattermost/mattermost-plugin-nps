@@ -13,19 +13,19 @@ import (
 const (
 	// How often "survey scheduled" emails can be sent to prevent multiple emails from being sent if multiple server
 	// upgrades occur within a short time
-	MIN_TIME_BETWEEN_SURVEY_EMAILS = 7 * 24 * time.Hour
+	MIN_TIME_BETWEEN_SURVEY_EMAILS = 7 * time.Minute
 
 	// How long until a survey occurs after a server upgrade in days (for use in notifications)
 	DAYS_UNTIL_SURVEY = 21
 
 	// How long until a survey occurs after a server upgrade as a time.Duration
-	TIME_UNTIL_SURVEY = 21 * 24 * time.Hour
+	TIME_UNTIL_SURVEY = 21 * time.Minute
 
 	// Get admin users up to 100 at a time when sending email notifications
 	ADMIN_USERS_PER_PAGE = 100
 
 	// The minimum time before a user can be sent a survey after completing the previous one
-	MIN_TIME_BETWEEN_USER_SURVEYS = 90 * 24 * time.Hour
+	MIN_TIME_BETWEEN_USER_SURVEYS = 30 * time.Minute
 )
 
 type adminNotice struct {
