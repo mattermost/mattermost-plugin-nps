@@ -19,7 +19,7 @@ export default class SurveyPost extends React.PureComponent {
         this.props.doPostActionWithCookie(this.props.post.id, action.id, action.cookie, score.toString());
     }
 
-    getSelectedScore = () => {
+    getAction = () => {
         const {post} = this.props;
         if (!post || !post.props || !post.props.attachments) {
             return null;
@@ -30,7 +30,11 @@ export default class SurveyPost extends React.PureComponent {
             return null;
         }
 
-        const action = attachment.actions[0];
+        return attachment.actions[0];
+    }
+
+    getSelectedScore = () => {
+        const action = this.getAction();
         if (!action || !action.default_option) {
             return -1;
         }
