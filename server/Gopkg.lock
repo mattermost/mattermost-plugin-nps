@@ -102,7 +102,15 @@
   revision = "1d33003b386959af197ba96475f198c114627b5e"
 
 [[projects]]
-  digest = "1:7ec3c6a247b3683b0236dc67d3aec9fb361a0543b98a356a2c8673ce00a2d33b"
+  digest = "1:60ac67c5e4ea431ce6936f7d89a686013060e9963a8ed58dbc791b576ce8053c"
+  name = "github.com/mattermost/go-i18n"
+  packages = ["i18n"]
+  pruneopts = "NUT"
+  revision = "0dc1626d56435e9d605a29875701721c54bc9bbd"
+  version = "v1.10.0"
+
+[[projects]]
+  digest = "1:f15d85d14c5c37b8852a4b3ab6052b50a7cec7bbb2193fac2af9c7aafb576a67"
   name = "github.com/mattermost/mattermost-server"
   packages = [
     "mlog",
@@ -116,7 +124,7 @@
     "utils/markdown",
   ]
   pruneopts = "NUT"
-  revision = "2b6691e5ccc38b36e9a6113657ba5e53196e650d"
+  revision = "dce6cb601f15f27cb35fb37b6863ee4626df6d01"
 
 [[projects]]
   digest = "1:18b773b92ac82a451c1276bd2776c1e55ce057ee202691ab33c8d6690efcc048"
@@ -127,10 +135,9 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:07140002dbf37da92090f731b46fa47be4820b82fe5c14a035203b0e813d0ec2"
+  digest = "1:d6d44d2433c588ea2956f9f152ffb73893072750787c6f24bfa9db07eeef06c2"
   name = "github.com/nicksnyder/go-i18n"
   packages = [
-    "i18n",
     "i18n/bundle",
     "i18n/language",
     "i18n/translation",

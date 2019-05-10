@@ -53,20 +53,19 @@ type userSurveyState struct {
 // Note that this only sends an email to admins to notify them that a survey has been scheduled. The web app plugin is
 // in charge of checking and actually triggering the survey.
 func (p *Plugin) checkForNextSurvey(now time.Time) bool {
-	// Add a random delay to mitigate against the fact that multiple instances of the plugin may be trying to start up across
-	// different servers and we have no real way to synchronize between them.
-	p.sleepUpTo(p.upgradeCheckMaxDelay)
-
-	// TODO replace this with a proper HA-friendly lock
-	p.surveyLock.Lock()
-	defer p.surveyLock.Unlock()
-
 	if !p.getConfiguration().EnableSurvey {
 		// Surveys are disabled, so return false without updating the stored version. If surveys are re-enabled, the
 		// plugin will then detect an upgrade (if one occurred) and schedule the next survey.
 		p.API.LogInfo("Not sending NPS survey because survey is disabled")
 		return false
 	}
+
+	locked, err := p.tryLock(LOCK_KEY, now)
+	if !locked || err != nil {
+		// Either an error occurred or there's already another thread checking for surveys
+		return false
+	}
+	defer p.unlock(LOCK_KEY)
 
 	var nextSurvey *surveyState
 	if err := p.KVGet(fmt.Sprintf(SURVEY_KEY, p.serverVersion), &nextSurvey); err != nil {
