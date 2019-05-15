@@ -18,6 +18,12 @@ export default class Plugin {
         this.scorePostComponentId = '';
     }
 
+    onWindowResize = () => {
+        this.registerScorePostType();
+
+        this.store.dispatch(Actions.windowResized(window.innerWidth));
+    }
+
     registerScorePostType = () => {
         // The score post runs out of space slightly before switching to mobile view
         const overrideScorePost = window.innerWidth >= 800;
@@ -33,25 +39,29 @@ export default class Plugin {
     }
 
     initialize(registry, store) {
-        this.client = new Client();
-
         this.registry = registry;
+        this.store = store;
 
-        window.addEventListener('resize', this.registerScorePostType);
-        this.registerScorePostType();
-
-        registry.registerRootComponent(Root);
-
+        // Register reducer
         registry.registerReducer(reducer);
 
+        // Register hooks
         const hooks = new Hooks(store);
         registry.registerMessageWillBePostedHook(hooks.messageWillBePosted);
 
+        // Register components
+        registry.registerRootComponent(Root);
+
+        window.addEventListener('resize', this.onWindowResize);
+        this.onWindowResize();
+
+        // Initialize client
+        this.client = new Client();
         store.dispatch(Actions.connected(this.client));
     }
 
     uninitialize() {
-        window.removeEventListener('resize', this.registerScorePostType);
+        window.removeEventListener('resize', this.onWindowResize);
     }
 }
 

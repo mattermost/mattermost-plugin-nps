@@ -5,6 +5,7 @@ import {changeOpacity} from 'mattermost-redux/utils/theme_utils';
 
 export default class Score extends React.PureComponent {
     static propTypes = {
+        isSmall: PropTypes.bool.isRequired,
         score: PropTypes.number.isRequired,
         selected: PropTypes.bool.isRequired,
         selectScore: PropTypes.func.isRequired,
@@ -33,11 +34,11 @@ export default class Score extends React.PureComponent {
 
     render() {
         const containerStyle = {...style.container};
-        if (this.props.score !== 10) {
+        if (this.props.score !== 10 && !this.props.isSmall) {
             containerStyle.marginRight = 8;
         }
 
-        const bubbleStyle = {...style.bubble};
+        const bubbleStyle = this.props.isSmall ? {...style.bubbleSmall} : {...style.bubble};
         if (this.props.selected) {
             bubbleStyle.backgroundColor = this.props.theme.sidebarBg;
             bubbleStyle.color = this.props.theme.sidebarText;
@@ -63,12 +64,19 @@ export default class Score extends React.PureComponent {
 
 const style = {
     bubble: {
-        borderRadius: 16,
+        borderRadius: '100%',
+        height: 32,
+        width: 32,
+    },
+    bubbleSmall: {
+        borderRadius: '100%',
+        height: 24,
+        marginTop: 4,
+        width: 24,
     },
     container: {
         cursor: 'pointer',
         display: 'inline-block',
-        height: 32,
-        width: 32,
+        height: '100%',
     },
 };
