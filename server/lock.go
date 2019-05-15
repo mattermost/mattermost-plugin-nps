@@ -64,7 +64,8 @@ func (p *Plugin) clearStaleLocks(now time.Time) *model.AppError {
 
 			if now.Sub(t) >= LOCK_EXPIRATION {
 				// There's no KVCompareAndDelete, so make sure we're the only ones modifying this lock
-				if set, err := p.API.KVCompareAndSet(key, value, []byte("releasing")); err != nil {
+				set, err := p.API.KVCompareAndSet(key, value, []byte("releasing"))
+				if err != nil {
 					return err
 				} else if !set {
 					// Someone else has released or cleared the lock
