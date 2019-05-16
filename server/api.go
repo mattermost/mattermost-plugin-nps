@@ -64,30 +64,31 @@ func (p *Plugin) userConnected(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Plugin) checkForDMs(userID string) *model.AppError {
-	if p.canSendDiagnostics() {
-		user, err := p.API.GetUser(userID)
-		if err != nil {
-			return err
-		}
+	if !p.canSendDiagnostics() {
+		return nil
+	}
 
-		go func() {
-			// Add a random delay to mitigate against the fact that the user may have multiple sessions hitting this
-			// API at the same time across different servers.
-			p.sleepUpTo(p.userSurveyMaxDelay)
+	now := p.now().UTC()
+	userLockKey := fmt.Sprintf(USER_LOCK_KEY, userID)
 
-			p.connectedLock.Lock()
-			defer p.connectedLock.Unlock()
+	locked, err := p.tryLock(userLockKey, now)
+	if !locked || err != nil {
+		// Either an error occurred or there's already another thread checking for DMs
+		return err
+	}
+	defer p.unlock(userLockKey)
 
-			now := p.now().UTC()
+	user, err := p.API.GetUser(userID)
+	if err != nil {
+		return err
+	}
 
-			if _, err := p.checkForAdminNoticeDM(user); err != nil {
-				p.API.LogError("Failed to check for notice of scheduled survey for user", "err", err, "user_id", userID)
-			}
+	if _, err := p.checkForAdminNoticeDM(user); err != nil {
+		p.API.LogError("Failed to check for notice of scheduled survey for user", "err", err, "user_id", userID)
+	}
 
-			if _, err := p.checkForSurveyDM(user, now); err != nil {
-				p.API.LogError("Failed to check for survey for user", "err", err, "user_id", userID)
-			}
-		}()
+	if _, err := p.checkForSurveyDM(user, now); err != nil {
+		p.API.LogError("Failed to check for survey for user", "err", err, "user_id", userID)
 	}
 
 	return nil

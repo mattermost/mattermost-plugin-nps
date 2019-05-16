@@ -29,6 +29,7 @@ func TestCheckForNextSurvey(t *testing.T) {
 
 	t.Run("should schedule survey and send admin notices", func(t *testing.T) {
 		api := makeAPIMock()
+		api.On("KVCompareAndSet", LOCK_KEY, []byte(nil), mustMarshalJSON(now())).Return(true, nil)
 		api.On("KVGet", surveyKey).Return(nil, nil)
 		api.On("KVSet", surveyKey, mustMarshalJSON(&surveyState{
 			ServerVersion: serverVersion,
@@ -53,6 +54,7 @@ func TestCheckForNextSurvey(t *testing.T) {
 		api.On("SendMail", adminEmail, mock.Anything, mock.Anything).Return(nil)
 		api.On("KVSet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, adminId, serverVersion), mock.Anything).Return(nil)
 		api.On("KVSet", LAST_ADMIN_NOTICE_KEY, mustMarshalJSON(now())).Return(nil)
+		api.On("KVDelete", LOCK_KEY).Return(nil)
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
@@ -71,7 +73,9 @@ func TestCheckForNextSurvey(t *testing.T) {
 
 	t.Run("should not send survey or notices if a survey has already been sent for this version", func(t *testing.T) {
 		api := makeAPIMock()
+		api.On("KVCompareAndSet", LOCK_KEY, []byte(nil), mustMarshalJSON(now())).Return(true, nil)
 		api.On("KVGet", surveyKey).Return(mustMarshalJSON(&surveyState{}), nil)
+		api.On("KVDelete", LOCK_KEY).Return(nil)
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
@@ -95,6 +99,25 @@ func TestCheckForNextSurvey(t *testing.T) {
 		p := &Plugin{
 			configuration: &configuration{
 				EnableSurvey: false,
+			},
+			now:           now,
+			serverVersion: serverVersion,
+		}
+		p.SetAPI(api)
+
+		result := p.checkForNextSurvey(now())
+
+		assert.False(t, result)
+	})
+
+	t.Run("should not attempt to check for next survey if locked", func(t *testing.T) {
+		api := makeAPIMock()
+		api.On("KVCompareAndSet", LOCK_KEY, []byte(nil), mustMarshalJSON(now())).Return(false, nil)
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			configuration: &configuration{
+				EnableSurvey: true,
 			},
 			now:           now,
 			serverVersion: serverVersion,

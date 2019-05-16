@@ -34,6 +34,7 @@ func TestOnActivate(t *testing.T) {
 		api.On("GetUserByUsername", "surveybot").Return(&model.User{Id: botUserID}, nil)
 		api.On("GetBot", botUserID, true).Return(&model.Bot{UserId: botUserID}, nil)
 		api.On("GetServerVersion").Return(serverVersion)
+		api.On("KVList", 0, 100).Return([]string{}, nil)
 		api.On("KVGet", fmt.Sprintf(SERVER_UPGRADE_KEY, serverVersion)).Return(mustMarshalJSON(&serverUpgrade{}), nil)
 		defer api.AssertExpectations(t)
 
@@ -65,6 +66,7 @@ func TestOnActivate(t *testing.T) {
 		api.On("GetUserByUsername", "surveybot").Return(&model.User{Id: botUserID}, nil)
 		api.On("GetBot", botUserID, true).Return(&model.Bot{UserId: botUserID}, nil)
 		api.On("GetServerVersion").Return(serverVersion)
+		api.On("KVList", 0, 100).Return([]string{}, nil)
 		api.On("KVGet", fmt.Sprintf(SERVER_UPGRADE_KEY, serverVersion)).Return(nil, &model.AppError{})
 		defer api.AssertExpectations(t)
 
@@ -85,7 +87,7 @@ func TestOnActivate(t *testing.T) {
 		assert.NotNil(t, p.client)
 	})
 
-	t.Run("should return an error when get Surveybot", func(t *testing.T) {
+	t.Run("should return an error when unable to get Surveybot", func(t *testing.T) {
 		api := makeAPIMock()
 		api.On("GetConfig").Return(&model.Config{
 			LogSettings: model.LogSettings{
