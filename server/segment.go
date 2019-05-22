@@ -58,7 +58,7 @@ func (p *Plugin) sendToSegment(event string, userID string, timestamp int64, pro
 
 func (p *Plugin) getEventProperties(userID string, timestamp int64, other map[string]interface{}) map[string]interface{} {
 	properties := map[string]interface{}{
-		"user_id":        userID,
+		"user_actual_id": userID,
 		"timestamp":      timestamp,
 		"server_version": p.API.GetServerVersion(), // Note that this calls the API directly, so it gets the full version (including patch version)
 		"server_id":      p.API.GetDiagnosticId(),
