@@ -141,6 +141,7 @@ ifneq ($(HAS_SERVER),)
 	$(GO) test -race -v ./server/...
 endif
 ifneq ($(HAS_WEBAPP),)
+	cd webapp && $(NPM) run test;
 	cd webapp && $(NPM) run fix;
 endif
 

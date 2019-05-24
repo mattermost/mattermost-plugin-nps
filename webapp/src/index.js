@@ -4,6 +4,7 @@ import {POST_NPS_SURVEY} from './constants';
 import Hooks from './hooks';
 import {id as pluginId} from './manifest';
 import reducer from './reducers';
+import {useSurveyPost} from './selectors';
 
 import Root from './components/root';
 import SurveyPost from './components/survey_post';
@@ -12,46 +13,71 @@ export default class Plugin {
     constructor() {
         this.registry = null;
 
+        this.store = null;
+        this.unsubscribe = null;
+
         this.client = null;
 
-        this.overrideScorePost = false;
-        this.scorePostComponentId = '';
+        this.overrideSurveyPost = false;
+        this.surveyPostComponentId = '';
     }
 
-    registerScorePostType = () => {
-        // The score post runs out of space slightly before switching to mobile view
-        const overrideScorePost = window.innerWidth >= 800;
+    onStateChange = () => {
+        this.registerSurveyPost(this.store.getState());
+    }
 
-        if (overrideScorePost && !this.scorePostComponentId) {
-            // There's enough space to use the custom score post, so register it
-            this.scorePostComponentId = this.registry.registerPostTypeComponent(POST_NPS_SURVEY, SurveyPost);
-        } else if (!overrideScorePost && this.scorePostComponentId) {
+    onWindowResize = () => {
+        this.store.dispatch(Actions.windowResized(window.innerWidth));
+    }
+
+    registerSurveyPost = (state) => {
+        const overrideSurveyPost = useSurveyPost(state);
+
+        // this.overrideSurveyPost has to be updated first since registerPostTypeComponent calls this again
+
+        if (overrideSurveyPost && !this.overrideSurveyPost) {
+            // There's enough space to use the custom survey post, so register it
+            this.overrideSurveyPost = true;
+            this.surveyPostComponentId = this.registry.registerPostTypeComponent(POST_NPS_SURVEY, SurveyPost);
+        } else if (!overrideSurveyPost && this.overrideSurveyPost) {
             // There's not enough space to use the custom score post, so remove it
-            this.registry.unregisterPostTypeComponent(this.scorePostComponentId);
-            this.scorePostComponentId = '';
+            this.overrideSurveyPost = false;
+
+            this.registry.unregisterPostTypeComponent(this.surveyPostComponentId);
+            this.surveyPostComponentId = '';
         }
     }
 
     initialize(registry, store) {
-        this.client = new Client();
-
         this.registry = registry;
 
-        window.addEventListener('resize', this.registerScorePostType);
-        this.registerScorePostType();
+        this.store = store;
+        this.unsubscribe = store.subscribe(this.onStateChange);
 
-        registry.registerRootComponent(Root);
-
+        // Register reducer
         registry.registerReducer(reducer);
 
+        // Register hooks
         const hooks = new Hooks(store);
         registry.registerMessageWillBePostedHook(hooks.messageWillBePosted);
 
+        // Register components
+        registry.registerRootComponent(Root);
+
+        window.addEventListener('resize', this.onWindowResize);
+        this.onWindowResize();
+
+        // Initialize client
+        this.client = new Client();
         store.dispatch(Actions.connected(this.client));
     }
 
     uninitialize() {
-        window.removeEventListener('resize', this.registerScorePostType);
+        window.removeEventListener('resize', this.onWindowResize);
+
+        if (this.unsubscribe) {
+            this.unsubscribe();
+        }
     }
 }
 

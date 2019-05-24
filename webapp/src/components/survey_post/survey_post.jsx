@@ -8,7 +8,7 @@ import Score from './score';
 export default class SurveyPost extends React.PureComponent {
     static propTypes = {
         doPostActionWithCookie: PropTypes.func.isRequired,
-        isRHS: PropTypes.bool.isRequired,
+        isSmall: PropTypes.bool.isRequired,
         post: PropTypes.object.isRequired,
         theme: PropTypes.object.isRequired,
     }
@@ -47,12 +47,6 @@ export default class SurveyPost extends React.PureComponent {
     }
 
     renderScores = (style) => {
-        if (this.props.isRHS) {
-            // The score buttons are too wide for the RHS, so just display some text directing the user back to the
-            // center channel instead.
-            return <span>{'Please select a score in the center pane.'}</span>;
-        }
-
         const selectedScore = this.getSelectedScore();
 
         const scores = [];
@@ -60,6 +54,7 @@ export default class SurveyPost extends React.PureComponent {
             scores.push(
                 <Score
                     key={i}
+                    isSmall={this.props.isSmall}
                     selectScore={this.selectScore}
                     score={i}
                     selected={i === selectedScore}
@@ -69,12 +64,12 @@ export default class SurveyPost extends React.PureComponent {
         }
 
         return (
-            <div style={style.scoreContainer}>
+            <div style={this.props.isSmall ? style.scoreContainerSmall : style.scoreContainer}>
                 <div style={style.scoreLabels}>
                     <span>{'Not Likely'}</span>
                     <span style={style.scoreLabelRight}>{'Very Likely'}</span>
                 </div>
-                <div style={style.scores}>
+                <div style={this.props.isSmall ? style.scoresSmall : style.scores}>
                     {scores}
                 </div>
             </div>
@@ -114,7 +109,15 @@ const getStyle = makeStyleFromTheme((theme) => {
         scoreContainer: {
             display: 'flex',
             flexDirection: 'column',
-            width: 432,
+            lineHeight: 32,
+            marginBottom: 4,
+            width: (32 * 11) + (8 * 10), // The width of all 11 score buttons plus the margins between them
+        },
+        scoreContainerSmall: {
+            display: 'flex',
+            flexDirection: 'column',
+            marginBottom: 4,
+            width: 24 * 11, // The width of all 11 score buttons
         },
         scoreLabels: {
             display: 'flex',
@@ -123,7 +126,6 @@ const getStyle = makeStyleFromTheme((theme) => {
             fontWeight: 600,
             justifyContent: 'space-between',
             lineHeight: '17px',
-            marginBottom: 4,
             opacity: 0.5,
         },
         scores: {
@@ -131,7 +133,13 @@ const getStyle = makeStyleFromTheme((theme) => {
             borderRadius: '16px',
             height: 32,
             lineHeight: '32px',
-            marginBottom: 4,
+            textAlign: 'center',
+        },
+        scoresSmall: {
+            backgroundColor: changeOpacity(theme.sidebarBg, 0.05),
+            borderRadius: '16px',
+            height: 32,
+            lineHeight: '24px',
             textAlign: 'center',
         },
         title: {

@@ -19,3 +19,10 @@ export function hideConfirmationModal() {
         type: ActionTypes.HIDE_CONFIRMATION_MODAL,
     };
 }
+
+export function windowResized(windowWidth) {
+    return {
+        type: ActionTypes.WINDOW_RESIZED,
+        windowWidth,
+    };
+}
