@@ -27,8 +27,7 @@ export function isSurveyPostSmall(state, isRHS) {
 }
 
 function isCompactView(state) {
-    const compactView = get(state, Preferences.CATEGORY_DISPLAY_SETTINGS, MESSAGE_DISPLAY, MESSAGE_DISPLAY_DEFAULT) === MESSAGE_DISPLAY_COMPACT;
-    return compactView;
+    return get(state, Preferences.CATEGORY_DISPLAY_SETTINGS, MESSAGE_DISPLAY, MESSAGE_DISPLAY_DEFAULT) === MESSAGE_DISPLAY_COMPACT;
 }
 
 function isSidebarOpen(state) {
