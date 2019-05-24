@@ -47,7 +47,7 @@ func TestGetEventProperties(t *testing.T) {
 				return api
 			},
 			Expected: map[string]interface{}{
-				"user_id":             userID,
+				"user_actual_id":      userID,
 				"timestamp":           timestamp,
 				"server_version":      serverVersion,
 				"server_install_date": systemInstallDate,
@@ -79,7 +79,7 @@ func TestGetEventProperties(t *testing.T) {
 				return api
 			},
 			Expected: map[string]interface{}{
-				"user_id":             userID,
+				"user_actual_id":      userID,
 				"timestamp":           timestamp,
 				"server_version":      serverVersion,
 				"server_install_date": int64(0),
@@ -107,7 +107,7 @@ func TestGetEventProperties(t *testing.T) {
 				return api
 			},
 			Expected: map[string]interface{}{
-				"user_id":             userID,
+				"user_actual_id":      userID,
 				"timestamp":           timestamp,
 				"server_version":      serverVersion,
 				"server_install_date": systemInstallDate,
@@ -136,7 +136,7 @@ func TestGetEventProperties(t *testing.T) {
 				return api
 			},
 			Expected: map[string]interface{}{
-				"user_id":             userID,
+				"user_actual_id":      userID,
 				"timestamp":           timestamp,
 				"server_version":      serverVersion,
 				"server_install_date": systemInstallDate,
@@ -172,7 +172,7 @@ func TestGetEventProperties(t *testing.T) {
 				"other_2": "abcd",
 			},
 			Expected: map[string]interface{}{
-				"user_id":             userID,
+				"user_actual_id":      userID,
 				"timestamp":           timestamp,
 				"server_version":      serverVersion,
 				"server_install_date": systemInstallDate,
