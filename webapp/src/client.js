@@ -35,7 +35,8 @@ export class Client {
 }
 
 function getCSRFFromCookie() {
-    const cookies = document.cookie.split(';');
+    const cookies = document.cookie.split(';').map((cookie) => cookie.trim());
+
     for (const cookie of cookies) {
         if (cookie.startsWith('MMCSRF=')) {
             return cookie.replace('MMCSRF=', '');
