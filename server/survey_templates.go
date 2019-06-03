@@ -26,7 +26,7 @@ var adminEmailBodyTemplate = template.Must(template.New("emailBody").Parse(`
                                             <td style="padding: 0 0 20px;">
                                                 <h2 style="font-weight: normal; margin-top: 10px;">Net Promoter Survey Scheduled</h2>
                                                 <p>Mattermost is introducing feedback surveys to measure user satisfaction and improve product quality. Surveys will start to be sent to users in <strong>{{.DaysUntilSurvey}} days</strong>.</p>
-                                                <p><a href="{{.SiteURL}}/admin_console/plugins/custom/{{.PluginID}}">Click here</a> to disable or learn more about Net Promoter surveys.</p>
+                                                <p><a href="{{.SiteURL}}/admin_console/plugins/plugin_{{.PluginID}}">Click here</a> to disable or learn more about Net Promoter surveys.</p>
                                             </td>
                                         </tr>
                                         <tr>
@@ -55,7 +55,7 @@ var adminEmailBodyTemplate = template.Must(template.New("emailBody").Parse(`
 
 const adminDMBody = `Mattermost uses feedback surveys to measure user satisfaction and improve product quality. User surveys will start to be sent on %s.
 
-[Click here](/admin_console/plugins/custom/%s) to disable or learn more about Net Promoter Score Surveys.
+[Click here](/admin_console/plugins/plugin_%s) to disable or learn more about Net Promoter Score Surveys.
 
 *This message is only visible to System Admins.*`
 
