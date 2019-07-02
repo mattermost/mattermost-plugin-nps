@@ -1,4 +1,7 @@
-# Mattermost Net Promoter Score Plugin ![CircleCI branch](https://img.shields.io/circleci/project/github/mattermost/mattermost-plugin-nps/master.svg)
+# Mattermost Net Promoter Score Plugin
+
+[![Build Status](https://img.shields.io/circleci/project/github/mattermost/mattermost-plugin-nps/master.svg)](https://circleci.com/gh/mattermost/mattermost-plugin-nps)
+[![Code Coverage](https://img.shields.io/codecov/c/github/mattermost/mattermost-plugin-nps/master.svg)](https://codecov.io/gh/mattermost/mattermost-plugin-nps)
 
 A plugin for Mattermost to gather user feedback about Mattermost itself using NPS (Net Promoter Score) surveys.
 
