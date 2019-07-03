@@ -5,5 +5,5 @@ var manifest = struct {
 	Version string
 }{
 	Id:      "com.mattermost.nps-test",
-	Version: "1.0.0",
+	Version: "1.0.1",
 }

@@ -2,7 +2,7 @@
     "id": "com.mattermost.nps-test",
     "name": "Net Promoter Score",
     "description": "This plugin sends Net Promoter Score surveys to gather user feedback on Mattermost.",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "min_server_version": "5.12.0",
     "server": {
         "executables": {
