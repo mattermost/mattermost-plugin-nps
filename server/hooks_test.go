@@ -167,6 +167,50 @@ func TestMessageHasBeenPosted(t *testing.T) {
 			UserId:    userID,
 		})
 	})
+
+	t.Run("should not respond to autoresponder posts", func(t *testing.T) {
+		api := &plugintest.API{}
+		api.On("GetConfig").Return(&model.Config{
+			LogSettings: model.LogSettings{
+				EnableDiagnostics: model.NewBool(true),
+			},
+		})
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			blockSegmentEvents: true,
+			botUserID:          botUserID,
+		}
+		p.SetAPI(api)
+
+		p.MessageHasBeenPosted(nil, &model.Post{
+			ChannelId: botChannelID,
+			UserId:    userID,
+			Type:      model.POST_AUTO_RESPONDER,
+		})
+	})
+
+	t.Run("should not respond to other system messages", func(t *testing.T) {
+		api := &plugintest.API{}
+		api.On("GetConfig").Return(&model.Config{
+			LogSettings: model.LogSettings{
+				EnableDiagnostics: model.NewBool(true),
+			},
+		})
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			blockSegmentEvents: true,
+			botUserID:          botUserID,
+		}
+		p.SetAPI(api)
+
+		p.MessageHasBeenPosted(nil, &model.Post{
+			ChannelId: botChannelID,
+			UserId:    userID,
+			Type:      model.POST_HEADER_CHANGE,
+		})
+	})
 }
 
 func TestUserHasLoggedIn(t *testing.T) {

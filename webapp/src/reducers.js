@@ -22,6 +22,17 @@ function confirmationModal(state = {show: false}, action) {
     }
 }
 
+function windowWidth(state = 0, action) {
+    switch (action.type) {
+    case ActionTypes.WINDOW_RESIZED:
+        return action.windowWidth;
+
+    default:
+        return state;
+    }
+}
+
 export default combineReducers({
     confirmationModal,
+    windowWidth,
 });

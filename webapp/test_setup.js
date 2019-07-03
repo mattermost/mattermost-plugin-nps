@@ -1,0 +1,1 @@
+window.registerPlugin = jest.fn();

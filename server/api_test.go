@@ -17,7 +17,10 @@ import (
 )
 
 func TestCheckForDMs(t *testing.T) {
+	now := toDate(2019, time.May, 10)
 	userID := model.NewId()
+
+	userLockKey := fmt.Sprintf(USER_LOCK_KEY, userID)
 
 	t.Run("should do nothing with diagnostics disabled", func(t *testing.T) {
 		api := &plugintest.API{}
@@ -36,6 +39,28 @@ func TestCheckForDMs(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
+	t.Run("should not try to check for DMs if user is already locked", func(t *testing.T) {
+		api := &plugintest.API{}
+		api.On("GetConfig").Return(&model.Config{
+			LogSettings: model.LogSettings{
+				EnableDiagnostics: model.NewBool(true),
+			},
+		})
+		api.On("KVCompareAndSet", userLockKey, []byte(nil), mustMarshalJSON(now)).Return(false, nil)
+		defer api.AssertExpectations(t)
+
+		p := Plugin{
+			now: func() time.Time {
+				return now
+			},
+		}
+		p.SetAPI(api)
+
+		err := p.checkForDMs(userID)
+
+		assert.Nil(t, err)
+	})
+
 	t.Run("should return error if unable to get user", func(t *testing.T) {
 		api := &plugintest.API{}
 		api.On("GetConfig").Return(&model.Config{
@@ -43,10 +68,16 @@ func TestCheckForDMs(t *testing.T) {
 				EnableDiagnostics: model.NewBool(true),
 			},
 		})
+		api.On("KVCompareAndSet", userLockKey, []byte(nil), mustMarshalJSON(now)).Return(true, nil)
 		api.On("GetUser", userID).Return(nil, &model.AppError{})
+		api.On("KVDelete", userLockKey).Return(nil)
 		defer api.AssertExpectations(t)
 
-		p := Plugin{}
+		p := Plugin{
+			now: func() time.Time {
+				return now
+			},
+		}
 		p.SetAPI(api)
 
 		err := p.checkForDMs(userID)

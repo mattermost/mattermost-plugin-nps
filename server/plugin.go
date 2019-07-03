@@ -31,9 +31,6 @@ const (
 	USER_SURVEY_KEY = "UserSurvey-%s"
 
 	SURVEYBOT_DESCRIPTION = "Surveybot collects user feedback to improve Mattermost. [Learn more](https://mattermost.com/pl/default-nps)."
-
-	DEFAULT_UPGRADE_CHECK_MAX_DELAY = time.Millisecond
-	DEAFULT_USER_SURVEY_MAX_DELAY   = time.Millisecond
 )
 
 type Plugin struct {
@@ -52,24 +49,9 @@ type Plugin struct {
 	// activated is used to track whether or not OnActivate has initialized the plugin state.
 	activated bool
 
-	// surveyLock is used to prevent multiple threads from accessing checkForNextSurvey at the same time.
-	surveyLock sync.Mutex
-
-	// connectedLock is used to prevent multiple connected requests from being handled at the same time in order to
-	// prevent users from receiving duplicate Surveybot DMs.
-	connectedLock sync.Mutex
-
 	botUserID string
 
 	client *analytics.Client
-
-	// upgradeCheckMaxDelay adds a short delay to checkForNextSurvey calls to mitigate against race conditions caused
-	// by multiple servers restarting at the same time after an upgrade.
-	upgradeCheckMaxDelay time.Duration
-
-	// userSurveyMaxDelay adds a short delay when checking whether the user needs to receive DMs notifying them of a new
-	// NPS survey.
-	userSurveyMaxDelay time.Duration
 
 	// blockSegmentEvents prevents the plugin from sending events to Segment during testing.
 	blockSegmentEvents bool
@@ -83,9 +65,6 @@ type Plugin struct {
 
 func NewPlugin() *Plugin {
 	return &Plugin{
-		upgradeCheckMaxDelay: DEFAULT_UPGRADE_CHECK_MAX_DELAY,
-		userSurveyMaxDelay:   DEAFULT_USER_SURVEY_MAX_DELAY,
-
 		now:      time.Now,
 		readFile: ioutil.ReadFile,
 	}

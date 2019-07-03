@@ -28,6 +28,11 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 		return
 	}
 
+	// Or to system messages
+	if post.IsSystemMessage() {
+		return
+	}
+
 	// Make sure this is a post sent directly to Surveybot
 	channel, appErr := p.API.GetChannel(post.ChannelId)
 	if appErr != nil {

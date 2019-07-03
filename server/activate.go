@@ -29,9 +29,15 @@ func (p *Plugin) OnActivate() error {
 		return err
 	}
 
+	now := p.now().UTC()
+
+	if err := p.clearStaleLocks(now); err != nil {
+		return err
+	}
+
 	p.API.LogDebug("NPS plugin activated")
 
-	now := p.now().UTC()
+	p.setActivated(true)
 
 	if upgraded, appErr := p.checkForServerUpgrade(now); appErr != nil {
 		return appErr
@@ -40,8 +46,6 @@ func (p *Plugin) OnActivate() error {
 
 		go p.checkForNextSurvey(now)
 	}
-
-	p.setActivated(true)
 
 	p.API.RegisterCommand(getCommand())
 
