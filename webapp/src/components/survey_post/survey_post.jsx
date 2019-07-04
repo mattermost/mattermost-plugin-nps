@@ -129,14 +129,14 @@ const getStyle = makeStyleFromTheme((theme) => {
             opacity: 0.5,
         },
         scores: {
-            backgroundColor: changeOpacity(theme.sidebarBg, 0.05),
+            backgroundColor: changeOpacity(theme.linkColor, 0.08),
             borderRadius: '16px',
             height: 32,
             lineHeight: '32px',
             textAlign: 'center',
         },
         scoresSmall: {
-            backgroundColor: changeOpacity(theme.sidebarBg, 0.05),
+            backgroundColor: changeOpacity(theme.linkColor, 0.08),
             borderRadius: '16px',
             height: 32,
             lineHeight: '24px',
