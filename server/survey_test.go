@@ -602,7 +602,6 @@ func TestCheckForSurveyDM(t *testing.T) {
 			StartAt:       now,
 		}), nil)
 		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(nil, nil)
-		api.On("GetConfig").Return(&model.Config{ServiceSettings: model.ServiceSettings{SiteURL: model.NewString("https://mattermost.example.com")}})
 		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
 		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id), newSurveyStateBytes).Return(nil)
@@ -627,7 +626,6 @@ func TestCheckForSurveyDM(t *testing.T) {
 			StartAt:       now,
 		}), nil)
 		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(nil, nil)
-		api.On("GetConfig").Return(&model.Config{ServiceSettings: model.ServiceSettings{SiteURL: model.NewString("https://mattermost.example.com")}})
 		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
 		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id), newSurveyStateBytes).Return(&model.AppError{})
@@ -652,7 +650,6 @@ func TestCheckForSurveyDM(t *testing.T) {
 			StartAt:       now,
 		}), nil)
 		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(nil, nil)
-		api.On("GetConfig").Return(&model.Config{ServiceSettings: model.ServiceSettings{SiteURL: model.NewString("https://mattermost.example.com")}})
 		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(nil, &model.AppError{})
 		defer api.AssertExpectations(t)
@@ -680,7 +677,6 @@ func TestCheckForSurveyDM(t *testing.T) {
 			SentAt:        now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS),
 			AnsweredAt:    now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS),
 		}), nil)
-		api.On("GetConfig").Return(&model.Config{ServiceSettings: model.ServiceSettings{SiteURL: model.NewString("https://mattermost.example.com")}})
 		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
 		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id), newSurveyStateBytes).Return(nil)
