@@ -101,9 +101,6 @@ func TestSubmitScore(t *testing.T) {
 
 		// Disabling diagnostics allows the handler to run, but prevents data from being sent to Segment
 		api.On("GetConfig").Return(&model.Config{
-			ServiceSettings: model.ServiceSettings{
-				SiteURL: model.NewString("https://mattermost.example.com"),
-			},
 			LogSettings: model.LogSettings{
 				EnableDiagnostics: model.NewBool(false),
 			},

@@ -378,14 +378,12 @@ func (p *Plugin) buildSurveyPostAction() *model.PostAction {
 		})
 	}
 
-	siteURL := *p.API.GetConfig().ServiceSettings.SiteURL
-
 	return &model.PostAction{
 		Name:    "Select an option...",
 		Type:    model.POST_ACTION_TYPE_SELECT,
 		Options: options,
 		Integration: &model.PostActionIntegration{
-			URL: fmt.Sprintf("%s/plugins/%s/api/v1/score", siteURL, manifest.Id),
+			URL: fmt.Sprintf("/plugins/%s/api/v1/score", manifest.Id),
 		},
 	}
 }
