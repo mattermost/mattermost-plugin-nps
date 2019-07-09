@@ -40,10 +40,10 @@ export default class Score extends React.PureComponent {
 
         const bubbleStyle = this.props.isSmall ? {...style.bubbleSmall} : {...style.bubble};
         if (this.props.selected) {
-            bubbleStyle.backgroundColor = this.props.theme.sidebarBg;
-            bubbleStyle.color = this.props.theme.sidebarText;
+            bubbleStyle.backgroundColor = this.props.theme.buttonBg;
+            bubbleStyle.color = this.props.theme.buttonColor;
         } else if (this.state.hovered) {
-            bubbleStyle.backgroundColor = changeOpacity(this.props.theme.sidebarBg, 0.1);
+            bubbleStyle.backgroundColor = changeOpacity(this.props.theme.buttonBg, 0.3);
         }
 
         return (
