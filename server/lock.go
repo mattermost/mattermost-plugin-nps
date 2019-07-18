@@ -72,7 +72,7 @@ func (p *Plugin) clearStaleLocks(now time.Time) *model.AppError {
 					continue
 				}
 
-				p.API.LogInfo("Freeing expired NPS lock", "key", key)
+				p.API.LogInfo("Freeing expired lock", "key", key)
 
 				if err := p.API.KVDelete(key); err != nil {
 					return err

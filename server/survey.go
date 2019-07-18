@@ -147,16 +147,16 @@ func (p *Plugin) sendAdminNoticeEmails(admins []*model.User) {
 
 	var buf bytes.Buffer
 	if err := adminEmailBodyTemplate.Execute(&buf, bodyProps); err != nil {
-		p.API.LogError("Failed to prepare NPS survey notification email", "err", err)
+		p.API.LogError("Failed to prepare survey notification email", "err", err)
 		return
 	}
 	body := buf.String()
 
 	for _, admin := range admins {
-		p.API.LogDebug("Sending NPS survey notification email", "email", admin.Email)
+		p.API.LogDebug("Sending survey notification email", "email", admin.Email)
 
 		if err := p.API.SendMail(admin.Email, subject, body); err != nil {
-			p.API.LogError("Failed to send NPS survey notification email", "email", admin.Email, "err", err)
+			p.API.LogError("Failed to send survey notification email", "email", admin.Email, "err", err)
 		}
 	}
 }
