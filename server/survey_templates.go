@@ -4,7 +4,7 @@ import (
 	"html/template"
 )
 
-const adminEmailSubject = "[%s] Net Promoter Score survey scheduled in %d days"
+const adminEmailSubject = "[%s] User Satisfaction Survey scheduled in %d days"
 
 var adminEmailBodyTemplate = template.Must(template.New("emailBody").Parse(`
 <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 20px; line-height: 1.7; color: #555;">
@@ -24,9 +24,9 @@ var adminEmailBodyTemplate = template.Must(template.New("emailBody").Parse(`
                                     <table border="0" cellpadding="0" cellspacing="0" style="padding: 20px 50px 0; text-align: center; margin: 0 auto">
                                         <tr>
                                             <td style="padding: 0 0 20px;">
-                                                <h2 style="font-weight: normal; margin-top: 10px;">Net Promoter Survey Scheduled</h2>
-                                                <p>Mattermost is introducing feedback surveys to measure user satisfaction and improve product quality. Surveys will start to be sent to users in <strong>{{.DaysUntilSurvey}} days</strong>.</p>
-                                                <p><a href="{{.SiteURL}}/admin_console/plugins/plugin_{{.PluginID}}">Click here</a> to disable or learn more about Net Promoter surveys.</p>
+                                                <h2 style="font-weight: normal; margin-top: 10px;"><a href="https://mattermost.com/pl/default-nps">User Satisfaction Survey</a> Scheduled</h2>
+                                                <p>Mattermost sends quarterly in-product user satisfaction surveys to gather feedback from users and improve product quality. Surveys will be received by users in <strong>{{.DaysUntilSurvey}} days</strong>.</p>
+                                                <p>Click <a href="{{.SiteURL}}/admin_console/plugins/plugin_{{.PluginID}}">here</a> to disable or learn more about user satisfaction surveys. Please refer to our <a href="https://about.mattermost.com/default-privacy-policy">privacy policy</a> for more information on the collection and use of information received through our services.</p>
                                             </td>
                                         </tr>
                                         <tr>
@@ -55,7 +55,7 @@ var adminEmailBodyTemplate = template.Must(template.New("emailBody").Parse(`
 
 const adminDMBody = `Mattermost uses feedback surveys to measure user satisfaction and improve product quality. User surveys will start to be sent on %s.
 
-[Click here](/admin_console/plugins/plugin_%s) to disable or learn more about Net Promoter Score Surveys.
+[Click here](/admin_console/plugins/plugin_%s) to disable or learn more about user satisfaction surveys.
 
 *This message is only visible to System Admins.*`
 

@@ -1,7 +1,7 @@
 {
   "name": "webapp",
   "version": "0.0.1",
-  "description": "This plugin sends Net Promoter Score surveys to gather user feedback on Mattermost.",
+  "description": "This plugin sends User satisfaction surveys to gather user feedback on Mattermost.",
   "main": "src/index.js",
   "scripts": {
     "build": "webpack --mode=production",

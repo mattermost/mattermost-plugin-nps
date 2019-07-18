@@ -110,7 +110,7 @@ func (p *Plugin) isUserTeamAdmin(user *model.User) bool {
 	for {
 		teamMembers, err := p.API.GetTeamMembersForUser(user.Id, page, perPage)
 		if err != nil {
-			p.API.LogWarn("Failed to get role for user when sending NPS results")
+			p.API.LogWarn("Failed to get role for user when sending survey results")
 			return false
 		}
 

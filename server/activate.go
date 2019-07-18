@@ -8,10 +8,10 @@ import (
 )
 
 func (p *Plugin) OnActivate() error {
-	p.API.LogDebug("Activating NPS plugin")
+	p.API.LogDebug("Activating plugin")
 
 	if !p.canSendDiagnostics() {
-		errMsg := "Not activating NPS plugin because diagnostics are disabled"
+		errMsg := "Not activating plugin because diagnostics are disabled"
 		p.API.LogError(errMsg)
 		return errors.New(errMsg)
 	}
@@ -35,7 +35,7 @@ func (p *Plugin) OnActivate() error {
 		return err
 	}
 
-	p.API.LogDebug("NPS plugin activated")
+	p.API.LogDebug("Plugin activated")
 
 	p.setActivated(true)
 
