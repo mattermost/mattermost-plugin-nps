@@ -1,7 +1,7 @@
 {
     "id": "com.mattermost.nps",
-    "name": "Net Promoter Score",
-    "description": "This plugin sends Net Promoter Score surveys to gather user feedback on Mattermost.",
+    "name": "User Satisfaction Surveys",
+    "description": "This plugin sends quarterly user satisfaction surveys to gather feedback and help improve Mattermost.",
     "version": "1.0.2",
     "min_server_version": "5.14.0",
     "server": {
@@ -15,13 +15,13 @@
         "bundle_path": "webapp/dist/main.js"
     },
     "settings_schema": {
-        "header": "A net promoter score survey measures user satisfaction. [Learn more](!https://mattermost.com/pl/default-nps) about net promoter score surveys.",
+        "header": "Mattermost sends user satisfaction surveys to gather feedback and improve product quality. [Learn more](!https://mattermost.com/pl/default-nps) about user satisfaction surveys.",
         "footer": "",
         "settings": [{
             "key": "EnableSurvey",
-            "display_name": "Enable Net Promoter Score Survey",
+            "display_name": "Enable User Satisfaction Survey",
             "type": "bool",
-            "help_text": "When true, a [net promoter score survey](!https://mattermost.com/pl/default-nps) will be sent to all users quarterly. The survey results will be used by Mattermost, Inc. to improve the quality and user experience of the product. Please refer to our [privacy policy](!https://mattermost.com/pl/default-nps-privacy-policy) for more information on the collection and use of information received through our services.",
+            "help_text": "When true, a [user satisfaction survey](!https://mattermost.com/pl/default-nps) will be sent to all users quarterly. The survey results will be used by Mattermost, Inc. to improve the quality and user experience of the product. Please refer to our [privacy policy](!https://about.mattermost.com/default-privacy-policy) for more information on the collection and use of information received through our services.",
             "default": true
         }]
     }

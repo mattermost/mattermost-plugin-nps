@@ -1,9 +1,9 @@
-# Mattermost Net Promoter Score Plugin
+# Mattermost User Satisfaction Survey Plugin
 
 [![Build Status](https://img.shields.io/circleci/project/github/mattermost/mattermost-plugin-nps/master.svg)](https://circleci.com/gh/mattermost/mattermost-plugin-nps)
 [![Code Coverage](https://img.shields.io/codecov/c/github/mattermost/mattermost-plugin-nps/master.svg)](https://codecov.io/gh/mattermost/mattermost-plugin-nps)
 
-A plugin for Mattermost to gather user feedback about Mattermost itself using NPS (Net Promoter Score) surveys.
+A plugin for Mattermost to gather user feedback about Mattermost itself using user satisfaction surveys.
 
 ## Installation
 
