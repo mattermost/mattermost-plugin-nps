@@ -1,8 +1,14 @@
+import {getCurrentUserId} from 'mattermost-redux/selectors/entities/users';
+
 import * as ActionTypes from './action_types';
 
 export function connected(client) {
-    return () => {
-        client.connected();
+    return (dispatch, getState) => {
+        const currentUserId = getCurrentUserId(getState());
+
+        if (currentUserId) {
+            client.connected();
+        }
     };
 }
 
