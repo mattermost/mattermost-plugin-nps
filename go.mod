@@ -7,7 +7,7 @@ require (
 	github.com/hashicorp/go-hclog v0.9.2 // indirect
 	github.com/lib/pq v1.1.1 // indirect
 	github.com/mattermost/go-i18n v1.10.0 // indirect
-	github.com/mattermost/mattermost-server v0.0.0-20190506132237-dce6cb601f15
+	github.com/mattermost/mattermost-server master
 	github.com/nicksnyder/go-i18n v1.10.0 // indirect
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/pkg/errors v0.8.1
