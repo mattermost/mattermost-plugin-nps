@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/mattermost/mattermost-server/model"
-	analytics "github.com/segmentio/analytics-go"
+	analytics "github.com/segmentio/analytics-go/v2"
 )
 
 const (
