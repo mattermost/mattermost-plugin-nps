@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/mattermost/mattermost-server/plugin"
-	analytics "github.com/segmentio/analytics-go"
+	analytics "github.com/segmentio/analytics-go/v2"
 )
 
 const (
