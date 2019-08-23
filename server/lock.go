@@ -63,9 +63,12 @@ func (p *Plugin) clearStaleLocks(now time.Time) *model.AppError {
 			_ = json.Unmarshal(value, &t)
 
 			if now.Sub(t) >= LOCK_EXPIRATION {
-				_, err := p.API.KVCompareAndDelete(key, value)
+				deleted, err := p.API.KVCompareAndDelete(key, value)
 				if err != nil {
 					return err
+				}
+				if deleted {
+					p.API.LogInfo("Freed expired lock", "key", key)
 				}
 			}
 		}
