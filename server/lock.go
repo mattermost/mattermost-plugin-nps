@@ -63,19 +63,12 @@ func (p *Plugin) clearStaleLocks(now time.Time) *model.AppError {
 			_ = json.Unmarshal(value, &t)
 
 			if now.Sub(t) >= LOCK_EXPIRATION {
-				// There's no KVCompareAndDelete, so make sure we're the only ones modifying this lock
-				set, err := p.API.KVCompareAndSet(key, value, []byte("releasing"))
+				deleted, err := p.API.KVCompareAndDelete(key, value)
 				if err != nil {
 					return err
-				} else if !set {
-					// Someone else has released or cleared the lock
-					continue
 				}
-
-				p.API.LogInfo("Freeing expired lock", "key", key)
-
-				if err := p.API.KVDelete(key); err != nil {
-					return err
+				if deleted {
+					p.API.LogInfo("Freed expired lock", "key", key)
 				}
 			}
 		}
