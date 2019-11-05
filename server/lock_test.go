@@ -98,11 +98,9 @@ func TestClearStaleLocks(t *testing.T) {
 			userLockKey,
 		}, nil)
 		api.On("KVGet", LOCK_KEY).Return(lockValue, nil)
-		api.On("KVCompareAndSet", LOCK_KEY, lockValue, []byte("releasing")).Return(true, nil)
-		api.On("KVDelete", LOCK_KEY).Return(nil)
+		api.On("KVCompareAndDelete", LOCK_KEY, lockValue).Return(true, nil)
 		api.On("KVGet", userLockKey).Return(userLockValue, nil)
-		api.On("KVCompareAndSet", userLockKey, userLockValue, []byte("releasing")).Return(true, nil)
-		api.On("KVDelete", userLockKey).Return(nil)
+		api.On("KVCompareAndDelete", userLockKey, userLockValue).Return(true, nil)
 		api.On("LogInfo", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 		defer api.AssertExpectations(t)
 
@@ -122,8 +120,7 @@ func TestClearStaleLocks(t *testing.T) {
 			LOCK_KEY,
 		}, nil)
 		api.On("KVGet", LOCK_KEY).Return(lockValue, nil)
-		api.On("KVCompareAndSet", LOCK_KEY, lockValue, []byte("releasing")).Return(true, nil)
-		api.On("KVDelete", LOCK_KEY).Return(nil)
+		api.On("KVCompareAndDelete", LOCK_KEY, lockValue).Return(true, nil)
 		api.On("LogInfo", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 		defer api.AssertExpectations(t)
 
@@ -143,7 +140,7 @@ func TestClearStaleLocks(t *testing.T) {
 			LOCK_KEY,
 		}, nil)
 		api.On("KVGet", LOCK_KEY).Return(lockValue, nil)
-		api.On("KVCompareAndSet", LOCK_KEY, lockValue, []byte("releasing")).Return(false, nil)
+		api.On("KVCompareAndDelete", LOCK_KEY, lockValue).Return(false, nil)
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{}
