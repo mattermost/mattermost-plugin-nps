@@ -1,10 +1,9 @@
-import {id as pluginId} from './manifest';
+import {Client4} from 'mattermost-redux/client';
 
-const HEADER_X_CSRF_TOKEN = 'X-CSRF-Token';
+import {id as pluginId} from './manifest';
 
 export class Client {
     constructor() {
-        this.csrf = getCSRFFromCookie();
         this.url = `/plugins/${pluginId}/api/v1`;
     }
 
@@ -17,14 +16,10 @@ export class Client {
             options.headers = {};
         }
 
-        options.headers['X-Requested-With'] = 'XMLHttpRequest';
-
-        if (options.method && options.method.toLowerCase() !== 'get') {
-            options.headers[HEADER_X_CSRF_TOKEN] = this.csrf;
-        }
+        const opts = Client4.getOptions(options);
 
         try {
-            const response = await fetch(url, options);
+            const response = await fetch(url, opts);
             const data = await response.json();
 
             return {data};
@@ -32,16 +27,4 @@ export class Client {
             return {error};
         }
     }
-}
-
-function getCSRFFromCookie() {
-    const cookies = document.cookie.split(';').map((cookie) => cookie.trim());
-
-    for (const cookie of cookies) {
-        if (cookie.startsWith('MMCSRF=')) {
-            return cookie.replace('MMCSRF=', '');
-        }
-    }
-
-    return '';
 }
