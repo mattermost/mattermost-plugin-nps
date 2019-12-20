@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mattermost/mattermost-server/v5/model"
+	"github.com/mattermost/mattermost-server/model"
 )
 
 // getServerVersion returns the current server version with only the major and minor version set. For example, both

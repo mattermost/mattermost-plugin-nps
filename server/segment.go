@@ -3,7 +3,7 @@ package main
 import (
 	"strings"
 
-	"github.com/mattermost/mattermost-server/v5/model"
+	"github.com/mattermost/mattermost-server/model"
 	analytics "github.com/segmentio/analytics-go/v2"
 )
 
