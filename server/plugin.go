@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mattermost/mattermost-server/plugin"
+	"github.com/mattermost/mattermost-server/v5/plugin"
 	analytics "github.com/segmentio/analytics-go/v2"
 )
 
