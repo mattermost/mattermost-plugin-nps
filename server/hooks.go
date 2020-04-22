@@ -62,10 +62,17 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 		// Still appear to the end user as if their feedback was actually sent
 	}
 
-	// Respond to the feedback
+	rootID := post.RootId
+	// if it is a new post in the channel, update response RootId
+	if rootID == "" {
+		rootID = post.Id
+	}
+
+	// Respond to the feedback which is a previous comment
 	_, appErr = p.CreateBotDMPost(post.UserId, &model.Post{
 		Message: feedbackResponseBody,
 		Type:    "custom_nps_thanks",
+		RootId:  rootID,
 	})
 	if appErr != nil {
 		p.API.LogError("Failed to respond to Surveybot feedback")
