@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/mattermost/mattermost-server/model"
-	"github.com/mattermost/mattermost-server/plugin"
+	"github.com/mattermost/mattermost-server/v5/model"
+	"github.com/mattermost/mattermost-server/v5/plugin"
 )
 
 func (p *Plugin) ChannelHasBeenCreated(c *plugin.Context, channel *model.Channel) {
