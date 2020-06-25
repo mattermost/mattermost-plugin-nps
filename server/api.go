@@ -131,11 +131,7 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 
 	now := p.now().UTC()
 
-	if err := p.sendScore(score, userID, now.UnixNano()/int64(time.Millisecond)); err != nil {
-		p.API.LogError("Failed to send Surveybot feedback to Segment", "err", err.Error())
-
-		// Still appear to the end user as if their feedback was actually sent
-	}
+	p.sendScore(score, userID, now.UnixNano()/int64(time.Millisecond))
 
 	isFirstResponse, appErr := p.markSurveyAnswered(userID, now)
 	if appErr != nil {

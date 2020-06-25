@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
 	"github.com/mattermost/mattermost-server/v5/plugin"
-	analytics "github.com/segmentio/analytics-go/v2"
 )
 
 const (
@@ -51,10 +51,8 @@ type Plugin struct {
 
 	botUserID string
 
-	client *analytics.Client
-
-	// blockSegmentEvents prevents the plugin from sending events to Segment during testing.
-	blockSegmentEvents bool
+	client  telemetry.Client
+	tracker telemetry.Tracker
 
 	// now provides access to time.Now in a way that is mockable for unit testing.
 	now func() time.Time

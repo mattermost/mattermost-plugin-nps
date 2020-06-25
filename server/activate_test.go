@@ -39,7 +39,6 @@ func TestOnActivate(t *testing.T) {
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
-			blockSegmentEvents: true,
 			now: func() time.Time {
 				return now
 			},
@@ -71,7 +70,6 @@ func TestOnActivate(t *testing.T) {
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
-			blockSegmentEvents: true,
 			now: func() time.Time {
 				return now
 			},
