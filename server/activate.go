@@ -24,7 +24,10 @@ func (p *Plugin) OnActivate() error {
 
 	p.serverVersion = getServerVersion(p.API.GetServerVersion())
 
-	p.initializeClient()
+	if err := p.initializeClient(); err != nil {
+		p.API.LogError("Failed to initialize Rudder client", "err", err.Error())
+		return err
+	}
 
 	now := p.now().UTC()
 
