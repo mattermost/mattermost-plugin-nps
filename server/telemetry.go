@@ -3,65 +3,49 @@ package main
 import (
 	"strings"
 
+	"github.com/mattermost/mattermost-plugin-api/experimental/bot/logger"
+	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
 	"github.com/mattermost/mattermost-server/v5/model"
-	analytics "github.com/segmentio/analytics-go/v2"
 )
 
 const (
 	NPS_FEEDBACK = "nps_feedback"
 	NPS_SCORE    = "nps_score"
-
-	SEGMENT_KEY = "5xaDYWpjOoCKmJNNKK6fg1DacwZ7ZVZc"
 )
 
 func (p *Plugin) initializeClient() error {
-	client := analytics.New(SEGMENT_KEY)
-
-	if !p.blockSegmentEvents {
-		if err := client.Identify(&analytics.Identify{
-			UserId: p.API.GetDiagnosticId(),
-		}); err != nil {
-			return err
-		}
-	}
+	client, err := telemetry.NewRudderClient()
 
 	p.client = client
-
-	return nil
+	return err
 }
 
-func (p *Plugin) sendScore(score int, userID string, timestamp int64) error {
-	return p.sendToSegment(NPS_SCORE, userID, timestamp, map[string]interface{}{
+func (p *Plugin) initTracker() {
+	enableDiagnostics := false
+	if config := p.API.GetConfig(); config != nil {
+		if configValue := config.LogSettings.EnableDiagnostics; configValue != nil {
+			enableDiagnostics = *configValue
+		}
+	}
+	logger := logger.NewLogger(logger.Config{}, p.API, nil, "")
+	p.tracker = telemetry.NewTracker(p.client, p.API.GetDiagnosticId(), p.API.GetServerVersion(), manifest.Id, manifest.Version, "nps", enableDiagnostics, logger)
+}
+
+func (p *Plugin) sendScore(score int, userID string, timestamp int64) {
+	p.tracker.TrackUserEvent(NPS_SCORE, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{
 		"score": score,
-	})
+	}))
 }
 
-func (p *Plugin) sendFeedback(feedback string, userID string, timestamp int64) error {
-	return p.sendToSegment(NPS_FEEDBACK, userID, timestamp, map[string]interface{}{
+func (p *Plugin) sendFeedback(feedback string, userID string, timestamp int64) {
+	p.tracker.TrackUserEvent(NPS_FEEDBACK, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{
 		"feedback": feedback,
-	})
-}
-
-func (p *Plugin) sendToSegment(event string, userID string, timestamp int64, properties map[string]interface{}) error {
-	if !p.canSendDiagnostics() || p.blockSegmentEvents {
-		return nil
-	}
-
-	track := &analytics.Track{
-		Event:      event,
-		UserId:     p.API.GetDiagnosticId(),
-		Properties: p.getEventProperties(userID, timestamp, properties),
-	}
-
-	return p.client.Track(track)
+	}))
 }
 
 func (p *Plugin) getEventProperties(userID string, timestamp int64, other map[string]interface{}) map[string]interface{} {
 	properties := map[string]interface{}{
-		"user_actual_id": userID,
-		"timestamp":      timestamp,
-		"server_version": p.API.GetServerVersion(), // Note that this calls the API directly, so it gets the full version (including patch version)
-		"server_id":      p.API.GetDiagnosticId(),
+		"timestamp": timestamp,
 	}
 
 	if systemInstallDate, err := p.API.GetSystemInstallDate(); err != nil {

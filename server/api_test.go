@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin/plugintest"
 
@@ -92,6 +93,14 @@ func TestSubmitScore(t *testing.T) {
 	botUserID := model.NewId()
 	userID := model.NewId()
 	userSurveyKey := fmt.Sprintf(USER_SURVEY_KEY, userID)
+	systemInstallDate := int64(1497898133094)
+	teamMembers := []*model.TeamMember{
+		{
+			Roles: model.TEAM_USER_ROLE_ID,
+		},
+	}
+	licenseID := model.NewId()
+	skuShortName := model.NewId()
 
 	now := toDate(2018, time.April, 1)
 
@@ -120,6 +129,12 @@ func TestSubmitScore(t *testing.T) {
 		})).Return(nil)
 		api.On("GetDirectChannel", userID, botUserID).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(&model.Post{}, nil)
+		api.On("GetSystemInstallDate").Return(systemInstallDate, nil)
+		api.On("GetTeamMembersForUser", userID, 0, 50).Return(teamMembers, nil)
+		api.On("GetLicense").Return(&model.License{
+			Id:           licenseID,
+			SkuShortName: skuShortName,
+		})
 		defer api.AssertExpectations(t)
 
 		p := Plugin{
@@ -127,6 +142,7 @@ func TestSubmitScore(t *testing.T) {
 			now: func() time.Time {
 				return now
 			},
+			tracker: telemetry.NewTracker(nil, "", "", "", "", "", false, nil),
 		}
 		p.SetAPI(api)
 
@@ -155,6 +171,12 @@ func TestSubmitScore(t *testing.T) {
 		api.On("KVGet", userSurveyKey).Return(mustMarshalJSON(&userSurveyState{
 			AnsweredAt: now.Add(-time.Minute),
 		}), nil)
+		api.On("GetSystemInstallDate").Return(systemInstallDate, nil)
+		api.On("GetTeamMembersForUser", userID, 0, 50).Return(teamMembers, nil)
+		api.On("GetLicense").Return(&model.License{
+			Id:           licenseID,
+			SkuShortName: skuShortName,
+		})
 		defer api.AssertExpectations(t)
 
 		p := Plugin{
@@ -162,6 +184,7 @@ func TestSubmitScore(t *testing.T) {
 			now: func() time.Time {
 				return now
 			},
+			tracker: telemetry.NewTracker(nil, "", "", "", "", "", false, nil),
 		}
 		p.SetAPI(api)
 
@@ -189,6 +212,12 @@ func TestSubmitScore(t *testing.T) {
 		}, nil)
 		api.On("KVGet", userSurveyKey).Return(nil, &model.AppError{})
 		api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything)
+		api.On("GetSystemInstallDate").Return(systemInstallDate, nil)
+		api.On("GetTeamMembersForUser", userID, 0, 50).Return(teamMembers, nil)
+		api.On("GetLicense").Return(&model.License{
+			Id:           licenseID,
+			SkuShortName: skuShortName,
+		})
 		defer api.AssertExpectations(t)
 
 		p := Plugin{
@@ -196,6 +225,7 @@ func TestSubmitScore(t *testing.T) {
 			now: func() time.Time {
 				return now
 			},
+			tracker: telemetry.NewTracker(nil, "", "", "", "", "", false, nil),
 		}
 		p.SetAPI(api)
 
