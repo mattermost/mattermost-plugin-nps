@@ -107,13 +107,19 @@ func TestMessageHasBeenPosted(t *testing.T) {
 			Type: model.CHANNEL_DIRECT,
 			Name: fmt.Sprintf("%s__%s", botUserID, userID),
 		}, nil)
-		api.On("GetUser", userID).Return(&model.User{}, nil)
+		api.On("GetUser", userID).Return(&model.User{Id: userID}, nil)
 		api.On("GetDirectChannel", userID, botUserID).Return(&model.Channel{
 			Id: botChannelID,
 		}, nil)
 		api.On("CreatePost", mock.MatchedBy(func(post *model.Post) bool {
 			return post.RootId == postID
 		})).Return(nil, nil)
+		api.On("GetSystemInstallDate").Return(systemInstallDate, nil)
+		api.On("GetTeamMembersForUser", userID, 0, 50).Return(teamMembers, nil)
+		api.On("GetLicense").Return(&model.License{
+			Id:           licenseID,
+			SkuShortName: skuShortName,
+		})
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
