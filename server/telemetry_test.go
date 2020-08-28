@@ -13,9 +13,7 @@ func TestGetEventProperties(t *testing.T) {
 	userCreateAt := int64(1546304461000)
 	timestamp := int64(1552331717000)
 
-	serverVersion := "5.10.0"
 	systemInstallDate := int64(1497898133094)
-	diagnosticID := model.NewId()
 
 	licenseID := model.NewId()
 	skuShortName := model.NewId()
@@ -47,11 +45,8 @@ func TestGetEventProperties(t *testing.T) {
 				return api
 			},
 			Expected: map[string]interface{}{
-				"user_actual_id":      userID,
 				"timestamp":           timestamp,
-				"server_version":      serverVersion,
 				"server_install_date": systemInstallDate,
-				"server_id":           diagnosticID,
 				"user_role":           "user",
 				"user_create_at":      userCreateAt,
 				"license_id":          licenseID,
@@ -79,11 +74,8 @@ func TestGetEventProperties(t *testing.T) {
 				return api
 			},
 			Expected: map[string]interface{}{
-				"user_actual_id":      userID,
 				"timestamp":           timestamp,
-				"server_version":      serverVersion,
 				"server_install_date": int64(0),
-				"server_id":           diagnosticID,
 				"user_role":           "user",
 				"user_create_at":      userCreateAt,
 				"license_id":          licenseID,
@@ -107,11 +99,8 @@ func TestGetEventProperties(t *testing.T) {
 				return api
 			},
 			Expected: map[string]interface{}{
-				"user_actual_id":      userID,
 				"timestamp":           timestamp,
-				"server_version":      serverVersion,
 				"server_install_date": systemInstallDate,
-				"server_id":           diagnosticID,
 				"user_role":           "",
 				"user_create_at":      int64(0),
 				"license_id":          licenseID,
@@ -136,11 +125,8 @@ func TestGetEventProperties(t *testing.T) {
 				return api
 			},
 			Expected: map[string]interface{}{
-				"user_actual_id":      userID,
 				"timestamp":           timestamp,
-				"server_version":      serverVersion,
 				"server_install_date": systemInstallDate,
-				"server_id":           diagnosticID,
 				"user_role":           "user",
 				"user_create_at":      userCreateAt,
 				"license_id":          "",
@@ -172,11 +158,8 @@ func TestGetEventProperties(t *testing.T) {
 				"other_2": "abcd",
 			},
 			Expected: map[string]interface{}{
-				"user_actual_id":      userID,
 				"timestamp":           timestamp,
-				"server_version":      serverVersion,
 				"server_install_date": systemInstallDate,
-				"server_id":           diagnosticID,
 				"user_role":           "user",
 				"user_create_at":      userCreateAt,
 				"license_id":          licenseID,
@@ -189,9 +172,6 @@ func TestGetEventProperties(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			api := test.SetupAPI()
 			defer api.AssertExpectations(t)
-
-			api.On("GetServerVersion").Return("5.10.0")
-			api.On("GetDiagnosticId").Return(diagnosticID)
 
 			api.On("GetTeamMembersForUser", userID, 0, 50).Return([]*model.TeamMember{}, nil).Maybe()
 

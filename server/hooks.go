@@ -56,11 +56,7 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 	}
 
 	// Send the feedback to Segment
-	if err := p.sendFeedback(post.Message, post.UserId, post.CreateAt); err != nil {
-		p.API.LogError("Failed to send Surveybot feedback to Segment", "err", err.Error())
-
-		// Still appear to the end user as if their feedback was actually sent
-	}
+	p.sendFeedback(post.Message, post.UserId, post.CreateAt)
 
 	rootID := post.RootId
 	// if it is a new post in the channel, update response RootId
