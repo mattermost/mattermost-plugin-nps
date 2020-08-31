@@ -13,13 +13,17 @@ export default class SurveyPost extends React.PureComponent {
         theme: PropTypes.object.isRequired,
     }
 
+    state = {
+        disabled: false,
+    }
+
     selectScore = (score) => {
         const action = this.getAction();
 
         this.props.doPostActionWithCookie(this.props.post.id, action.id, action.cookie, score.toString());
     }
 
-    getAction = () => {
+    getAction = (index = 0) => {
         const {post} = this.props;
         if (!post || !post.props || !post.props.attachments) {
             return null;
@@ -30,7 +34,7 @@ export default class SurveyPost extends React.PureComponent {
             return null;
         }
 
-        return attachment.actions[0];
+        return attachment.actions[index];
     }
 
     getSelectedScore = () => {
@@ -78,7 +82,27 @@ export default class SurveyPost extends React.PureComponent {
 
     render() {
         const style = getStyle(this.props.theme);
-
+        const disable = () => {
+            const action = this.getAction(1);
+            this.props.doPostActionWithCookie(this.props.post.id, action.id, action.cookie).then(() => this.setState({disabled: true}));
+        };
+        const disabledMessage = (
+            <div>
+                <span>{'You won\'t receive any more surveys but you can submit feedback about Mattermost by typing here at anytime.'}</span>
+            </div>
+        );
+        const disableAction = (
+            <div>
+                <span>{'Don\'t want to see this survey? '}</span>
+                <a
+                    href='#'
+                    onClick={disable}
+                >
+                    {'Click here'}
+                </a><span>{' to disable it.'}</span>
+            </div>
+        );
+        const footer = this.state.disabled ? disabledMessage : disableAction;
         return (
             <React.Fragment>
                 {window.PostUtils.messageHtmlToComponent(window.PostUtils.formatText(this.props.post.message, {atMentions: true}))}
@@ -86,6 +110,7 @@ export default class SurveyPost extends React.PureComponent {
                     <h1 style={style.title}>{'How likely are you to recommend Mattermost?'}</h1>
                     {this.renderScores(style)}
                 </div>
+                {footer}
             </React.Fragment>
         );
     }
