@@ -57,6 +57,8 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 func (p *Plugin) disableForUser(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("Mattermost-User-ID")
 
+	p.sendUserDisabledEvent(userID, p.now().UTC().UnixNano()/int64(time.Millisecond))
+
 	var userSurvey *userSurveyState
 	if err := p.KVGet(fmt.Sprintf(USER_SURVEY_KEY, userID), &userSurvey); err != nil {
 		p.API.LogError("Failed to get survey state", "user_id", userID, "err", err)
