@@ -442,3 +442,67 @@ func TestRequiresUserId(t *testing.T) {
 		assert.False(t, called)
 	})
 }
+
+func TestDisableForUser(t *testing.T) {
+	botUserID := model.NewId()
+	userID := model.NewId()
+	userSurveyKey := fmt.Sprintf(USER_SURVEY_KEY, userID)
+	systemInstallDate := int64(1497898133094)
+
+	licenseID := model.NewId()
+	skuShortName := model.NewId()
+
+	now := toDate(2018, time.April, 1)
+
+	makeAPIMock := func() *plugintest.API {
+		api := &plugintest.API{}
+		api.On("LogDebug", mock.Anything).Maybe()
+
+		// Disabling diagnostics allows the handler to run, but prevents data from being sent to Segment
+		api.On("GetConfig").Return(&model.Config{
+			LogSettings: model.LogSettings{
+				EnableDiagnostics: model.NewBool(false),
+			},
+		}).Maybe()
+
+		return api
+	}
+
+	t.Run("should disable sending for user", func(t *testing.T) {
+		api := makeAPIMock()
+		api.On("KVGet", userSurveyKey).Return(mustMarshalJSON(&userSurveyState{}), nil)
+		api.On("KVSet", userSurveyKey, mustMarshalJSON(&userSurveyState{
+			Disabled: true,
+		})).Return(nil)
+		api.On("GetSystemInstallDate").Return(systemInstallDate, nil)
+		api.On("GetUser", userID).Return(nil, &model.AppError{})
+		api.On("GetLicense").Return(&model.License{
+			Id:           licenseID,
+			SkuShortName: skuShortName,
+		})
+		defer api.AssertExpectations(t)
+
+		p := Plugin{
+			botUserID: botUserID,
+			now: func() time.Time {
+				return now
+			},
+			tracker: telemetry.NewTracker(nil, "", "", "", "", "", false, nil),
+		}
+		p.SetAPI(api)
+
+		recorder := httptest.NewRecorder()
+		request := httptest.NewRequest(http.MethodPost, "/disable_for_user", bytes.NewReader(mustMarshalJSON(&model.PostActionIntegrationRequest{
+			Context: map[string]interface{}{},
+		})))
+		request.Header.Set("Mattermost-User-ID", userID)
+
+		p.disableForUser(recorder, request)
+
+		result := recorder.Result()
+		body, _ := ioutil.ReadAll(result.Body)
+
+		assert.Equal(t, http.StatusOK, result.StatusCode)
+		assert.IsType(t, &model.PostActionIntegrationResponse{}, mustUnmarshalJSON(body, &model.PostActionIntegrationResponse{}))
+	})
+}

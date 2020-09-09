@@ -45,6 +45,7 @@ type userSurveyState struct {
 	SentAt        time.Time `json:"sent_at"`
 	AnsweredAt    time.Time `json:"answered_at"`
 	ScorePostId   string    `json:"score_post_id"`
+	Disabled      bool      `json:"disabled"`
 }
 
 // checkForNextSurvey schedules a new NPS survey if a major or minor version change has occurred. Returns whether or
@@ -303,6 +304,11 @@ func (p *Plugin) checkForSurveyDM(user *model.User, now time.Time) (bool, *model
 	}
 
 	if userSurvey != nil {
+		if userSurvey.Disabled {
+			// The user explicitly disabled surveys
+			return false, nil
+		}
+
 		if userSurvey.ServerVersion == p.serverVersion {
 			// The user has already received this survey
 			return false, nil
@@ -354,10 +360,22 @@ func (p *Plugin) buildSurveyPost(user *model.User) *model.Post {
 		Props: map[string]interface{}{
 			"attachments": []*model.SlackAttachment{
 				{
-					Title:   surveyDropdownTitle,
-					Actions: []*model.PostAction{p.buildSurveyPostAction()},
+					Title: surveyDropdownTitle,
+					Actions: []*model.PostAction{
+						p.buildSurveyPostAction(),
+						p.buildDisableAction(),
+					},
 				},
 			},
+		},
+	}
+}
+func (p *Plugin) buildDisableAction() *model.PostAction {
+	return &model.PostAction{
+		Name: "Disable",
+		Type: model.POST_ACTION_TYPE_BUTTON,
+		Integration: &model.PostActionIntegration{
+			URL: fmt.Sprintf("/plugins/%s/api/v1/disable_for_user", manifest.Id),
 		},
 	}
 }
@@ -400,7 +418,7 @@ func (p *Plugin) buildAnsweredSurveyPost(user *model.User, score int) *model.Pos
 				{
 					Title:   surveyDropdownTitle,
 					Text:    fmt.Sprintf(surveyAnsweredBody, score),
-					Actions: []*model.PostAction{action},
+					Actions: []*model.PostAction{action, p.buildDisableAction()},
 				},
 			},
 		},

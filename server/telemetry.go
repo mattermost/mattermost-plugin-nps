@@ -11,6 +11,7 @@ import (
 const (
 	NPS_FEEDBACK = "nps_feedback"
 	NPS_SCORE    = "nps_score"
+	NPS_DISABLE  = "nps_disable"
 )
 
 func (p *Plugin) initializeClient() error {
@@ -41,6 +42,10 @@ func (p *Plugin) sendFeedback(feedback string, userID string, timestamp int64) {
 	p.tracker.TrackUserEvent(NPS_FEEDBACK, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{
 		"feedback": feedback,
 	}))
+}
+
+func (p *Plugin) sendUserDisabledEvent(userID string, timestamp int64) {
+	p.tracker.TrackUserEvent(NPS_DISABLE, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{}))
 }
 
 func (p *Plugin) getEventProperties(userID string, timestamp int64, other map[string]interface{}) map[string]interface{} {
