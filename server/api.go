@@ -31,6 +31,11 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 			Method:  http.MethodPost,
 			Handler: requiresUserId(p.submitScore),
 		},
+		{
+			Path:    "/api/v1/disable_for_user",
+			Method:  http.MethodPost,
+			Handler: requiresUserId(p.disableForUser),
+		},
 	}
 
 	routeFound := false
@@ -47,6 +52,30 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 	if !routeFound {
 		http.NotFound(w, r)
 	}
+}
+
+func (p *Plugin) disableForUser(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("Mattermost-User-ID")
+
+	p.sendUserDisabledEvent(userID, p.now().UTC().UnixNano()/int64(time.Millisecond))
+
+	var userSurvey *userSurveyState
+	if err := p.KVGet(fmt.Sprintf(USER_SURVEY_KEY, userID), &userSurvey); err != nil {
+		p.API.LogError("Failed to get survey state", "user_id", userID, "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	userSurvey.Disabled = true
+
+	if err := p.KVSet(fmt.Sprintf(USER_SURVEY_KEY, userID), userSurvey); err != nil {
+		p.API.LogError("Failed to set disabled survey state", "user_id", userID, "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(`{}`))
 }
 
 func (p *Plugin) userConnected(w http.ResponseWriter, r *http.Request) {
@@ -131,11 +160,7 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 
 	now := p.now().UTC()
 
-	if err := p.sendScore(score, userID, now.UnixNano()/int64(time.Millisecond)); err != nil {
-		p.API.LogError("Failed to send Surveybot feedback to Segment", "err", err.Error())
-
-		// Still appear to the end user as if their feedback was actually sent
-	}
+	p.sendScore(score, userID, now.UnixNano()/int64(time.Millisecond))
 
 	isFirstResponse, appErr := p.markSurveyAnswered(userID, now)
 	if appErr != nil {

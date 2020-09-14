@@ -87,6 +87,8 @@ func (p *Plugin) OnConfigurationChange() error {
 		go p.checkForNextSurvey(p.now().UTC())
 	}
 
+	p.initTracker()
+
 	return nil
 }
 

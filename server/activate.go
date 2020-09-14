@@ -25,7 +25,7 @@ func (p *Plugin) OnActivate() error {
 	p.serverVersion = getServerVersion(p.API.GetServerVersion())
 
 	if err := p.initializeClient(); err != nil {
-		p.API.LogError("Failed to initialize Segment client", "err", err.Error())
+		p.API.LogError("Failed to initialize Rudder client", "err", err.Error())
 		return err
 	}
 

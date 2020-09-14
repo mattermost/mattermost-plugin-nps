@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin/plugintest"
 	"github.com/stretchr/testify/mock"
@@ -43,8 +44,18 @@ func TestMessageHasBeenPosted(t *testing.T) {
 	botChannelID := model.NewId()
 	botUserID := model.NewId()
 	userID := model.NewId()
+	rootID := model.NewId()
 
-	t.Run("should send feedback to segment and respond to user", func(t *testing.T) {
+	systemInstallDate := int64(1497898133094)
+	teamMembers := []*model.TeamMember{
+		{
+			Roles: model.TEAM_USER_ROLE_ID,
+		},
+	}
+	licenseID := model.NewId()
+	skuShortName := model.NewId()
+
+	t.Run("should send feedback to segment and respond to user's post on existing post", func(t *testing.T) {
 		api := &plugintest.API{}
 		api.On("GetConfig").Return(&model.Config{
 			LogSettings: model.LogSettings{
@@ -55,20 +66,70 @@ func TestMessageHasBeenPosted(t *testing.T) {
 			Type: model.CHANNEL_DIRECT,
 			Name: fmt.Sprintf("%s__%s", botUserID, userID),
 		}, nil)
-		api.On("GetUser", userID).Return(&model.User{}, nil)
+		api.On("GetUser", userID).Return(&model.User{Id: userID}, nil)
 		api.On("GetDirectChannel", userID, botUserID).Return(&model.Channel{
 			Id: botChannelID,
 		}, nil)
-		api.On("CreatePost", mock.Anything).Return(&model.Post{}, nil)
+		api.On("CreatePost", mock.MatchedBy(func(post *model.Post) bool {
+			return post.RootId == rootID
+		})).Return(nil, nil)
+		api.On("GetSystemInstallDate").Return(systemInstallDate, nil)
+		api.On("GetTeamMembersForUser", userID, 0, 50).Return(teamMembers, nil)
+		api.On("GetLicense").Return(&model.License{
+			Id:           licenseID,
+			SkuShortName: skuShortName,
+		})
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
-			blockSegmentEvents: true,
-			botUserID:          botUserID,
+			botUserID: botUserID,
+			tracker:   telemetry.NewTracker(nil, "", "", "", "", "", false, nil),
 		}
 		p.SetAPI(api)
 
 		p.MessageHasBeenPosted(nil, &model.Post{
+			ChannelId: botChannelID,
+			UserId:    userID,
+			RootId:    rootID,
+		})
+	})
+
+	postID := model.NewId()
+
+	t.Run("should send feedback to segment and respond to user's new post", func(t *testing.T) {
+		api := &plugintest.API{}
+		api.On("GetConfig").Return(&model.Config{
+			LogSettings: model.LogSettings{
+				EnableDiagnostics: model.NewBool(true),
+			},
+		})
+		api.On("GetChannel", botChannelID).Return(&model.Channel{
+			Type: model.CHANNEL_DIRECT,
+			Name: fmt.Sprintf("%s__%s", botUserID, userID),
+		}, nil)
+		api.On("GetUser", userID).Return(&model.User{Id: userID}, nil)
+		api.On("GetDirectChannel", userID, botUserID).Return(&model.Channel{
+			Id: botChannelID,
+		}, nil)
+		api.On("CreatePost", mock.MatchedBy(func(post *model.Post) bool {
+			return post.RootId == postID
+		})).Return(nil, nil)
+		api.On("GetSystemInstallDate").Return(systemInstallDate, nil)
+		api.On("GetTeamMembersForUser", userID, 0, 50).Return(teamMembers, nil)
+		api.On("GetLicense").Return(&model.License{
+			Id:           licenseID,
+			SkuShortName: skuShortName,
+		})
+		defer api.AssertExpectations(t)
+
+		p := &Plugin{
+			botUserID: botUserID,
+			tracker:   telemetry.NewTracker(nil, "", "", "", "", "", false, nil),
+		}
+		p.SetAPI(api)
+
+		p.MessageHasBeenPosted(nil, &model.Post{
+			Id:        postID,
 			ChannelId: botChannelID,
 			UserId:    userID,
 		})
@@ -91,8 +152,8 @@ func TestMessageHasBeenPosted(t *testing.T) {
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
-			blockSegmentEvents: true,
-			botUserID:          botUserID,
+			botUserID: botUserID,
+			tracker:   telemetry.NewTracker(nil, "", "", "", "", "", false, nil),
 		}
 		p.SetAPI(api)
 
@@ -115,8 +176,7 @@ func TestMessageHasBeenPosted(t *testing.T) {
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
-			blockSegmentEvents: true,
-			botUserID:          botUserID,
+			botUserID: botUserID,
 		}
 		p.SetAPI(api)
 
@@ -136,8 +196,7 @@ func TestMessageHasBeenPosted(t *testing.T) {
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
-			blockSegmentEvents: true,
-			botUserID:          botUserID,
+			botUserID: botUserID,
 		}
 		p.SetAPI(api)
 
@@ -157,8 +216,7 @@ func TestMessageHasBeenPosted(t *testing.T) {
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
-			blockSegmentEvents: true,
-			botUserID:          botUserID,
+			botUserID: botUserID,
 		}
 		p.SetAPI(api)
 
@@ -178,8 +236,7 @@ func TestMessageHasBeenPosted(t *testing.T) {
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
-			blockSegmentEvents: true,
-			botUserID:          botUserID,
+			botUserID: botUserID,
 		}
 		p.SetAPI(api)
 
@@ -200,8 +257,7 @@ func TestMessageHasBeenPosted(t *testing.T) {
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
-			blockSegmentEvents: true,
-			botUserID:          botUserID,
+			botUserID: botUserID,
 		}
 		p.SetAPI(api)
 
