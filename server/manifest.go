@@ -18,7 +18,7 @@ const manifestStr = `
   "homepage_url": "https://github.com/mattermost/mattermost-plugin-nps",
   "support_url": "https://github.com/mattermost/mattermost-plugin-nps/issues",
   "icon_path": "assets/icon.svg",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "min_server_version": "5.16.0",
   "server": {
     "executables": {
