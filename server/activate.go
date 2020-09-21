@@ -50,6 +50,16 @@ func (p *Plugin) OnActivate() error {
 	return nil
 }
 
+func (p *Plugin) OnDeactivate() error {
+	if p.client != nil {
+		err := p.client.Close()
+		if err != nil {
+			p.API.LogWarn("OnDeactivate: Failed to close telemetryClient", "error", err.Error())
+		}
+	}
+	return nil
+}
+
 func (p *Plugin) setActivated(activated bool) {
 	p.activated = activated
 }

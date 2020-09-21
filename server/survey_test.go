@@ -614,6 +614,30 @@ func TestCheckForSurveyDM(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
+	t.Run("should send first ever survey DM", func(t *testing.T) {
+		user := &model.User{
+			Id:       model.NewId(),
+			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+		}
+
+		api := makeAPIMock()
+		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+			ServerVersion: serverVersion,
+			StartAt:       now,
+		}), nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(nil, nil)
+		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
+		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
+		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id), newSurveyStateBytes).Return(nil)
+		defer api.AssertExpectations(t)
+
+		p := makePlugin(api)
+		sent, err := p.checkForSurveyDM(user, now)
+
+		assert.True(t, sent)
+		assert.Nil(t, err)
+	})
+
 	t.Run("should return error if unable to save survey state", func(t *testing.T) {
 		user := &model.User{
 			Id:       model.NewId(),
@@ -686,6 +710,32 @@ func TestCheckForSurveyDM(t *testing.T) {
 		sent, err := p.checkForSurveyDM(user, now)
 
 		assert.True(t, sent)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should not send survey DM if user disabled it", func(t *testing.T) {
+		user := &model.User{
+			Id:       model.NewId(),
+			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+		}
+
+		api := makeAPIMock()
+		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+			ServerVersion: serverVersion,
+			StartAt:       now,
+		}), nil)
+		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(mustMarshalJSON(&userSurveyState{
+			ServerVersion: "5.11.0",
+			SentAt:        now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS),
+			AnsweredAt:    now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS),
+			Disabled:      true,
+		}), nil)
+		defer api.AssertExpectations(t)
+
+		p := makePlugin(api)
+		sent, err := p.checkForSurveyDM(user, now)
+
+		assert.False(t, sent)
 		assert.Nil(t, err)
 	})
 
