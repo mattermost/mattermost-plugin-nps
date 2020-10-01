@@ -13,12 +13,12 @@ import (
 
 func TestCheckForNextSurvey(t *testing.T) {
 	adminEmail := model.NewId()
-	adminId := model.NewId()
+	adminID := model.NewId()
 	now := func() time.Time {
 		return toDate(2019, time.April, 1)
 	}
 	serverVersion := "5.10.0"
-	surveyKey := fmt.Sprintf(SURVEY_KEY, serverVersion)
+	surveyKey := fmt.Sprintf(SurveyKey, serverVersion)
 
 	makeAPIMock := func() *plugintest.API {
 		api := &plugintest.API{}
@@ -29,17 +29,17 @@ func TestCheckForNextSurvey(t *testing.T) {
 
 	t.Run("should schedule survey and send admin notices", func(t *testing.T) {
 		api := makeAPIMock()
-		api.On("KVCompareAndSet", LOCK_KEY, []byte(nil), mustMarshalJSON(now())).Return(true, nil)
+		api.On("KVCompareAndSet", LockKey, []byte(nil), mustMarshalJSON(now())).Return(true, nil)
 		api.On("KVGet", surveyKey).Return(nil, nil)
 		api.On("KVSet", surveyKey, mustMarshalJSON(&surveyState{
 			ServerVersion: serverVersion,
 			CreateAt:      now(),
-			StartAt:       now().Add(TIME_UNTIL_SURVEY),
+			StartAt:       now().Add(TimeUntilSurvey),
 		})).Return(nil)
-		api.On("KVGet", LAST_ADMIN_NOTICE_KEY).Return(nil, nil)
+		api.On("KVGet", LastAdminNoticeKey).Return(nil, nil)
 		api.On("GetUsers", mock.Anything).Return([]*model.User{
 			{
-				Id:    adminId,
+				Id:    adminID,
 				Email: adminEmail,
 			},
 		}, nil)
@@ -52,9 +52,9 @@ func TestCheckForNextSurvey(t *testing.T) {
 			},
 		})
 		api.On("SendMail", adminEmail, mock.Anything, mock.Anything).Return(nil)
-		api.On("KVSet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, adminId, serverVersion), mock.Anything).Return(nil)
-		api.On("KVSet", LAST_ADMIN_NOTICE_KEY, mustMarshalJSON(now())).Return(nil)
-		api.On("KVDelete", LOCK_KEY).Return(nil)
+		api.On("KVSet", fmt.Sprintf(AdminDmNoticeKey, adminID, serverVersion), mock.Anything).Return(nil)
+		api.On("KVSet", LastAdminNoticeKey, mustMarshalJSON(now())).Return(nil)
+		api.On("KVDelete", LockKey).Return(nil)
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
@@ -73,9 +73,9 @@ func TestCheckForNextSurvey(t *testing.T) {
 
 	t.Run("should not send survey or notices if a survey has already been sent for this version", func(t *testing.T) {
 		api := makeAPIMock()
-		api.On("KVCompareAndSet", LOCK_KEY, []byte(nil), mustMarshalJSON(now())).Return(true, nil)
+		api.On("KVCompareAndSet", LockKey, []byte(nil), mustMarshalJSON(now())).Return(true, nil)
 		api.On("KVGet", surveyKey).Return(mustMarshalJSON(&surveyState{}), nil)
-		api.On("KVDelete", LOCK_KEY).Return(nil)
+		api.On("KVDelete", LockKey).Return(nil)
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
@@ -112,7 +112,7 @@ func TestCheckForNextSurvey(t *testing.T) {
 
 	t.Run("should not attempt to check for next survey if locked", func(t *testing.T) {
 		api := makeAPIMock()
-		api.On("KVCompareAndSet", LOCK_KEY, []byte(nil), mustMarshalJSON(now())).Return(false, nil)
+		api.On("KVCompareAndSet", LockKey, []byte(nil), mustMarshalJSON(now())).Return(false, nil)
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
@@ -132,7 +132,7 @@ func TestCheckForNextSurvey(t *testing.T) {
 
 func TestSendAdminNotices(t *testing.T) {
 	adminEmail := model.NewId()
-	adminId := model.NewId()
+	adminID := model.NewId()
 	now := func() time.Time {
 		return toDate(2019, time.April, 1)
 	}
@@ -140,10 +140,10 @@ func TestSendAdminNotices(t *testing.T) {
 
 	t.Run("should send notices if they've never been sent before", func(t *testing.T) {
 		api := makeAPIMock()
-		api.On("KVGet", LAST_ADMIN_NOTICE_KEY).Return(nil, nil)
+		api.On("KVGet", LastAdminNoticeKey).Return(nil, nil)
 		api.On("GetUsers", mock.Anything).Return([]*model.User{
 			{
-				Id:    adminId,
+				Id:    adminID,
 				Email: adminEmail,
 			},
 		}, nil)
@@ -156,8 +156,8 @@ func TestSendAdminNotices(t *testing.T) {
 			},
 		})
 		api.On("SendMail", adminEmail, mock.Anything, mock.Anything).Return(nil)
-		api.On("KVSet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, adminId, serverVersion), mock.Anything).Return(nil)
-		api.On("KVSet", LAST_ADMIN_NOTICE_KEY, mustMarshalJSON(now())).Return(nil)
+		api.On("KVSet", fmt.Sprintf(AdminDmNoticeKey, adminID, serverVersion), mock.Anything).Return(nil)
+		api.On("KVSet", LastAdminNoticeKey, mustMarshalJSON(now())).Return(nil)
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
@@ -178,10 +178,10 @@ func TestSendAdminNotices(t *testing.T) {
 
 	t.Run("should send notices if they were last sent over 7 days ago", func(t *testing.T) {
 		api := makeAPIMock()
-		api.On("KVGet", LAST_ADMIN_NOTICE_KEY).Return(mustMarshalJSON(now().Add(-8*24*time.Hour)), nil)
+		api.On("KVGet", LastAdminNoticeKey).Return(mustMarshalJSON(now().Add(-8*24*time.Hour)), nil)
 		api.On("GetUsers", mock.Anything).Return([]*model.User{
 			{
-				Id:    adminId,
+				Id:    adminID,
 				Email: adminEmail,
 			},
 		}, nil)
@@ -194,8 +194,8 @@ func TestSendAdminNotices(t *testing.T) {
 			},
 		})
 		api.On("SendMail", adminEmail, mock.Anything, mock.Anything).Return(nil)
-		api.On("KVSet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, adminId, serverVersion), mock.Anything).Return(nil)
-		api.On("KVSet", LAST_ADMIN_NOTICE_KEY, mustMarshalJSON(now())).Return(nil)
+		api.On("KVSet", fmt.Sprintf(AdminDmNoticeKey, adminID, serverVersion), mock.Anything).Return(nil)
+		api.On("KVSet", LastAdminNoticeKey, mustMarshalJSON(now())).Return(nil)
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
@@ -216,7 +216,7 @@ func TestSendAdminNotices(t *testing.T) {
 
 	t.Run("should not send notices if they were last sent less than 7 days ago", func(t *testing.T) {
 		api := makeAPIMock()
-		api.On("KVGet", LAST_ADMIN_NOTICE_KEY).Return(mustMarshalJSON(now().Add(-6*24*time.Hour)), nil)
+		api.On("KVGet", LastAdminNoticeKey).Return(mustMarshalJSON(now().Add(-6*24*time.Hour)), nil)
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
@@ -281,12 +281,12 @@ func TestSendAdminNoticeDMs(t *testing.T) {
 	}
 
 	api := &plugintest.API{}
-	api.On("KVSet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, admins[0].Id, survey.ServerVersion), mustMarshalJSON(&adminNotice{
+	api.On("KVSet", fmt.Sprintf(AdminDmNoticeKey, admins[0].Id, survey.ServerVersion), mustMarshalJSON(&adminNotice{
 		Sent:          false,
 		ServerVersion: survey.ServerVersion,
 		SurveyStartAt: survey.StartAt,
 	})).Return(nil)
-	api.On("KVSet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, admins[1].Id, survey.ServerVersion), mustMarshalJSON(&adminNotice{
+	api.On("KVSet", fmt.Sprintf(AdminDmNoticeKey, admins[1].Id, survey.ServerVersion), mustMarshalJSON(&adminNotice{
 		Sent:          false,
 		ServerVersion: survey.ServerVersion,
 		SurveyStartAt: survey.StartAt,
@@ -416,13 +416,13 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 		}
 
 		api := makeAPIMock()
-		api.On("KVGet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, serverVersion)).Return(mustMarshalJSON(&adminNotice{
+		api.On("KVGet", fmt.Sprintf(AdminDmNoticeKey, user.Id, serverVersion)).Return(mustMarshalJSON(&adminNotice{
 			Sent:          false,
 			ServerVersion: serverVersion,
 		}), nil)
 		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(&model.Post{}, nil)
-		api.On("KVSet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, serverVersion), mustMarshalJSON(&adminNotice{
+		api.On("KVSet", fmt.Sprintf(AdminDmNoticeKey, user.Id, serverVersion), mustMarshalJSON(&adminNotice{
 			Sent:          true,
 			ServerVersion: serverVersion,
 		})).Return(nil)
@@ -442,13 +442,13 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 		}
 
 		api := makeAPIMock()
-		api.On("KVGet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, serverVersion)).Return(mustMarshalJSON(&adminNotice{
+		api.On("KVGet", fmt.Sprintf(AdminDmNoticeKey, user.Id, serverVersion)).Return(mustMarshalJSON(&adminNotice{
 			Sent:          false,
 			ServerVersion: serverVersion,
 		}), nil)
 		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(&model.Post{}, nil)
-		api.On("KVSet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, serverVersion), mustMarshalJSON(&adminNotice{
+		api.On("KVSet", fmt.Sprintf(AdminDmNoticeKey, user.Id, serverVersion), mustMarshalJSON(&adminNotice{
 			Sent:          true,
 			ServerVersion: serverVersion,
 		})).Return(&model.AppError{})
@@ -468,7 +468,7 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 		}
 
 		api := makeAPIMock()
-		api.On("KVGet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, serverVersion)).Return(mustMarshalJSON(&adminNotice{
+		api.On("KVGet", fmt.Sprintf(AdminDmNoticeKey, user.Id, serverVersion)).Return(mustMarshalJSON(&adminNotice{
 			Sent:          false,
 			ServerVersion: serverVersion,
 		}), nil)
@@ -490,7 +490,7 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 		}
 
 		api := makeAPIMock()
-		api.On("KVGet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, serverVersion)).Return(mustMarshalJSON(&adminNotice{
+		api.On("KVGet", fmt.Sprintf(AdminDmNoticeKey, user.Id, serverVersion)).Return(mustMarshalJSON(&adminNotice{
 			Sent:          true,
 			ServerVersion: serverVersion,
 		}), nil)
@@ -510,7 +510,7 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 		}
 
 		api := makeAPIMock()
-		api.On("KVGet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, serverVersion)).Return(nil, nil)
+		api.On("KVGet", fmt.Sprintf(AdminDmNoticeKey, user.Id, serverVersion)).Return(nil, nil)
 		defer api.AssertExpectations(t)
 
 		p := makePlugin(api)
@@ -527,7 +527,7 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 		}
 
 		api := makeAPIMock()
-		api.On("KVGet", fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, serverVersion)).Return(nil, &model.AppError{})
+		api.On("KVGet", fmt.Sprintf(AdminDmNoticeKey, user.Id, serverVersion)).Return(nil, &model.AppError{})
 		defer api.AssertExpectations(t)
 
 		p := makePlugin(api)
@@ -572,7 +572,7 @@ func TestCheckForSurveyDM(t *testing.T) {
 	serverVersion := "5.12.0"
 
 	newSurveyStateBytes := mustMarshalJSON(&userSurveyState{
-		ScorePostId:   postID,
+		ScorePostID:   postID,
 		ServerVersion: serverVersion,
 		SentAt:        now,
 	})
@@ -593,18 +593,18 @@ func TestCheckForSurveyDM(t *testing.T) {
 	t.Run("should send first ever survey DM", func(t *testing.T) {
 		user := &model.User{
 			Id:       model.NewId(),
-			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+			CreateAt: now.Add(-1*TimeUntilSurvey).UnixNano() / int64(time.Millisecond),
 		}
 
 		api := makeAPIMock()
-		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+		api.On("KVGet", fmt.Sprintf(SurveyKey, serverVersion)).Return(mustMarshalJSON(&surveyState{
 			ServerVersion: serverVersion,
 			StartAt:       now,
 		}), nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(nil, nil)
+		api.On("KVGet", fmt.Sprintf(UserSurveyKey, user.Id)).Return(nil, nil)
 		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
-		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id), newSurveyStateBytes).Return(nil)
+		api.On("KVSet", fmt.Sprintf(UserSurveyKey, user.Id), newSurveyStateBytes).Return(nil)
 		defer api.AssertExpectations(t)
 
 		p := makePlugin(api)
@@ -617,18 +617,18 @@ func TestCheckForSurveyDM(t *testing.T) {
 	t.Run("should send first ever survey DM", func(t *testing.T) {
 		user := &model.User{
 			Id:       model.NewId(),
-			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+			CreateAt: now.Add(-1*TimeUntilSurvey).UnixNano() / int64(time.Millisecond),
 		}
 
 		api := makeAPIMock()
-		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+		api.On("KVGet", fmt.Sprintf(SurveyKey, serverVersion)).Return(mustMarshalJSON(&surveyState{
 			ServerVersion: serverVersion,
 			StartAt:       now,
 		}), nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(nil, nil)
+		api.On("KVGet", fmt.Sprintf(UserSurveyKey, user.Id)).Return(nil, nil)
 		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
-		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id), newSurveyStateBytes).Return(nil)
+		api.On("KVSet", fmt.Sprintf(UserSurveyKey, user.Id), newSurveyStateBytes).Return(nil)
 		defer api.AssertExpectations(t)
 
 		p := makePlugin(api)
@@ -641,18 +641,18 @@ func TestCheckForSurveyDM(t *testing.T) {
 	t.Run("should return error if unable to save survey state", func(t *testing.T) {
 		user := &model.User{
 			Id:       model.NewId(),
-			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+			CreateAt: now.Add(-1*TimeUntilSurvey).UnixNano() / int64(time.Millisecond),
 		}
 
 		api := makeAPIMock()
-		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+		api.On("KVGet", fmt.Sprintf(SurveyKey, serverVersion)).Return(mustMarshalJSON(&surveyState{
 			ServerVersion: serverVersion,
 			StartAt:       now,
 		}), nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(nil, nil)
+		api.On("KVGet", fmt.Sprintf(UserSurveyKey, user.Id)).Return(nil, nil)
 		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
-		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id), newSurveyStateBytes).Return(&model.AppError{})
+		api.On("KVSet", fmt.Sprintf(UserSurveyKey, user.Id), newSurveyStateBytes).Return(&model.AppError{})
 		defer api.AssertExpectations(t)
 
 		p := makePlugin(api)
@@ -665,15 +665,15 @@ func TestCheckForSurveyDM(t *testing.T) {
 	t.Run("should return error if unable to send DM", func(t *testing.T) {
 		user := &model.User{
 			Id:       model.NewId(),
-			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+			CreateAt: now.Add(-1*TimeUntilSurvey).UnixNano() / int64(time.Millisecond),
 		}
 
 		api := makeAPIMock()
-		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+		api.On("KVGet", fmt.Sprintf(SurveyKey, serverVersion)).Return(mustMarshalJSON(&surveyState{
 			ServerVersion: serverVersion,
 			StartAt:       now,
 		}), nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(nil, nil)
+		api.On("KVGet", fmt.Sprintf(UserSurveyKey, user.Id)).Return(nil, nil)
 		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(nil, &model.AppError{})
 		defer api.AssertExpectations(t)
@@ -688,22 +688,22 @@ func TestCheckForSurveyDM(t *testing.T) {
 	t.Run("should send survey DM if it's been long enough since the last survey", func(t *testing.T) {
 		user := &model.User{
 			Id:       model.NewId(),
-			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+			CreateAt: now.Add(-1*TimeUntilSurvey).UnixNano() / int64(time.Millisecond),
 		}
 
 		api := makeAPIMock()
-		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+		api.On("KVGet", fmt.Sprintf(SurveyKey, serverVersion)).Return(mustMarshalJSON(&surveyState{
 			ServerVersion: serverVersion,
 			StartAt:       now,
 		}), nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(mustMarshalJSON(&userSurveyState{
+		api.On("KVGet", fmt.Sprintf(UserSurveyKey, user.Id)).Return(mustMarshalJSON(&userSurveyState{
 			ServerVersion: "5.11.0",
-			SentAt:        now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS),
-			AnsweredAt:    now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS),
+			SentAt:        now.Add(-1 * MinTimeBetweenUserSurveys),
+			AnsweredAt:    now.Add(-1 * MinTimeBetweenUserSurveys),
 		}), nil)
 		api.On("GetDirectChannel", user.Id, botUserID).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.Anything).Return(&model.Post{Id: postID}, nil)
-		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, user.Id), newSurveyStateBytes).Return(nil)
+		api.On("KVSet", fmt.Sprintf(UserSurveyKey, user.Id), newSurveyStateBytes).Return(nil)
 		defer api.AssertExpectations(t)
 
 		p := makePlugin(api)
@@ -716,18 +716,18 @@ func TestCheckForSurveyDM(t *testing.T) {
 	t.Run("should not send survey DM if user disabled it", func(t *testing.T) {
 		user := &model.User{
 			Id:       model.NewId(),
-			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+			CreateAt: now.Add(-1*TimeUntilSurvey).UnixNano() / int64(time.Millisecond),
 		}
 
 		api := makeAPIMock()
-		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+		api.On("KVGet", fmt.Sprintf(SurveyKey, serverVersion)).Return(mustMarshalJSON(&surveyState{
 			ServerVersion: serverVersion,
 			StartAt:       now,
 		}), nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(mustMarshalJSON(&userSurveyState{
+		api.On("KVGet", fmt.Sprintf(UserSurveyKey, user.Id)).Return(mustMarshalJSON(&userSurveyState{
 			ServerVersion: "5.11.0",
-			SentAt:        now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS),
-			AnsweredAt:    now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS),
+			SentAt:        now.Add(-1 * MinTimeBetweenUserSurveys),
+			AnsweredAt:    now.Add(-1 * MinTimeBetweenUserSurveys),
 			Disabled:      true,
 		}), nil)
 		defer api.AssertExpectations(t)
@@ -742,18 +742,18 @@ func TestCheckForSurveyDM(t *testing.T) {
 	t.Run("should not send survey or return error if last survey was answered too recently", func(t *testing.T) {
 		user := &model.User{
 			Id:       model.NewId(),
-			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+			CreateAt: now.Add(-1*TimeUntilSurvey).UnixNano() / int64(time.Millisecond),
 		}
 
 		api := makeAPIMock()
-		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+		api.On("KVGet", fmt.Sprintf(SurveyKey, serverVersion)).Return(mustMarshalJSON(&surveyState{
 			ServerVersion: serverVersion,
 			StartAt:       now,
 		}), nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(mustMarshalJSON(&userSurveyState{
+		api.On("KVGet", fmt.Sprintf(UserSurveyKey, user.Id)).Return(mustMarshalJSON(&userSurveyState{
 			ServerVersion: "5.11.0",
-			SentAt:        now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS),
-			AnsweredAt:    now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS).Add(time.Millisecond),
+			SentAt:        now.Add(-1 * MinTimeBetweenUserSurveys),
+			AnsweredAt:    now.Add(-1 * MinTimeBetweenUserSurveys).Add(time.Millisecond),
 		}), nil)
 		defer api.AssertExpectations(t)
 
@@ -767,17 +767,17 @@ func TestCheckForSurveyDM(t *testing.T) {
 	t.Run("should not send survey or return error if last survey was sent too recently", func(t *testing.T) {
 		user := &model.User{
 			Id:       model.NewId(),
-			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+			CreateAt: now.Add(-1*TimeUntilSurvey).UnixNano() / int64(time.Millisecond),
 		}
 
 		api := makeAPIMock()
-		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+		api.On("KVGet", fmt.Sprintf(SurveyKey, serverVersion)).Return(mustMarshalJSON(&surveyState{
 			ServerVersion: serverVersion,
 			StartAt:       now,
 		}), nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(mustMarshalJSON(&userSurveyState{
+		api.On("KVGet", fmt.Sprintf(UserSurveyKey, user.Id)).Return(mustMarshalJSON(&userSurveyState{
 			ServerVersion: "5.11.0",
-			SentAt:        now.Add(-1 * MIN_TIME_BETWEEN_USER_SURVEYS).Add(time.Millisecond),
+			SentAt:        now.Add(-1 * MinTimeBetweenUserSurveys).Add(time.Millisecond),
 		}), nil)
 		defer api.AssertExpectations(t)
 
@@ -791,15 +791,15 @@ func TestCheckForSurveyDM(t *testing.T) {
 	t.Run("should not send survey or return error if survey was already sent", func(t *testing.T) {
 		user := &model.User{
 			Id:       model.NewId(),
-			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+			CreateAt: now.Add(-1*TimeUntilSurvey).UnixNano() / int64(time.Millisecond),
 		}
 
 		api := makeAPIMock()
-		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+		api.On("KVGet", fmt.Sprintf(SurveyKey, serverVersion)).Return(mustMarshalJSON(&surveyState{
 			ServerVersion: serverVersion,
 			StartAt:       now,
 		}), nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(mustMarshalJSON(&userSurveyState{
+		api.On("KVGet", fmt.Sprintf(UserSurveyKey, user.Id)).Return(mustMarshalJSON(&userSurveyState{
 			ServerVersion: serverVersion,
 		}), nil)
 		defer api.AssertExpectations(t)
@@ -814,15 +814,15 @@ func TestCheckForSurveyDM(t *testing.T) {
 	t.Run("should return error if unable to get user survey state", func(t *testing.T) {
 		user := &model.User{
 			Id:       model.NewId(),
-			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+			CreateAt: now.Add(-1*TimeUntilSurvey).UnixNano() / int64(time.Millisecond),
 		}
 
 		api := makeAPIMock()
-		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+		api.On("KVGet", fmt.Sprintf(SurveyKey, serverVersion)).Return(mustMarshalJSON(&surveyState{
 			ServerVersion: serverVersion,
 			StartAt:       now,
 		}), nil)
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, user.Id)).Return(nil, &model.AppError{})
+		api.On("KVGet", fmt.Sprintf(UserSurveyKey, user.Id)).Return(nil, &model.AppError{})
 		defer api.AssertExpectations(t)
 
 		p := makePlugin(api)
@@ -835,11 +835,11 @@ func TestCheckForSurveyDM(t *testing.T) {
 	t.Run("should not send survey or return error if survey hasn't started yet", func(t *testing.T) {
 		user := &model.User{
 			Id:       model.NewId(),
-			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+			CreateAt: now.Add(-1*TimeUntilSurvey).UnixNano() / int64(time.Millisecond),
 		}
 
 		api := makeAPIMock()
-		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(mustMarshalJSON(&surveyState{
+		api.On("KVGet", fmt.Sprintf(SurveyKey, serverVersion)).Return(mustMarshalJSON(&surveyState{
 			ServerVersion: serverVersion,
 			StartAt:       now.Add(time.Millisecond),
 		}), nil)
@@ -855,11 +855,11 @@ func TestCheckForSurveyDM(t *testing.T) {
 	t.Run("should not send survey or return error if there's no survey scheduled", func(t *testing.T) {
 		user := &model.User{
 			Id:       model.NewId(),
-			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+			CreateAt: now.Add(-1*TimeUntilSurvey).UnixNano() / int64(time.Millisecond),
 		}
 
 		api := makeAPIMock()
-		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(nil, nil)
+		api.On("KVGet", fmt.Sprintf(SurveyKey, serverVersion)).Return(nil, nil)
 		defer api.AssertExpectations(t)
 
 		p := makePlugin(api)
@@ -872,11 +872,11 @@ func TestCheckForSurveyDM(t *testing.T) {
 	t.Run("should return error if unable to get the scheduled survey", func(t *testing.T) {
 		user := &model.User{
 			Id:       model.NewId(),
-			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+			CreateAt: now.Add(-1*TimeUntilSurvey).UnixNano() / int64(time.Millisecond),
 		}
 
 		api := makeAPIMock()
-		api.On("KVGet", fmt.Sprintf(SURVEY_KEY, serverVersion)).Return(nil, &model.AppError{})
+		api.On("KVGet", fmt.Sprintf(SurveyKey, serverVersion)).Return(nil, &model.AppError{})
 		defer api.AssertExpectations(t)
 
 		p := makePlugin(api)
@@ -889,7 +889,7 @@ func TestCheckForSurveyDM(t *testing.T) {
 	t.Run("should not send survey or return error if the user hasn't existed for long enough", func(t *testing.T) {
 		user := &model.User{
 			Id:       model.NewId(),
-			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).Add(time.Minute).UnixNano() / int64(time.Millisecond),
+			CreateAt: now.Add(-1*TimeUntilSurvey).Add(time.Minute).UnixNano() / int64(time.Millisecond),
 		}
 
 		api := makeAPIMock()
@@ -905,7 +905,7 @@ func TestCheckForSurveyDM(t *testing.T) {
 	t.Run("should not send survey or return error if surveys are disabled", func(t *testing.T) {
 		user := &model.User{
 			Id:       model.NewId(),
-			CreateAt: now.Add(-1*TIME_UNTIL_SURVEY).UnixNano() / int64(time.Millisecond),
+			CreateAt: now.Add(-1*TimeUntilSurvey).UnixNano() / int64(time.Millisecond),
 		}
 
 		api := makeAPIMock()
@@ -927,11 +927,11 @@ func TestMarkSurveyAnswered(t *testing.T) {
 		userID := model.NewId()
 
 		api := &plugintest.API{}
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, userID)).Return(mustMarshalJSON(&userSurveyState{
+		api.On("KVGet", fmt.Sprintf(UserSurveyKey, userID)).Return(mustMarshalJSON(&userSurveyState{
 			ServerVersion: serverVersion,
 			SentAt:        toDate(2019, 3, 1),
 		}), nil)
-		api.On("KVSet", fmt.Sprintf(USER_SURVEY_KEY, userID), mustMarshalJSON(&userSurveyState{
+		api.On("KVSet", fmt.Sprintf(UserSurveyKey, userID), mustMarshalJSON(&userSurveyState{
 			ServerVersion: serverVersion,
 			SentAt:        toDate(2019, 3, 1),
 			AnsweredAt:    now,
@@ -953,7 +953,7 @@ func TestMarkSurveyAnswered(t *testing.T) {
 		userID := model.NewId()
 
 		api := &plugintest.API{}
-		api.On("KVGet", fmt.Sprintf(USER_SURVEY_KEY, userID)).Return(mustMarshalJSON(&userSurveyState{
+		api.On("KVGet", fmt.Sprintf(UserSurveyKey, userID)).Return(mustMarshalJSON(&userSurveyState{
 			ServerVersion: serverVersion,
 			SentAt:        toDate(2019, 3, 1),
 			AnsweredAt:    now.Add(-time.Minute),

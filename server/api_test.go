@@ -21,7 +21,7 @@ func TestCheckForDMs(t *testing.T) {
 	now := toDate(2019, time.May, 10)
 	userID := model.NewId()
 
-	userLockKey := fmt.Sprintf(USER_LOCK_KEY, userID)
+	userLockKey := fmt.Sprintf(UserLockKey, userID)
 
 	t.Run("should do nothing with diagnostics disabled", func(t *testing.T) {
 		api := &plugintest.API{}
@@ -92,7 +92,7 @@ func TestCheckForDMs(t *testing.T) {
 func TestSubmitScore(t *testing.T) {
 	botUserID := model.NewId()
 	userID := model.NewId()
-	userSurveyKey := fmt.Sprintf(USER_SURVEY_KEY, userID)
+	userSurveyKey := fmt.Sprintf(UserSurveyKey, userID)
 	systemInstallDate := int64(1497898133094)
 	teamMembers := []*model.TeamMember{
 		{
@@ -421,7 +421,7 @@ func TestRequiresUserId(t *testing.T) {
 		request := httptest.NewRequest(http.MethodGet, "/", nil)
 		request.Header.Set("Mattermost-User-ID", "1234ab")
 
-		requiresUserId(handler)(recorder, request)
+		requiresUserID(handler)(recorder, request)
 
 		assert.Equal(t, http.StatusOK, recorder.Result().StatusCode)
 		assert.True(t, called)
@@ -436,7 +436,7 @@ func TestRequiresUserId(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		request := httptest.NewRequest(http.MethodGet, "/", nil)
 
-		requiresUserId(handler)(recorder, request)
+		requiresUserID(handler)(recorder, request)
 
 		assert.Equal(t, http.StatusUnauthorized, recorder.Result().StatusCode)
 		assert.False(t, called)
@@ -446,7 +446,7 @@ func TestRequiresUserId(t *testing.T) {
 func TestDisableForUser(t *testing.T) {
 	botUserID := model.NewId()
 	userID := model.NewId()
-	userSurveyKey := fmt.Sprintf(USER_SURVEY_KEY, userID)
+	userSurveyKey := fmt.Sprintf(UserSurveyKey, userID)
 	systemInstallDate := int64(1497898133094)
 
 	licenseID := model.NewId()

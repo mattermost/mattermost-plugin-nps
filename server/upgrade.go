@@ -16,7 +16,7 @@ type serverUpgrade struct {
 // version has changed, it stores the time of upgrade and returns true. Otherwise, it returns false.
 func (p *Plugin) checkForServerUpgrade(now time.Time) (bool, *model.AppError) {
 	var storedUpgrade *serverUpgrade
-	if err := p.KVGet(fmt.Sprintf(SERVER_UPGRADE_KEY, p.serverVersion), &storedUpgrade); err != nil {
+	if err := p.KVGet(fmt.Sprintf(ServerUpgradeKey, p.serverVersion), &storedUpgrade); err != nil {
 		// Failed to get stored version
 		return false, err
 	}
@@ -28,7 +28,7 @@ func (p *Plugin) checkForServerUpgrade(now time.Time) (bool, *model.AppError) {
 
 	// Note that this will see any major or minor version change as an upgrade, even if a downgrade has occurred
 
-	if err := p.KVSet(fmt.Sprintf(SERVER_UPGRADE_KEY, p.serverVersion), &serverUpgrade{
+	if err := p.KVSet(fmt.Sprintf(ServerUpgradeKey, p.serverVersion), &serverUpgrade{
 		ServerVersion: p.serverVersion,
 		UpgradeAt:     now,
 	}); err != nil {

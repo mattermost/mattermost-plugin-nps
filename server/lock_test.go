@@ -15,13 +15,13 @@ func TestTryLock(t *testing.T) {
 	now := toDate(2019, time.February, 18)
 
 	api := &plugintest.API{}
-	api.On("KVCompareAndSet", LOCK_KEY, []byte(nil), mustMarshalJSON(now)).Return(true, nil)
+	api.On("KVCompareAndSet", LockKey, []byte(nil), mustMarshalJSON(now)).Return(true, nil)
 	defer api.AssertExpectations(t)
 
 	p := &Plugin{}
 	p.SetAPI(api)
 
-	locked, err := p.tryLock(LOCK_KEY, now)
+	locked, err := p.tryLock(LockKey, now)
 
 	assert.Equal(t, true, locked)
 	assert.Nil(t, err)
@@ -29,13 +29,13 @@ func TestTryLock(t *testing.T) {
 
 func TestUnlock(t *testing.T) {
 	api := &plugintest.API{}
-	api.On("KVDelete", LOCK_KEY).Return(nil)
+	api.On("KVDelete", LockKey).Return(nil)
 	defer api.AssertExpectations(t)
 
 	p := &Plugin{}
 	p.SetAPI(api)
 
-	err := p.unlock(LOCK_KEY)
+	err := p.unlock(LockKey)
 
 	assert.Nil(t, err)
 }
@@ -45,16 +45,16 @@ func TestClearStaleLocks(t *testing.T) {
 	serverVersion := "5.10.0"
 	userID := model.NewId()
 
-	userLockKey := fmt.Sprintf(USER_LOCK_KEY, userID)
+	userLockKey := fmt.Sprintf(UserLockKey, userID)
 
 	t.Run("shouldn't affect KV store entries that aren't locks", func(t *testing.T) {
 		api := &plugintest.API{}
 		api.On("KVList", 0, 100).Return([]string{
-			fmt.Sprintf(ADMIN_DM_NOTICE_KEY, userID, serverVersion),
-			LAST_ADMIN_NOTICE_KEY,
-			fmt.Sprintf(SERVER_UPGRADE_KEY, serverVersion),
-			fmt.Sprintf(SURVEY_KEY, serverVersion),
-			fmt.Sprintf(USER_SURVEY_KEY, userID),
+			fmt.Sprintf(AdminDmNoticeKey, userID, serverVersion),
+			LastAdminNoticeKey,
+			fmt.Sprintf(ServerUpgradeKey, serverVersion),
+			fmt.Sprintf(SurveyKey, serverVersion),
+			fmt.Sprintf(UserSurveyKey, userID),
 			"something else",
 		}, nil)
 		defer api.AssertExpectations(t)
@@ -73,10 +73,10 @@ func TestClearStaleLocks(t *testing.T) {
 
 		api := &plugintest.API{}
 		api.On("KVList", 0, 100).Return([]string{
-			LOCK_KEY,
+			LockKey,
 			userLockKey,
 		}, nil)
-		api.On("KVGet", LOCK_KEY).Return(lockValue, nil)
+		api.On("KVGet", LockKey).Return(lockValue, nil)
 		api.On("KVGet", userLockKey).Return(userLockValue, nil)
 		defer api.AssertExpectations(t)
 
@@ -94,11 +94,11 @@ func TestClearStaleLocks(t *testing.T) {
 
 		api := &plugintest.API{}
 		api.On("KVList", 0, 100).Return([]string{
-			LOCK_KEY,
+			LockKey,
 			userLockKey,
 		}, nil)
-		api.On("KVGet", LOCK_KEY).Return(lockValue, nil)
-		api.On("KVCompareAndDelete", LOCK_KEY, lockValue).Return(true, nil)
+		api.On("KVGet", LockKey).Return(lockValue, nil)
+		api.On("KVCompareAndDelete", LockKey, lockValue).Return(true, nil)
 		api.On("KVGet", userLockKey).Return(userLockValue, nil)
 		api.On("KVCompareAndDelete", userLockKey, userLockValue).Return(true, nil)
 		api.On("LogInfo", mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -117,10 +117,10 @@ func TestClearStaleLocks(t *testing.T) {
 
 		api := &plugintest.API{}
 		api.On("KVList", 0, 100).Return([]string{
-			LOCK_KEY,
+			LockKey,
 		}, nil)
-		api.On("KVGet", LOCK_KEY).Return(lockValue, nil)
-		api.On("KVCompareAndDelete", LOCK_KEY, lockValue).Return(true, nil)
+		api.On("KVGet", LockKey).Return(lockValue, nil)
+		api.On("KVCompareAndDelete", LockKey, lockValue).Return(true, nil)
 		api.On("LogInfo", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 		defer api.AssertExpectations(t)
 
@@ -137,10 +137,10 @@ func TestClearStaleLocks(t *testing.T) {
 
 		api := &plugintest.API{}
 		api.On("KVList", 0, 100).Return([]string{
-			LOCK_KEY,
+			LockKey,
 		}, nil)
-		api.On("KVGet", LOCK_KEY).Return(lockValue, nil)
-		api.On("KVCompareAndDelete", LOCK_KEY, lockValue).Return(false, nil)
+		api.On("KVGet", LockKey).Return(lockValue, nil)
+		api.On("KVCompareAndDelete", LockKey, lockValue).Return(false, nil)
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{}

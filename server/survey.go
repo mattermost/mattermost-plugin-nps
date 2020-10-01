@@ -13,19 +13,19 @@ import (
 const (
 	// How often "survey scheduled" emails can be sent to prevent multiple emails from being sent if multiple server
 	// upgrades occur within a short time
-	MIN_TIME_BETWEEN_SURVEY_EMAILS = 7 * 24 * time.Hour
+	MinTimeBetweenSurveyEmails = 7 * 24 * time.Hour
 
 	// How long until a survey occurs after a server upgrade in days (for use in notifications)
-	DAYS_UNTIL_SURVEY = 21
+	DaysUntilSurvey = 21
 
 	// How long until a survey occurs after a server upgrade as a time.Duration
-	TIME_UNTIL_SURVEY = 21 * 24 * time.Hour
+	TimeUntilSurvey = 21 * 24 * time.Hour
 
 	// Get admin users up to 100 at a time when sending email notifications
-	ADMIN_USERS_PER_PAGE = 100
+	AdminUsersPerPage = 100
 
 	// The minimum time before a user can be sent a survey after completing the previous one
-	MIN_TIME_BETWEEN_USER_SURVEYS = 90 * 24 * time.Hour
+	MinTimeBetweenUserSurveys = 90 * 24 * time.Hour
 )
 
 type adminNotice struct {
@@ -44,7 +44,7 @@ type userSurveyState struct {
 	ServerVersion string    `json:"server_version"`
 	SentAt        time.Time `json:"sent_at"`
 	AnsweredAt    time.Time `json:"answered_at"`
-	ScorePostId   string    `json:"score_post_id"`
+	ScorePostID   string    `json:"score_post_id"`
 	Disabled      bool      `json:"disabled"`
 }
 
@@ -61,15 +61,17 @@ func (p *Plugin) checkForNextSurvey(now time.Time) bool {
 		return false
 	}
 
-	locked, err := p.tryLock(LOCK_KEY, now)
+	locked, err := p.tryLock(LockKey, now)
 	if !locked || err != nil {
 		// Either an error occurred or there's already another thread checking for surveys
 		return false
 	}
-	defer p.unlock(LOCK_KEY)
+	defer func() {
+		_ = p.unlock(LockKey)
+	}()
 
 	var nextSurvey *surveyState
-	if err := p.KVGet(fmt.Sprintf(SURVEY_KEY, p.serverVersion), &nextSurvey); err != nil {
+	if errSurvey := p.KVGet(fmt.Sprintf(SurveyKey, p.serverVersion), &nextSurvey); errSurvey != nil {
 		p.API.LogError("Failed to get survey state", "err", err)
 		return false
 	}
@@ -82,22 +84,26 @@ func (p *Plugin) checkForNextSurvey(now time.Time) bool {
 	nextSurvey = &surveyState{
 		ServerVersion: p.serverVersion,
 		CreateAt:      now,
-		StartAt:       now.Add(TIME_UNTIL_SURVEY),
+		StartAt:       now.Add(TimeUntilSurvey),
 	}
 
 	p.API.LogInfo(fmt.Sprintf("Scheduling next survey for %s", nextSurvey.StartAt.Format("Jan 2, 2006")))
 
-	if err := p.KVSet(fmt.Sprintf(SURVEY_KEY, p.serverVersion), nextSurvey); err != nil {
+	if errSchedule := p.KVSet(fmt.Sprintf(SurveyKey, p.serverVersion), nextSurvey); errSchedule != nil {
 		p.API.LogError("Failed to schedule next survey", "err", err)
 		return false
 	}
 
-	if sent, err := p.sendAdminNotices(now, nextSurvey); err != nil {
+	sent, errNotice := p.sendAdminNotices(now, nextSurvey)
+	if errNotice != nil {
 		p.API.LogError("Failed to send notification of next survey to admins", "err", err)
 		return false
-	} else if !sent {
+	}
+
+	switch sent {
+	case false:
 		p.API.LogInfo("Not sending notification of next survey to admins since they already received one recently")
-	} else {
+	default:
 		p.API.LogInfo("Sent notification of next survey to admins")
 	}
 
@@ -106,16 +112,16 @@ func (p *Plugin) checkForNextSurvey(now time.Time) bool {
 
 func (p *Plugin) sendAdminNotices(now time.Time, nextSurvey *surveyState) (bool, error) {
 	var lastSentAt *time.Time
-	if err := p.KVGet(LAST_ADMIN_NOTICE_KEY, &lastSentAt); err != nil {
+	if err := p.KVGet(LastAdminNoticeKey, &lastSentAt); err != nil {
 		return false, err
 	}
 
-	if lastSentAt != nil && now.Sub(*lastSentAt) < MIN_TIME_BETWEEN_SURVEY_EMAILS {
+	if lastSentAt != nil && now.Sub(*lastSentAt) < MinTimeBetweenSurveyEmails {
 		// Not enough time has passed since the last survey notification, so don't send a new one
 		return false, nil
 	}
 
-	admins, err := p.getAdminUsers(ADMIN_USERS_PER_PAGE)
+	admins, err := p.getAdminUsers(AdminUsersPerPage)
 	if err != nil {
 		return false, err
 	}
@@ -123,7 +129,7 @@ func (p *Plugin) sendAdminNotices(now time.Time, nextSurvey *surveyState) (bool,
 	p.sendAdminNoticeEmails(admins)
 	p.sendAdminNoticeDMs(admins, nextSurvey)
 
-	if err := p.KVSet(LAST_ADMIN_NOTICE_KEY, now); err != nil {
+	if err := p.KVSet(LastAdminNoticeKey, now); err != nil {
 		return false, err
 	}
 
@@ -133,12 +139,12 @@ func (p *Plugin) sendAdminNotices(now time.Time, nextSurvey *surveyState) (bool,
 func (p *Plugin) sendAdminNoticeEmails(admins []*model.User) {
 	config := p.API.GetConfig()
 
-	subject := fmt.Sprintf(adminEmailSubject, *config.TeamSettings.SiteName, DAYS_UNTIL_SURVEY)
+	subject := fmt.Sprintf(adminEmailSubject, *config.TeamSettings.SiteName, DaysUntilSurvey)
 
 	bodyProps := map[string]interface{}{
 		"PluginID":        manifest.Id,
 		"SiteURL":         *config.ServiceSettings.SiteURL,
-		"DaysUntilSurvey": DAYS_UNTIL_SURVEY,
+		"DaysUntilSurvey": DaysUntilSurvey,
 	}
 	if config.EmailSettings.FeedbackOrganization != nil && *config.EmailSettings.FeedbackOrganization != "" {
 		bodyProps["Organization"] = "Sent by " + *config.EmailSettings.FeedbackOrganization
@@ -165,7 +171,7 @@ func (p *Plugin) sendAdminNoticeEmails(admins []*model.User) {
 func (p *Plugin) sendAdminNoticeDMs(admins []*model.User, nextSurvey *surveyState) {
 	// Actual DMs will be sent when the admins next log in, so just mark that they're scheduled to receive one
 	for _, admin := range admins {
-		err := p.KVSet(fmt.Sprintf(ADMIN_DM_NOTICE_KEY, admin.Id, nextSurvey.ServerVersion), &adminNotice{
+		err := p.KVSet(fmt.Sprintf(AdminDmNoticeKey, admin.Id, nextSurvey.ServerVersion), &adminNotice{
 			Sent:          false,
 			ServerVersion: nextSurvey.ServerVersion,
 			SurveyStartAt: nextSurvey.StartAt,
@@ -201,7 +207,7 @@ func (p *Plugin) getAdminUsers(perPage int) ([]*model.User, *model.AppError) {
 			break
 		}
 
-		page += 1
+		page++
 	}
 
 	return admins, nil
@@ -218,7 +224,7 @@ func (p *Plugin) checkForAdminNoticeDM(user *model.User) (bool, *model.AppError)
 	}
 
 	var notice *adminNotice
-	if err := p.KVGet(fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, p.serverVersion), &notice); err != nil {
+	if err := p.KVGet(fmt.Sprintf(AdminDmNoticeKey, user.Id, p.serverVersion), &notice); err != nil {
 		return false, err
 	}
 
@@ -256,7 +262,7 @@ func (p *Plugin) sendAdminNoticeDM(user *model.User, notice *adminNotice) *model
 	// Store that the DM has been sent
 	notice.Sent = true
 
-	if err := p.KVSet(fmt.Sprintf(ADMIN_DM_NOTICE_KEY, user.Id, notice.ServerVersion), notice); err != nil {
+	if err := p.KVSet(fmt.Sprintf(AdminDmNoticeKey, user.Id, notice.ServerVersion), notice); err != nil {
 		p.API.LogError("Failed to save sent admin notice. Admin notice will be resent on next refresh.", "err", err)
 		return err
 	}
@@ -277,13 +283,13 @@ func (p *Plugin) checkForSurveyDM(user *model.User, now time.Time) (bool, *model
 		return false, nil
 	}
 
-	if now.Sub(time.Unix(user.CreateAt/1000, 0)) < TIME_UNTIL_SURVEY {
+	if now.Sub(time.Unix(user.CreateAt/1000, 0)) < TimeUntilSurvey {
 		// The user hasn't existed for long enough to receive a survey
 		return false, nil
 	}
 
 	var survey *surveyState
-	if err := p.KVGet(fmt.Sprintf(SURVEY_KEY, p.serverVersion), &survey); err != nil {
+	if err := p.KVGet(fmt.Sprintf(SurveyKey, p.serverVersion), &survey); err != nil {
 		return false, err
 	}
 
@@ -299,7 +305,7 @@ func (p *Plugin) checkForSurveyDM(user *model.User, now time.Time) (bool, *model
 
 	// And that it has been long enough since the survey last occurred
 	var userSurvey *userSurveyState
-	if err := p.KVGet(fmt.Sprintf(USER_SURVEY_KEY, user.Id), &userSurvey); err != nil {
+	if err := p.KVGet(fmt.Sprintf(UserSurveyKey, user.Id), &userSurvey); err != nil {
 		return false, err
 	}
 
@@ -314,12 +320,12 @@ func (p *Plugin) checkForSurveyDM(user *model.User, now time.Time) (bool, *model
 			return false, nil
 		}
 
-		if now.Sub(userSurvey.SentAt) < MIN_TIME_BETWEEN_USER_SURVEYS {
+		if now.Sub(userSurvey.SentAt) < MinTimeBetweenUserSurveys {
 			// Not enough time has passed since the user was last sent a survey
 			return false, nil
 		}
 
-		if now.Sub(userSurvey.AnsweredAt) < MIN_TIME_BETWEEN_USER_SURVEYS {
+		if now.Sub(userSurvey.AnsweredAt) < MinTimeBetweenUserSurveys {
 			// Not enough time has passed since the user last completed a survey
 			return false, nil
 		}
@@ -340,11 +346,11 @@ func (p *Plugin) sendSurveyDM(user *model.User, now time.Time) *model.AppError {
 	userSurveyState := &userSurveyState{
 		ServerVersion: p.serverVersion,
 		SentAt:        now,
-		ScorePostId:   post.Id,
+		ScorePostID:   post.Id,
 	}
 
 	// Store that the survey has been sent
-	err = p.KVSet(fmt.Sprintf(USER_SURVEY_KEY, user.Id), userSurveyState)
+	err = p.KVSet(fmt.Sprintf(UserSurveyKey, user.Id), userSurveyState)
 	if err != nil {
 		p.API.LogError("Failed to save sent survey state. Survey will be resent on next refresh.", "err", err)
 		return err
@@ -434,7 +440,7 @@ func (p *Plugin) buildFeedbackRequestPost() *model.Post {
 
 func (p *Plugin) markSurveyAnswered(userID string, now time.Time) (bool, *model.AppError) {
 	var userSurvey *userSurveyState
-	if err := p.KVGet(fmt.Sprintf(USER_SURVEY_KEY, userID), &userSurvey); err != nil {
+	if err := p.KVGet(fmt.Sprintf(UserSurveyKey, userID), &userSurvey); err != nil {
 		return false, err
 	}
 
@@ -445,7 +451,7 @@ func (p *Plugin) markSurveyAnswered(userID string, now time.Time) (bool, *model.
 
 	userSurvey.AnsweredAt = now
 
-	if err := p.KVSet(fmt.Sprintf(USER_SURVEY_KEY, userID), userSurvey); err != nil {
+	if err := p.KVSet(fmt.Sprintf(UserSurveyKey, userID), userSurvey); err != nil {
 		return false, err
 	}
 

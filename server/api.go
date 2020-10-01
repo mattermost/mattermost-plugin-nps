@@ -24,17 +24,17 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 		{
 			Path:    "/api/v1/connected",
 			Method:  http.MethodPost,
-			Handler: requiresUserId(p.userConnected),
+			Handler: requiresUserID(p.userConnected),
 		},
 		{
 			Path:    "/api/v1/score",
 			Method:  http.MethodPost,
-			Handler: requiresUserId(p.submitScore),
+			Handler: requiresUserID(p.submitScore),
 		},
 		{
 			Path:    "/api/v1/disable_for_user",
 			Method:  http.MethodPost,
-			Handler: requiresUserId(p.disableForUser),
+			Handler: requiresUserID(p.disableForUser),
 		},
 	}
 
@@ -60,7 +60,7 @@ func (p *Plugin) disableForUser(w http.ResponseWriter, r *http.Request) {
 	p.sendUserDisabledEvent(userID, p.now().UTC().UnixNano()/int64(time.Millisecond))
 
 	var userSurvey *userSurveyState
-	if err := p.KVGet(fmt.Sprintf(USER_SURVEY_KEY, userID), &userSurvey); err != nil {
+	if err := p.KVGet(fmt.Sprintf(UserSurveyKey, userID), &userSurvey); err != nil {
 		p.API.LogError("Failed to get survey state", "user_id", userID, "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -68,7 +68,7 @@ func (p *Plugin) disableForUser(w http.ResponseWriter, r *http.Request) {
 
 	userSurvey.Disabled = true
 
-	if err := p.KVSet(fmt.Sprintf(USER_SURVEY_KEY, userID), userSurvey); err != nil {
+	if err := p.KVSet(fmt.Sprintf(UserSurveyKey, userID), userSurvey); err != nil {
 		p.API.LogError("Failed to set disabled survey state", "user_id", userID, "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -98,14 +98,16 @@ func (p *Plugin) checkForDMs(userID string) *model.AppError {
 	}
 
 	now := p.now().UTC()
-	userLockKey := fmt.Sprintf(USER_LOCK_KEY, userID)
+	userLockKey := fmt.Sprintf(UserLockKey, userID)
 
 	locked, err := p.tryLock(userLockKey, now)
 	if !locked || err != nil {
 		// Either an error occurred or there's already another thread checking for DMs
 		return err
 	}
-	defer p.unlock(userLockKey)
+	defer func() {
+		_ = p.unlock(userLockKey)
+	}()
 
 	user, err := p.API.GetUser(userID)
 	if err != nil {
@@ -148,13 +150,14 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var score int
-	if i, err := getScore(surveyResponse.Context["selected_option"].(string)); err != nil {
+	var i int64
+	var err error
+	if i, err = getScore(surveyResponse.Context["selected_option"].(string)); err != nil {
 		p.API.LogError("Score response contains invalid score")
 		w.WriteHeader(http.StatusBadRequest)
 		return
-	} else {
-		score = int(i)
 	}
+	score = int(i)
 
 	p.API.LogDebug(fmt.Sprintf("Received score of %d from %s", score, r.Header.Get("Mattermost-User-ID")))
 
@@ -169,7 +172,7 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 
 	// Thank the user for their feedback when they first answer the survey
 	if isFirstResponse {
-		p.CreateBotDMPost(userID, p.buildFeedbackRequestPost())
+		_, _ = p.CreateBotDMPost(userID, p.buildFeedbackRequestPost())
 	}
 
 	// Send response to update score post
@@ -178,7 +181,7 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(response.ToJson())
+	_, _ = w.Write(response.ToJson())
 }
 
 func getScore(selectedOption string) (int64, error) {
@@ -194,7 +197,7 @@ func getScore(selectedOption string) (int64, error) {
 	return score, nil
 }
 
-func requiresUserId(handler apiHandler) apiHandler {
+func requiresUserID(handler apiHandler) apiHandler {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if userID := r.Header.Get("Mattermost-User-ID"); userID == "" {
 			w.WriteHeader(http.StatusUnauthorized)

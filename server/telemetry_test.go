@@ -184,7 +184,7 @@ func TestGetEventProperties(t *testing.T) {
 }
 
 func TestGetUserRole(t *testing.T) {
-	userId := model.NewId()
+	userID := model.NewId()
 
 	for _, test := range []struct {
 		Name        string
@@ -195,7 +195,7 @@ func TestGetUserRole(t *testing.T) {
 		{
 			Name: "system admin",
 			User: &model.User{
-				Id:    userId,
+				Id:    userID,
 				Roles: model.SYSTEM_ADMIN_ROLE_ID + " " + model.SYSTEM_USER_ROLE_ID,
 			},
 			Expected: "system_admin",
@@ -203,7 +203,7 @@ func TestGetUserRole(t *testing.T) {
 		{
 			Name: "system and team admin",
 			User: &model.User{
-				Id:    userId,
+				Id:    userID,
 				Roles: model.SYSTEM_ADMIN_ROLE_ID + " " + model.SYSTEM_USER_ROLE_ID,
 			},
 			TeamMembers: []*model.TeamMember{
@@ -216,7 +216,7 @@ func TestGetUserRole(t *testing.T) {
 		{
 			Name: "team admin",
 			User: &model.User{
-				Id:    userId,
+				Id:    userID,
 				Roles: model.SYSTEM_USER_ROLE_ID,
 			},
 			TeamMembers: []*model.TeamMember{
@@ -232,7 +232,7 @@ func TestGetUserRole(t *testing.T) {
 		{
 			Name: "regular user",
 			User: &model.User{
-				Id:    userId,
+				Id:    userID,
 				Roles: model.SYSTEM_USER_ROLE_ID,
 			},
 			TeamMembers: []*model.TeamMember{
@@ -245,7 +245,7 @@ func TestGetUserRole(t *testing.T) {
 		{
 			Name: "regular user without teams",
 			User: &model.User{
-				Id:    userId,
+				Id:    userID,
 				Roles: model.SYSTEM_USER_ROLE_ID,
 			},
 			TeamMembers: []*model.TeamMember{},

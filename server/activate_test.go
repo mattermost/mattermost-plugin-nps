@@ -35,7 +35,7 @@ func TestOnActivate(t *testing.T) {
 		api.On("GetBot", botUserID, true).Return(&model.Bot{UserId: botUserID}, nil)
 		api.On("GetServerVersion").Return(serverVersion)
 		api.On("KVList", 0, 100).Return([]string{}, nil)
-		api.On("KVGet", fmt.Sprintf(SERVER_UPGRADE_KEY, serverVersion)).Return(mustMarshalJSON(&serverUpgrade{}), nil)
+		api.On("KVGet", fmt.Sprintf(ServerUpgradeKey, serverVersion)).Return(mustMarshalJSON(&serverUpgrade{}), nil)
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
@@ -66,7 +66,7 @@ func TestOnActivate(t *testing.T) {
 		api.On("GetBot", botUserID, true).Return(&model.Bot{UserId: botUserID}, nil)
 		api.On("GetServerVersion").Return(serverVersion)
 		api.On("KVList", 0, 100).Return([]string{}, nil)
-		api.On("KVGet", fmt.Sprintf(SERVER_UPGRADE_KEY, serverVersion)).Return(nil, &model.AppError{})
+		api.On("KVGet", fmt.Sprintf(ServerUpgradeKey, serverVersion)).Return(nil, &model.AppError{})
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
@@ -134,24 +134,24 @@ func TestEnsureBotExists(t *testing.T) {
 
 	t.Run("if surveybot already exists", func(t *testing.T) {
 		t.Run("should find and return the existing bot ID", func(t *testing.T) {
-			expectedBotId := model.NewId()
+			expectedBotID := model.NewId()
 
 			api := setupAPI()
 			api.On("CreateBot", mock.Anything).Return(nil, &model.AppError{})
 			api.On("GetUserByUsername", "surveybot").Return(&model.User{
-				Id: expectedBotId,
+				Id: expectedBotID,
 			}, nil)
-			api.On("GetBot", expectedBotId, true).Return(&model.Bot{
-				UserId: expectedBotId,
+			api.On("GetBot", expectedBotID, true).Return(&model.Bot{
+				UserId: expectedBotID,
 			}, nil)
 			defer api.AssertExpectations(t)
 
 			p := &Plugin{}
 			p.API = api
 
-			botId, err := p.ensureBotExists()
+			botID, err := p.ensureBotExists()
 
-			assert.Equal(t, expectedBotId, botId)
+			assert.Equal(t, expectedBotID, botID)
 			assert.Nil(t, err)
 		})
 
@@ -165,45 +165,45 @@ func TestEnsureBotExists(t *testing.T) {
 			p := &Plugin{}
 			p.API = api
 
-			botId, err := p.ensureBotExists()
+			botID, err := p.ensureBotExists()
 
-			assert.Equal(t, "", botId)
+			assert.Equal(t, "", botID)
 			assert.NotNil(t, err)
 		})
 
 		t.Run("should return an error if unable to get bot", func(t *testing.T) {
-			botUserId := model.NewId()
+			botUserID := model.NewId()
 
 			api := setupAPI()
 			api.On("CreateBot", mock.Anything).Return(nil, &model.AppError{})
 			api.On("GetUserByUsername", "surveybot").Return(&model.User{
-				Id: botUserId,
+				Id: botUserID,
 			}, nil)
-			api.On("GetBot", botUserId, true).Return(nil, &model.AppError{})
+			api.On("GetBot", botUserID, true).Return(nil, &model.AppError{})
 			api.On("LogError", mock.Anything, "err", mock.Anything)
 			defer api.AssertExpectations(t)
 
 			p := &Plugin{}
 			p.API = api
 
-			botId, err := p.ensureBotExists()
+			botID, err := p.ensureBotExists()
 
-			assert.Equal(t, "", botId)
+			assert.Equal(t, "", botID)
 			assert.NotNil(t, err)
 		})
 	})
 
 	t.Run("if surveybot doesn't exist", func(t *testing.T) {
 		t.Run("should create the bot and return the ID", func(t *testing.T) {
-			expectedBotId := model.NewId()
+			expectedBotID := model.NewId()
 			profileImageBytes := []byte("profileImage")
 
 			api := setupAPI()
 			api.On("CreateBot", mock.Anything).Return(&model.Bot{
-				UserId: expectedBotId,
+				UserId: expectedBotID,
 			}, nil)
 			api.On("GetBundlePath").Return("", nil)
-			api.On("SetProfileImage", expectedBotId, profileImageBytes).Return(nil)
+			api.On("SetProfileImage", expectedBotID, profileImageBytes).Return(nil)
 			defer api.AssertExpectations(t)
 
 			p := &Plugin{
@@ -213,18 +213,18 @@ func TestEnsureBotExists(t *testing.T) {
 			}
 			p.API = api
 
-			botId, err := p.ensureBotExists()
+			botID, err := p.ensureBotExists()
 
-			assert.Equal(t, expectedBotId, botId)
+			assert.Equal(t, expectedBotID, botID)
 			assert.Nil(t, err)
 		})
 
 		t.Run("should log a warning if unable to set the profile picture, but still return the bot", func(t *testing.T) {
-			expectedBotId := model.NewId()
+			expectedBotID := model.NewId()
 
 			api := setupAPI()
 			api.On("CreateBot", mock.Anything).Return(&model.Bot{
-				UserId: expectedBotId,
+				UserId: expectedBotID,
 			}, nil)
 			api.On("GetBundlePath").Return("", &model.AppError{})
 			api.On("LogWarn", mock.Anything, "err", mock.Anything)
@@ -233,9 +233,9 @@ func TestEnsureBotExists(t *testing.T) {
 			p := &Plugin{}
 			p.API = api
 
-			botId, err := p.ensureBotExists()
+			botID, err := p.ensureBotExists()
 
-			assert.Equal(t, expectedBotId, botId)
+			assert.Equal(t, expectedBotID, botID)
 			assert.Nil(t, err)
 		})
 	})
@@ -243,12 +243,12 @@ func TestEnsureBotExists(t *testing.T) {
 
 func TestSetBotProfileImage(t *testing.T) {
 	t.Run("should set profile image correctly", func(t *testing.T) {
-		botUserId := model.NewId()
+		botUserID := model.NewId()
 		profileImageBytes := []byte("profile image")
 
 		api := &plugintest.API{}
 		api.On("GetBundlePath").Return("/foo/bar", nil)
-		api.On("SetProfileImage", botUserId, profileImageBytes).Return(nil)
+		api.On("SetProfileImage", botUserID, profileImageBytes).Return(nil)
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
@@ -260,16 +260,16 @@ func TestSetBotProfileImage(t *testing.T) {
 		}
 		p.API = api
 
-		assert.Nil(t, p.setBotProfileImage(botUserId))
+		assert.Nil(t, p.setBotProfileImage(botUserID))
 	})
 
 	t.Run("should return an error when SetProfileImage fails", func(t *testing.T) {
-		botUserId := model.NewId()
+		botUserID := model.NewId()
 		profileImageBytes := []byte("profile image")
 
 		api := &plugintest.API{}
 		api.On("GetBundlePath").Return("/foo/bar", nil)
-		api.On("SetProfileImage", botUserId, profileImageBytes).Return(&model.AppError{})
+		api.On("SetProfileImage", botUserID, profileImageBytes).Return(&model.AppError{})
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
@@ -281,11 +281,11 @@ func TestSetBotProfileImage(t *testing.T) {
 		}
 		p.API = api
 
-		assert.NotNil(t, p.setBotProfileImage(botUserId))
+		assert.NotNil(t, p.setBotProfileImage(botUserID))
 	})
 
 	t.Run("should return an error when readFile fails", func(t *testing.T) {
-		botUserId := model.NewId()
+		botUserID := model.NewId()
 
 		api := &plugintest.API{}
 		api.On("GetBundlePath").Return("/foo/bar", nil)
@@ -298,11 +298,11 @@ func TestSetBotProfileImage(t *testing.T) {
 		}
 		p.API = api
 
-		assert.NotNil(t, p.setBotProfileImage(botUserId))
+		assert.NotNil(t, p.setBotProfileImage(botUserID))
 	})
 
 	t.Run("should return an error when GetBundlePath fails", func(t *testing.T) {
-		botUserId := model.NewId()
+		botUserID := model.NewId()
 
 		api := &plugintest.API{}
 		api.On("GetBundlePath").Return("", &model.AppError{})
@@ -311,6 +311,6 @@ func TestSetBotProfileImage(t *testing.T) {
 		p := &Plugin{}
 		p.API = api
 
-		assert.NotNil(t, p.setBotProfileImage(botUserId))
+		assert.NotNil(t, p.setBotProfileImage(botUserID))
 	})
 }

@@ -16,7 +16,7 @@ func TestChannelHasBeenCreated(t *testing.T) {
 	t.Run("should set channel header for a Surveybot DM channel", func(t *testing.T) {
 		api := &plugintest.API{}
 		api.On("UpdateChannel", mock.MatchedBy(func(channel *model.Channel) bool {
-			return channel.Header == SURVEYBOT_DESCRIPTION
+			return channel.Header == SurveybotDescription
 		})).Return(nil, nil)
 		defer api.AssertExpectations(t)
 
