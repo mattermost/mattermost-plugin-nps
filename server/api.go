@@ -175,7 +175,6 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 		_, err := p.CreateBotDMPost(userID, p.buildFeedbackRequestPost())
 		if err != nil {
 			p.API.LogError("Failed to response feedback user")
-			w.WriteHeader(http.StatusInternalServerError)
 		}
 	}
 
