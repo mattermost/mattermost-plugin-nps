@@ -151,8 +151,8 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 
 	var score int
 	var i int64
-	var err error
-	if i, err = getScore(surveyResponse.Context["selected_option"].(string)); err != nil {
+	var errScore error
+	if i, errScore = getScore(surveyResponse.Context["selected_option"].(string)); errScore != nil {
 		p.API.LogError("Score response contains invalid score")
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -172,7 +172,11 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 
 	// Thank the user for their feedback when they first answer the survey
 	if isFirstResponse {
-		_, _ = p.CreateBotDMPost(userID, p.buildFeedbackRequestPost())
+		_, err := p.CreateBotDMPost(userID, p.buildFeedbackRequestPost())
+		if err != nil {
+			p.API.LogError("Failed to response feedback user")
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	}
 
 	// Send response to update score post
