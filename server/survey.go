@@ -102,9 +102,9 @@ func (p *Plugin) checkForNextSurvey(now time.Time) bool {
 
 	if !sent {
 		p.API.LogInfo("Not sending notification of next survey to admins since they already received one recently")
+	} else {
+		p.API.LogInfo("Sent notification of next survey to admins")
 	}
-
-	p.API.LogInfo("Sent notification of next survey to admins")
 
 	return true
 }
