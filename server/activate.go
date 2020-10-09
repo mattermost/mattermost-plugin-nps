@@ -79,7 +79,7 @@ func (p *Plugin) ensureBotExists() (string, *model.AppError) {
 	bot, createErr := p.API.CreateBot(&model.Bot{
 		Username:    "surveybot",
 		DisplayName: "Surveybot",
-		Description: SURVEYBOT_DESCRIPTION,
+		Description: SurveybotDescription,
 	})
 	if createErr != nil {
 		p.API.LogDebug("Failed to create Surveybot. Attempting to find existing one.", "err", createErr)

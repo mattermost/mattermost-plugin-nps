@@ -44,14 +44,25 @@ all: check-style test dist
 apply:
 	./build/bin/manifest apply
 
-## Runs govet and gofmt against all packages.
+## Runs golangci-lint against all packages.
 .PHONY: check-style
-check-style: webapp/.npminstall gofmt govet
+check-style: webapp/.npminstall golangci-lint
 	@echo Checking for style guide compliance
 
 ifneq ($(HAS_WEBAPP),)
 	cd webapp && npm run lint
 endif
+
+## Run golangci-lint on codebase.
+.PHONY: golangci-lint
+golangci-lint:
+	@if ! [ -x "$$(command -v golangci-lint)" ]; then \
+		echo "golangci-lint is not installed. Please see https://github.com/golangci/golangci-lint#install for installation instructions."; \
+		exit 1; \
+	fi; \
+
+	@echo Running golangci-lint
+	golangci-lint run ./...
 
 ## Runs gofmt against all packages.
 .PHONY: gofmt

@@ -9,16 +9,16 @@ import (
 )
 
 const (
-	// LOCK_KEY is used to prevent multiple instances of the plugin from scheduling surveys in parallel.
-	LOCK_KEY = "Lock"
+	// LockKey is used to prevent multiple instances of the plugin from scheduling surveys in parallel.
+	LockKey = "Lock"
 
-	// USER_LOCK_KEY is used to prevent multiple instances of the plugin from responding to a single user's requests
+	// UserLockKey is used to prevent multiple instances of the plugin from responding to a single user's requests
 	// in parallel.
-	USER_LOCK_KEY = "UserLock-%s"
+	UserLockKey = "UserLock-%s"
 
-	// LOCK_EXPIRATION is how long a lock can be held before it will be automatically released the next time that an
+	// LockExpiration is how long a lock can be held before it will be automatically released the next time that an
 	// instance of the plugin is started up.
-	LOCK_EXPIRATION = time.Hour
+	LockExpiration = time.Hour
 )
 
 var userLockPattern = regexp.MustCompile("^UserLock-.{26}$")
@@ -49,7 +49,7 @@ func (p *Plugin) clearStaleLocks(now time.Time) *model.AppError {
 		}
 
 		for _, key := range keys {
-			if key != LOCK_KEY && !userLockPattern.MatchString(key) {
+			if key != LockKey && !userLockPattern.MatchString(key) {
 				continue
 			}
 
@@ -62,7 +62,7 @@ func (p *Plugin) clearStaleLocks(now time.Time) *model.AppError {
 			var t time.Time
 			_ = json.Unmarshal(value, &t)
 
-			if now.Sub(t) >= LOCK_EXPIRATION {
+			if now.Sub(t) >= LockExpiration {
 				deleted, err := p.API.KVCompareAndDelete(key, value)
 				if err != nil {
 					return err
@@ -77,7 +77,7 @@ func (p *Plugin) clearStaleLocks(now time.Time) *model.AppError {
 			break
 		}
 
-		page += 1
+		page++
 	}
 
 	return nil

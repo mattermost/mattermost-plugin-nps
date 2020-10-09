@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	NPS_FEEDBACK = "nps_feedback"
-	NPS_SCORE    = "nps_score"
-	NPS_DISABLE  = "nps_disable"
+	NpsFeedback = "nps_feedback"
+	NpsScore    = "nps_score"
+	NpsDisable  = "nps_disable"
 )
 
 func (p *Plugin) initializeClient() error {
@@ -33,19 +33,19 @@ func (p *Plugin) initTracker() {
 }
 
 func (p *Plugin) sendScore(score int, userID string, timestamp int64) {
-	p.tracker.TrackUserEvent(NPS_SCORE, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{
+	p.tracker.TrackUserEvent(NpsScore, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{
 		"score": score,
 	}))
 }
 
 func (p *Plugin) sendFeedback(feedback string, userID string, timestamp int64) {
-	p.tracker.TrackUserEvent(NPS_FEEDBACK, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{
+	p.tracker.TrackUserEvent(NpsFeedback, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{
 		"feedback": feedback,
 	}))
 }
 
 func (p *Plugin) sendUserDisabledEvent(userID string, timestamp int64) {
-	p.tracker.TrackUserEvent(NPS_DISABLE, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{}))
+	p.tracker.TrackUserEvent(NpsDisable, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{}))
 }
 
 func (p *Plugin) getEventProperties(userID string, timestamp int64, other map[string]interface{}) map[string]interface{} {
@@ -83,11 +83,12 @@ func (p *Plugin) getEventProperties(userID string, timestamp int64, other map[st
 }
 
 func (p *Plugin) getUserRole(user *model.User) string {
-	if isSystemAdmin(user) {
+	switch {
+	case isSystemAdmin(user):
 		return "system_admin"
-	} else if p.isUserTeamAdmin(user) {
+	case p.isUserTeamAdmin(user):
 		return "team_admin"
-	} else {
+	default:
 		return "user"
 	}
 }
