@@ -76,36 +76,35 @@ func (p *Plugin) canSendDiagnostics() bool {
 func (p *Plugin) ensureBotExists() (string, *model.AppError) {
 	p.API.LogInfo("Ensuring Surveybot exists")
 
-	bot, createErr := p.API.CreateBot(&model.Bot{
-		Username:    "surveybot",
-		DisplayName: "Surveybot",
-		Description: SurveybotDescription,
-	})
-	if createErr != nil {
-		p.API.LogDebug("Failed to create Surveybot. Attempting to find existing one.", "err", createErr)
+	user, err := p.API.GetUserByUsername("surveybot")
+	if err != nil || user == nil {
+		p.API.LogDebug("Failed to find the bot, maybe does not exist, wuill try to create it", "err", err)
 
-		// Unable to create the bot, so it should already exist
-		user, err := p.API.GetUserByUsername("surveybot")
-		if err != nil || user == nil {
-			p.API.LogError("Failed to find Surveybot user", "err", err)
+		bot, createErr := p.API.CreateBot(&model.Bot{
+			Username:    "surveybot",
+			DisplayName: "Surveybot",
+			Description: SurveybotDescription,
+		})
+		if createErr != nil {
+			p.API.LogError("Failed to create the bot", "err", createErr)
 			return "", err
 		}
 
-		bot, err = p.API.GetBot(user.Id, true)
-		if err != nil {
-			p.API.LogError("Failed to find Surveybot", "err", err)
-			return "", err
-		}
-
-		p.API.LogDebug("Found Surveybot")
-	} else {
-		if err := p.setBotProfileImage(bot.UserId); err != nil {
-			p.API.LogWarn("Failed to set profile image for bot", "err", err)
+		if profileErr := p.setBotProfileImage(bot.UserId); profileErr != nil {
+			p.API.LogWarn("Failed to set profile image for bot", "err", profileErr)
 		}
 
 		p.API.LogInfo("Surveybot created")
+		return bot.UserId, nil
 	}
 
+	bot, err := p.API.GetBot(user.Id, true)
+	if err != nil {
+		p.API.LogError("Failed to find Surveybot", "err", err)
+		return "", err
+	}
+
+	p.API.LogDebug("Found Surveybot")
 	return bot.UserId, nil
 }
 

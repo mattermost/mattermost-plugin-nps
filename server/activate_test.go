@@ -30,7 +30,6 @@ func TestOnActivate(t *testing.T) {
 				EnableDiagnostics: model.NewBool(true),
 			},
 		})
-		api.On("CreateBot", mock.Anything).Return(nil, &model.AppError{})
 		api.On("GetUserByUsername", "surveybot").Return(&model.User{Id: botUserID}, nil)
 		api.On("GetBot", botUserID, true).Return(&model.Bot{UserId: botUserID}, nil)
 		api.On("GetServerVersion").Return(serverVersion)
@@ -61,7 +60,6 @@ func TestOnActivate(t *testing.T) {
 				EnableDiagnostics: model.NewBool(true),
 			},
 		})
-		api.On("CreateBot", mock.Anything).Return(nil, &model.AppError{})
 		api.On("GetUserByUsername", "surveybot").Return(&model.User{Id: botUserID}, nil)
 		api.On("GetBot", botUserID, true).Return(&model.Bot{UserId: botUserID}, nil)
 		api.On("GetServerVersion").Return(serverVersion)
@@ -137,7 +135,6 @@ func TestEnsureBotExists(t *testing.T) {
 			expectedBotID := model.NewId()
 
 			api := setupAPI()
-			api.On("CreateBot", mock.Anything).Return(nil, &model.AppError{})
 			api.On("GetUserByUsername", "surveybot").Return(&model.User{
 				Id: expectedBotID,
 			}, nil)
@@ -155,31 +152,10 @@ func TestEnsureBotExists(t *testing.T) {
 			assert.Nil(t, err)
 		})
 
-		t.Run("should return an error if unable to get user", func(t *testing.T) {
+		t.Run("should return an error if unable to get user and create the bot", func(t *testing.T) {
 			api := setupAPI()
-			api.On("CreateBot", mock.Anything).Return(nil, &model.AppError{})
 			api.On("GetUserByUsername", "surveybot").Return(nil, &model.AppError{})
-			api.On("LogError", mock.Anything, "err", mock.Anything)
-			defer api.AssertExpectations(t)
-
-			p := &Plugin{}
-			p.API = api
-
-			botID, err := p.ensureBotExists()
-
-			assert.Equal(t, "", botID)
-			assert.NotNil(t, err)
-		})
-
-		t.Run("should return an error if unable to get bot", func(t *testing.T) {
-			botUserID := model.NewId()
-
-			api := setupAPI()
 			api.On("CreateBot", mock.Anything).Return(nil, &model.AppError{})
-			api.On("GetUserByUsername", "surveybot").Return(&model.User{
-				Id: botUserID,
-			}, nil)
-			api.On("GetBot", botUserID, true).Return(nil, &model.AppError{})
 			api.On("LogError", mock.Anything, "err", mock.Anything)
 			defer api.AssertExpectations(t)
 
@@ -199,6 +175,7 @@ func TestEnsureBotExists(t *testing.T) {
 			profileImageBytes := []byte("profileImage")
 
 			api := setupAPI()
+			api.On("GetUserByUsername", "surveybot").Return(nil, &model.AppError{})
 			api.On("CreateBot", mock.Anything).Return(&model.Bot{
 				UserId: expectedBotID,
 			}, nil)
@@ -223,6 +200,7 @@ func TestEnsureBotExists(t *testing.T) {
 			expectedBotID := model.NewId()
 
 			api := setupAPI()
+			api.On("GetUserByUsername", "surveybot").Return(nil, &model.AppError{})
 			api.On("CreateBot", mock.Anything).Return(&model.Bot{
 				UserId: expectedBotID,
 			}, nil)
