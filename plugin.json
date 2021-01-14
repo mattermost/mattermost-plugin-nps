@@ -23,7 +23,7 @@
         "footer": "",
         "settings": [{
             "key": "EnableSurvey",
-            "display_name": "Enable User Satisfaction Survey",
+            "display_name": "Enable User Satisfaction Survey:",
             "type": "bool",
             "help_text": "When true, a [user satisfaction survey](!https://mattermost.com/pl/default-nps) will be sent to all users quarterly. The survey results will be used by Mattermost, Inc. to improve the quality and user experience of the product. Please refer to our [privacy policy](!https://about.mattermost.com/default-privacy-policy) for more information on the collection and use of information received through our services.",
             "default": true
