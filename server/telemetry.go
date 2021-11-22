@@ -31,19 +31,19 @@ func (p *Plugin) initTracker() {
 }
 
 func (p *Plugin) sendScore(score int, userID string, timestamp int64) {
-	p.tracker.TrackUserEvent(NpsScore, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{ // nolint: errcheck
+	_ = p.tracker.TrackUserEvent(NpsScore, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{
 		"score": score,
 	}))
 }
 
 func (p *Plugin) sendFeedback(feedback string, userID string, timestamp int64) {
-	p.tracker.TrackUserEvent(NpsFeedback, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{ // nolint: errcheck
+	_ = p.tracker.TrackUserEvent(NpsFeedback, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{
 		"feedback": feedback,
 	}))
 }
 
 func (p *Plugin) sendUserDisabledEvent(userID string, timestamp int64) {
-	p.tracker.TrackUserEvent(NpsDisable, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{})) // nolint: errcheck
+	_ = p.tracker.TrackUserEvent(NpsDisable, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{}))
 }
 
 func (p *Plugin) getEventProperties(userID string, timestamp int64, other map[string]interface{}) map[string]interface{} {
