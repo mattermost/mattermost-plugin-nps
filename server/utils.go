@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/mattermost/mattermost-server/v5/model"
+	"github.com/mattermost/mattermost-server/v6/model"
 )
 
 // getServerVersion returns the current server version with only the major and minor version set. For example, both
@@ -61,7 +61,7 @@ func (p *Plugin) CreateBotDMPost(userID string, post *model.Post) (*model.Post, 
 }
 
 func (p *Plugin) IsBotDMChannel(channel *model.Channel) bool {
-	if channel.Type != model.CHANNEL_DIRECT {
+	if channel.Type != model.ChannelTypeDirect {
 		return false
 	}
 
