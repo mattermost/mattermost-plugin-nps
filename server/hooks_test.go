@@ -26,7 +26,7 @@ func TestChannelHasBeenCreated(t *testing.T) {
 		p.SetAPI(api)
 
 		p.ChannelHasBeenCreated(nil, &model.Channel{
-			Type: model.CHANNEL_DIRECT,
+			Type: model.ChannelTypeDirect,
 			Name: fmt.Sprintf("%s__%s", botUserID, model.NewId()),
 		})
 	})
@@ -35,7 +35,7 @@ func TestChannelHasBeenCreated(t *testing.T) {
 		p := &Plugin{}
 
 		p.ChannelHasBeenCreated(nil, &model.Channel{
-			Type: model.CHANNEL_OPEN,
+			Type: model.ChannelTypeOpen,
 		})
 	})
 }
@@ -49,7 +49,7 @@ func TestMessageHasBeenPosted(t *testing.T) {
 	systemInstallDate := int64(1497898133094)
 	teamMembers := []*model.TeamMember{
 		{
-			Roles: model.TEAM_USER_ROLE_ID,
+			Roles: model.TeamUserRoleId,
 		},
 	}
 	licenseID := model.NewId()
@@ -63,7 +63,7 @@ func TestMessageHasBeenPosted(t *testing.T) {
 			},
 		})
 		api.On("GetChannel", botChannelID).Return(&model.Channel{
-			Type: model.CHANNEL_DIRECT,
+			Type: model.ChannelTypeDirect,
 			Name: fmt.Sprintf("%s__%s", botUserID, userID),
 		}, nil)
 		api.On("GetUser", userID).Return(&model.User{Id: userID}, nil)
@@ -83,7 +83,7 @@ func TestMessageHasBeenPosted(t *testing.T) {
 
 		p := &Plugin{
 			botUserID: botUserID,
-			tracker:   telemetry.NewTracker(nil, "", "", "", "", "", false, nil),
+			tracker:   telemetry.NewTracker(nil, "", "", "", "", "", false),
 		}
 		p.SetAPI(api)
 
@@ -104,7 +104,7 @@ func TestMessageHasBeenPosted(t *testing.T) {
 			},
 		})
 		api.On("GetChannel", botChannelID).Return(&model.Channel{
-			Type: model.CHANNEL_DIRECT,
+			Type: model.ChannelTypeDirect,
 			Name: fmt.Sprintf("%s__%s", botUserID, userID),
 		}, nil)
 		api.On("GetUser", userID).Return(&model.User{Id: userID}, nil)
@@ -124,7 +124,7 @@ func TestMessageHasBeenPosted(t *testing.T) {
 
 		p := &Plugin{
 			botUserID: botUserID,
-			tracker:   telemetry.NewTracker(nil, "", "", "", "", "", false, nil),
+			tracker:   telemetry.NewTracker(nil, "", "", "", "", "", false),
 		}
 		p.SetAPI(api)
 
@@ -143,7 +143,7 @@ func TestMessageHasBeenPosted(t *testing.T) {
 			},
 		})
 		api.On("GetChannel", botChannelID).Return(&model.Channel{
-			Type: model.CHANNEL_DIRECT,
+			Type: model.ChannelTypeDirect,
 			Name: fmt.Sprintf("%s__%s", botUserID, userID),
 		}, nil)
 		api.On("GetUser", userID).Return(&model.User{
@@ -153,7 +153,7 @@ func TestMessageHasBeenPosted(t *testing.T) {
 
 		p := &Plugin{
 			botUserID: botUserID,
-			tracker:   telemetry.NewTracker(nil, "", "", "", "", "", false, nil),
+			tracker:   telemetry.NewTracker(nil, "", "", "", "", "", false),
 		}
 		p.SetAPI(api)
 
@@ -171,7 +171,7 @@ func TestMessageHasBeenPosted(t *testing.T) {
 			},
 		})
 		api.On("GetChannel", botChannelID).Return(&model.Channel{
-			Type: model.CHANNEL_OPEN,
+			Type: model.ChannelTypeOpen,
 		}, nil)
 		defer api.AssertExpectations(t)
 
@@ -243,7 +243,7 @@ func TestMessageHasBeenPosted(t *testing.T) {
 		p.MessageHasBeenPosted(nil, &model.Post{
 			ChannelId: botChannelID,
 			UserId:    userID,
-			Type:      model.POST_AUTO_RESPONDER,
+			Type:      model.PostTypeAutoResponder,
 		})
 	})
 
@@ -264,7 +264,7 @@ func TestMessageHasBeenPosted(t *testing.T) {
 		p.MessageHasBeenPosted(nil, &model.Post{
 			ChannelId: botChannelID,
 			UserId:    userID,
-			Type:      model.POST_HEADER_CHANGE,
+			Type:      model.PostTypeHeaderChange,
 		})
 	})
 }

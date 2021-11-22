@@ -96,7 +96,7 @@ func TestSubmitScore(t *testing.T) {
 	systemInstallDate := int64(1497898133094)
 	teamMembers := []*model.TeamMember{
 		{
-			Roles: model.TEAM_USER_ROLE_ID,
+			Roles: model.TeamUserRoleId,
 		},
 	}
 	licenseID := model.NewId()
@@ -142,7 +142,7 @@ func TestSubmitScore(t *testing.T) {
 			now: func() time.Time {
 				return now
 			},
-			tracker: telemetry.NewTracker(nil, "", "", "", "", "", false, nil),
+			tracker: telemetry.NewTracker(nil, "", "", "", "", "", false),
 		}
 		p.SetAPI(api)
 
@@ -184,7 +184,7 @@ func TestSubmitScore(t *testing.T) {
 			now: func() time.Time {
 				return now
 			},
-			tracker: telemetry.NewTracker(nil, "", "", "", "", "", false, nil),
+			tracker: telemetry.NewTracker(nil, "", "", "", "", "", false),
 		}
 		p.SetAPI(api)
 
@@ -225,7 +225,7 @@ func TestSubmitScore(t *testing.T) {
 			now: func() time.Time {
 				return now
 			},
-			tracker: telemetry.NewTracker(nil, "", "", "", "", "", false, nil),
+			tracker: telemetry.NewTracker(nil, "", "", "", "", "", false),
 		}
 		p.SetAPI(api)
 
@@ -487,7 +487,7 @@ func TestDisableForUser(t *testing.T) {
 			now: func() time.Time {
 				return now
 			},
-			tracker: telemetry.NewTracker(nil, "", "", "", "", "", false, nil),
+			tracker: telemetry.NewTracker(nil, "", "", "", "", "", false),
 		}
 		p.SetAPI(api)
 
