@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mattermost/mattermost-server/v5/model"
+	"github.com/mattermost/mattermost-server/v6/model"
 )
 
 const (
@@ -141,7 +141,7 @@ func (p *Plugin) sendAdminNoticeEmails(admins []*model.User) {
 	subject := fmt.Sprintf(adminEmailSubject, *config.TeamSettings.SiteName, DaysUntilSurvey)
 
 	bodyProps := map[string]interface{}{
-		"PluginID":        manifest.Id,
+		"PluginID":        manifest.ID,
 		"SiteURL":         *config.ServiceSettings.SiteURL,
 		"DaysUntilSurvey": DaysUntilSurvey,
 	}
@@ -242,7 +242,7 @@ func (p *Plugin) checkForAdminNoticeDM(user *model.User) (bool, *model.AppError)
 
 func isSystemAdmin(user *model.User) bool {
 	for _, role := range strings.Fields(user.Roles) {
-		if role == model.SYSTEM_ADMIN_ROLE_ID {
+		if role == model.SystemAdminRoleId {
 			return true
 		}
 	}
@@ -271,7 +271,7 @@ func (p *Plugin) sendAdminNoticeDM(user *model.User, notice *adminNotice) *model
 
 func (p *Plugin) buildAdminNoticePost(surveyStartAt time.Time) *model.Post {
 	return &model.Post{
-		Message: fmt.Sprintf(adminDMBody, surveyStartAt.Format("January 2, 2006"), manifest.Id),
+		Message: fmt.Sprintf(adminDMBody, surveyStartAt.Format("January 2, 2006"), manifest.ID),
 		Type:    "custom_nps_admin_notice",
 	}
 }
@@ -378,9 +378,9 @@ func (p *Plugin) buildSurveyPost(user *model.User) *model.Post {
 func (p *Plugin) buildDisableAction() *model.PostAction {
 	return &model.PostAction{
 		Name: "Disable",
-		Type: model.POST_ACTION_TYPE_BUTTON,
+		Type: model.PostActionTypeButton,
 		Integration: &model.PostActionIntegration{
-			URL: fmt.Sprintf("/plugins/%s/api/v1/disable_for_user", manifest.Id),
+			URL: fmt.Sprintf("/plugins/%s/api/v1/disable_for_user", manifest.ID),
 		},
 	}
 }
@@ -403,10 +403,10 @@ func (p *Plugin) buildSurveyPostAction() *model.PostAction {
 
 	return &model.PostAction{
 		Name:    "Select an option...",
-		Type:    model.POST_ACTION_TYPE_SELECT,
+		Type:    model.PostActionTypeSelect,
 		Options: options,
 		Integration: &model.PostActionIntegration{
-			URL: fmt.Sprintf("/plugins/%s/api/v1/score", manifest.Id),
+			URL: fmt.Sprintf("/plugins/%s/api/v1/score", manifest.ID),
 		},
 	}
 }

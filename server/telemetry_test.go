@@ -3,8 +3,8 @@ package main
 import (
 	"testing"
 
-	"github.com/mattermost/mattermost-server/v5/model"
-	"github.com/mattermost/mattermost-server/v5/plugin/plugintest"
+	"github.com/mattermost/mattermost-server/v6/model"
+	"github.com/mattermost/mattermost-server/v6/plugin/plugintest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -196,7 +196,7 @@ func TestGetUserRole(t *testing.T) {
 			Name: "system admin",
 			User: &model.User{
 				Id:    userID,
-				Roles: model.SYSTEM_ADMIN_ROLE_ID + " " + model.SYSTEM_USER_ROLE_ID,
+				Roles: model.SystemAdminRoleId + " " + model.SystemUserRoleId,
 			},
 			Expected: "system_admin",
 		},
@@ -204,11 +204,11 @@ func TestGetUserRole(t *testing.T) {
 			Name: "system and team admin",
 			User: &model.User{
 				Id:    userID,
-				Roles: model.SYSTEM_ADMIN_ROLE_ID + " " + model.SYSTEM_USER_ROLE_ID,
+				Roles: model.SystemAdminRoleId + " " + model.SystemUserRoleId,
 			},
 			TeamMembers: []*model.TeamMember{
 				{
-					Roles: model.TEAM_ADMIN_ROLE_ID + " " + model.TEAM_USER_ROLE_ID,
+					Roles: model.TeamAdminRoleId + " " + model.TeamUserRoleId,
 				},
 			},
 			Expected: "system_admin",
@@ -217,14 +217,14 @@ func TestGetUserRole(t *testing.T) {
 			Name: "team admin",
 			User: &model.User{
 				Id:    userID,
-				Roles: model.SYSTEM_USER_ROLE_ID,
+				Roles: model.SystemUserRoleId,
 			},
 			TeamMembers: []*model.TeamMember{
 				{
-					Roles: model.TEAM_USER_ROLE_ID,
+					Roles: model.TeamUserRoleId,
 				},
 				{
-					Roles: model.TEAM_ADMIN_ROLE_ID + " " + model.TEAM_USER_ROLE_ID,
+					Roles: model.TeamAdminRoleId + " " + model.TeamUserRoleId,
 				},
 			},
 			Expected: "team_admin",
@@ -233,11 +233,11 @@ func TestGetUserRole(t *testing.T) {
 			Name: "regular user",
 			User: &model.User{
 				Id:    userID,
-				Roles: model.SYSTEM_USER_ROLE_ID,
+				Roles: model.SystemUserRoleId,
 			},
 			TeamMembers: []*model.TeamMember{
 				{
-					Roles: model.TEAM_USER_ROLE_ID,
+					Roles: model.TeamUserRoleId,
 				},
 			},
 			Expected: "user",
@@ -246,7 +246,7 @@ func TestGetUserRole(t *testing.T) {
 			Name: "regular user without teams",
 			User: &model.User{
 				Id:    userID,
-				Roles: model.SYSTEM_USER_ROLE_ID,
+				Roles: model.SystemUserRoleId,
 			},
 			TeamMembers: []*model.TeamMember{},
 			Expected:    "user",

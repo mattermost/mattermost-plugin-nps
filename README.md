@@ -11,7 +11,7 @@ __Requires Mattermost 5.12 or higher.__
 
 The NPS plugin is installed and enabled by default on Mattermost 5.12 or higher. If you'd like to install a custom version of the plugin, you can disable the built-in one and install your custom version alongside it.
 
-## Developing 
+## Developing
 
 This plugin contains both a server and web app portion.
 

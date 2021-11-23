@@ -3,9 +3,8 @@ package main
 import (
 	"strings"
 
-	"github.com/mattermost/mattermost-plugin-api/experimental/bot/logger"
 	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
-	"github.com/mattermost/mattermost-server/v5/model"
+	"github.com/mattermost/mattermost-server/v6/model"
 )
 
 const (
@@ -28,24 +27,23 @@ func (p *Plugin) initTracker() {
 			enableDiagnostics = *configValue
 		}
 	}
-	logger := logger.NewLogger(logger.Config{}, p.API, nil, "")
-	p.tracker = telemetry.NewTracker(p.client, p.API.GetDiagnosticId(), p.API.GetServerVersion(), manifest.Id, manifest.Version, "nps", enableDiagnostics, logger)
+	p.tracker = telemetry.NewTracker(p.client, p.API.GetDiagnosticId(), p.API.GetServerVersion(), manifest.ID, manifest.Version, "nps", enableDiagnostics)
 }
 
 func (p *Plugin) sendScore(score int, userID string, timestamp int64) {
-	p.tracker.TrackUserEvent(NpsScore, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{
+	_ = p.tracker.TrackUserEvent(NpsScore, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{
 		"score": score,
 	}))
 }
 
 func (p *Plugin) sendFeedback(feedback string, userID string, timestamp int64) {
-	p.tracker.TrackUserEvent(NpsFeedback, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{
+	_ = p.tracker.TrackUserEvent(NpsFeedback, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{
 		"feedback": feedback,
 	}))
 }
 
 func (p *Plugin) sendUserDisabledEvent(userID string, timestamp int64) {
-	p.tracker.TrackUserEvent(NpsDisable, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{}))
+	_ = p.tracker.TrackUserEvent(NpsDisable, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{}))
 }
 
 func (p *Plugin) getEventProperties(userID string, timestamp int64, other map[string]interface{}) map[string]interface{} {
@@ -106,7 +104,7 @@ func (p *Plugin) isUserTeamAdmin(user *model.User) bool {
 
 		for _, teamMember := range teamMembers {
 			for _, role := range strings.Fields(teamMember.Roles) {
-				if role == model.TEAM_ADMIN_ROLE_ID {
+				if role == model.TeamAdminRoleId {
 					return true
 				}
 			}

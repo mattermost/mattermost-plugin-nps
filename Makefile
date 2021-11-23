@@ -20,7 +20,7 @@ LDFLAGS += -X "main.BuildHash=$(BUILD_HASH)"
 LDFLAGS += -X "main.BuildHashShort=$(BUILD_HASH_SHORT)"
 GO_TEST_FLAGS ?= -race
 GO_BUILD_FLAGS ?=
-GOBUILD = $(GO) build $(GOFLAGS) -ldflags '$(LDFLAGS)'
+GOBUILD = $(GO) build -trimpath $(GOFLAGS) -ldflags '$(LDFLAGS)'
 GOTEST = $(GO) test $(GOFLAGS) -ldflags '$(LDFLAGS)'
 
 # You can include assets this directory into the bundle. This can be e.g. used to include profile pictures.
@@ -110,7 +110,9 @@ server:
 ifneq ($(HAS_SERVER),)
 	mkdir -p server/dist;
 	cd server && env GOOS=linux GOARCH=amd64 $(GOBUILD) -o dist/plugin-linux-amd64;
+	cd server && env GOOS=linux GOARCH=arm64 $(GOBUILD) -o dist/plugin-linux-arm64;
 	cd server && env GOOS=darwin GOARCH=amd64 $(GOBUILD) -o dist/plugin-darwin-amd64;
+	cd server && env GOOS=darwin GOARCH=arm64 $(GOBUILD) -o dist/plugin-darwin-arm64;
 	cd server && env GOOS=windows GOARCH=amd64 $(GOBUILD) -o dist/plugin-windows-amd64.exe;
 endif
 

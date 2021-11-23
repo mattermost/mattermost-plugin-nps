@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mattermost/mattermost-server/v5/model"
-	"github.com/mattermost/mattermost-server/v5/plugin/plugintest"
+	"github.com/mattermost/mattermost-server/v6/model"
+	"github.com/mattermost/mattermost-server/v6/plugin/plugintest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -412,7 +412,7 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 	t.Run("should send notification DM", func(t *testing.T) {
 		user := &model.User{
 			Id:    model.NewId(),
-			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
+			Roles: model.SystemUserRoleId + " " + model.SystemAdminRoleId,
 		}
 
 		api := makeAPIMock()
@@ -438,7 +438,7 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 	t.Run("should return error if failing to save that the notice was sent", func(t *testing.T) {
 		user := &model.User{
 			Id:    model.NewId(),
-			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
+			Roles: model.SystemUserRoleId + " " + model.SystemAdminRoleId,
 		}
 
 		api := makeAPIMock()
@@ -464,7 +464,7 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 	t.Run("should return error if unable to send the DM", func(t *testing.T) {
 		user := &model.User{
 			Id:    model.NewId(),
-			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
+			Roles: model.SystemUserRoleId + " " + model.SystemAdminRoleId,
 		}
 
 		api := makeAPIMock()
@@ -486,7 +486,7 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 	t.Run("should not resend notification that was already sent", func(t *testing.T) {
 		user := &model.User{
 			Id:    model.NewId(),
-			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
+			Roles: model.SystemUserRoleId + " " + model.SystemAdminRoleId,
 		}
 
 		api := makeAPIMock()
@@ -506,7 +506,7 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 	t.Run("should not resend notification if none are needed", func(t *testing.T) {
 		user := &model.User{
 			Id:    model.NewId(),
-			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
+			Roles: model.SystemUserRoleId + " " + model.SystemAdminRoleId,
 		}
 
 		api := makeAPIMock()
@@ -523,7 +523,7 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 	t.Run("should return error if unable to get pending notice", func(t *testing.T) {
 		user := &model.User{
 			Id:    model.NewId(),
-			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
+			Roles: model.SystemUserRoleId + " " + model.SystemAdminRoleId,
 		}
 
 		api := makeAPIMock()
@@ -540,7 +540,7 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 	t.Run("should not send notification to non-admin", func(t *testing.T) {
 		user := &model.User{
 			Id:    model.NewId(),
-			Roles: model.SYSTEM_USER_ROLE_ID,
+			Roles: model.SystemUserRoleId,
 		}
 
 		p := makePlugin(nil)
@@ -553,7 +553,7 @@ func TestCheckForAdminNoticeDM(t *testing.T) {
 	t.Run("should not send notification when survey is disabled", func(t *testing.T) {
 		user := &model.User{
 			Id:    model.NewId(),
-			Roles: model.SYSTEM_USER_ROLE_ID + " " + model.SYSTEM_ADMIN_ROLE_ID,
+			Roles: model.SystemUserRoleId + " " + model.SystemAdminRoleId,
 		}
 
 		p := makePlugin(nil)

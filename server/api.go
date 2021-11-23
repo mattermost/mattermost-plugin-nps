@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mattermost/mattermost-server/v5/model"
-	"github.com/mattermost/mattermost-server/v5/plugin"
+	"github.com/mattermost/mattermost-server/v6/model"
+	"github.com/mattermost/mattermost-server/v6/plugin"
 	"github.com/pkg/errors"
 )
 
@@ -184,7 +184,9 @@ func (p *Plugin) submitScore(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	_, _ = w.Write(response.ToJson())
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		p.API.LogWarn("failed to write the score message")
+	}
 }
 
 func getScore(selectedOption string) (int64, error) {
