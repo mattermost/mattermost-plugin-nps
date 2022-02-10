@@ -1,5 +1,8 @@
+import {getChannel} from 'mattermost-redux/selectors/entities/channels';
+import {getCurrentRelativeTeamUrl} from 'mattermost-redux/selectors/entities/teams';
 import {getCurrentUserId} from 'mattermost-redux/selectors/entities/users';
 
+import {navigateToChannel} from './browser_routing';
 import * as ActionTypes from './action_types';
 
 export function connected(client) {
@@ -9,6 +12,20 @@ export function connected(client) {
         if (currentUserId) {
             client.connected();
         }
+    };
+}
+
+export function userWantsToGiveFeedback(client) {
+    return (_, getState) => {
+        const currentUserId = getCurrentUserId(getState());
+        if (!currentUserId) {
+            return;
+        }
+
+        client.userWantsToGiveFeedback().then(({data}) => {
+            const channel = getChannel(getState(), data.channel_id);
+            navigateToChannel(getCurrentRelativeTeamUrl(getState()), channel.display_name);
+        });
     };
 }
 

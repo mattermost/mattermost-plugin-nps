@@ -63,5 +63,6 @@ const surveyBody = ":wave: Hey @%s! Please take a few moments to help us improve
 const surveyDropdownTitle = "How likely are you to recommend Mattermost?"
 const surveyAnsweredBody = "You selected %d out of 10."
 
-const feedbackRequestBody = "Thanks! How can we make your experience better?"
+const feedbackRequestBody = "How can we make your experience better?"
+const thanksFeedbackRequestBody = "Thanks! " + feedbackRequestBody
 const feedbackResponseBody = ":tada: Thanks for helping us make Mattermost better!"

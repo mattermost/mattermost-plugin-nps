@@ -48,6 +48,10 @@ export default class Plugin {
         }
     }
 
+    onGiveFeedbackClick = () => {
+        this.store.dispatch(Actions.userWantsToGiveFeedback(this.client));
+    }
+
     initialize(registry, store) {
         this.registry = registry;
 
@@ -63,6 +67,7 @@ export default class Plugin {
 
         // Register components
         registry.registerRootComponent(Root);
+        registry.registerUserGuideDropdownMenuAction('Give Feedback', this.onGiveFeedbackClick);
 
         window.addEventListener('resize', this.onWindowResize);
         this.onWindowResize();

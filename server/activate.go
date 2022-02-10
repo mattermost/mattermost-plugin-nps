@@ -129,7 +129,6 @@ func (p *Plugin) renameSurveyBot(user *model.User, botTemplate *model.Bot) (stri
 	}
 
 	return b.UserId, nil
-
 }
 
 func (p *Plugin) setBotProfileImage(botUserID string) *model.AppError {

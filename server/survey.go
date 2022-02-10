@@ -433,7 +433,7 @@ func (p *Plugin) buildAnsweredSurveyPost(user *model.User, score int) *model.Pos
 func (p *Plugin) buildFeedbackRequestPost() *model.Post {
 	return &model.Post{
 		Type:    "custom_nps_feedback",
-		Message: feedbackRequestBody,
+		Message: thanksFeedbackRequestBody,
 	}
 }
 

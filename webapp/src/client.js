@@ -11,6 +11,10 @@ export class Client {
         return this.doFetch(`${this.url}/connected`, {method: 'POST'});
     }
 
+    userWantsToGiveFeedback = () => {
+        return this.doFetch(`${this.url}/give_feedback`, {method: 'POST'});
+    }
+
     doFetch = async (url, options) => {
         if (!options.headers) {
             options.headers = {};
