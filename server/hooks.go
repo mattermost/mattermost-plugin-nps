@@ -6,15 +6,15 @@ import (
 )
 
 func (p *Plugin) ChannelHasBeenCreated(c *plugin.Context, channel *model.Channel) {
-	// Set the description for any DM channels opened between Surveybot and a user
+	// Set the description for any DM channels opened between Feedbackbot and a user
 	if !p.IsBotDMChannel(channel) {
 		return
 	}
 
-	channel.Header = SurveybotDescription
+	channel.Header = FeedbackbottDescription
 
 	if _, err := p.API.UpdateChannel(channel); err != nil {
-		p.API.LogWarn("Failed to set channel header for Surveybot", "err", err)
+		p.API.LogWarn("Failed to set channel header for Feedbackbot", "err", err)
 	}
 }
 
@@ -23,7 +23,7 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 		return
 	}
 
-	// Make sure that Surveybot doesn't respond to itself
+	// Make sure that Feedbackbot doesn't respond to itself
 	if post.UserId == p.botUserID {
 		return
 	}
@@ -33,10 +33,10 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 		return
 	}
 
-	// Make sure this is a post sent directly to Surveybot
+	// Make sure this is a post sent directly to Feedbackbot
 	channel, appErr := p.API.GetChannel(post.ChannelId)
 	if appErr != nil {
-		p.API.LogError("Unable to get channel for Surveybot feedback", "err", appErr)
+		p.API.LogError("Unable to get channel for Feedbackbot feedback", "err", appErr)
 		return
 	}
 
@@ -47,7 +47,7 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 	// Make sure this is not a post sent by another bot
 	user, appErr := p.API.GetUser(post.UserId)
 	if appErr != nil {
-		p.API.LogError("Unable to get sender for Surveybot feedback", "err", appErr)
+		p.API.LogError("Unable to get sender for Feedbackbot feedback", "err", appErr)
 		return
 	}
 
@@ -71,7 +71,7 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 		RootId:  rootID,
 	})
 	if appErr != nil {
-		p.API.LogError("Failed to respond to Surveybot feedback")
+		p.API.LogError("Failed to respond to Feedbackbot feedback")
 	}
 }
 
