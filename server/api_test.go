@@ -508,14 +508,14 @@ func TestDisableForUser(t *testing.T) {
 }
 
 func TestUserWantsToGiveFeedback(t *testing.T) {
-	userId := model.NewId()
+	userID := model.NewId()
 
 	t.Run("should send a message to the user on behalf of the feedbackbot", func(t *testing.T) {
 		p := Plugin{botUserID: model.NewId()}
 
 		api := &plugintest.API{}
 		createdPost := &model.Post{Id: model.NewId()}
-		api.On("GetDirectChannel", userId, p.botUserID).Return(&model.Channel{}, nil)
+		api.On("GetDirectChannel", userID, p.botUserID).Return(&model.Channel{}, nil)
 		api.On("CreatePost", mock.AnythingOfType("*model.Post")).Return(createdPost, nil)
 		defer api.AssertExpectations(t)
 
@@ -523,7 +523,7 @@ func TestUserWantsToGiveFeedback(t *testing.T) {
 
 		recorder := httptest.NewRecorder()
 		request := httptest.NewRequest(http.MethodPost, "/give_feedback", nil)
-		request.Header.Set("Mattermost-User-ID", userId)
+		request.Header.Set("Mattermost-User-ID", userID)
 
 		p.userWantsToGiveFeedback(recorder, request)
 		result := recorder.Result()
@@ -539,20 +539,19 @@ func TestUserWantsToGiveFeedback(t *testing.T) {
 		p := Plugin{botUserID: model.NewId()}
 
 		api := &plugintest.API{}
-		api.On("GetDirectChannel", userId, p.botUserID).Return(nil, &model.AppError{})
-		api.On("LogError", mock.AnythingOfType("string"), "user_id", userId, "err", mock.AnythingOfType("*model.AppError")).Return(nil, model.AppError{})
+		api.On("GetDirectChannel", userID, p.botUserID).Return(nil, &model.AppError{})
+		api.On("LogError", mock.AnythingOfType("string"), "user_id", userID, "err", mock.AnythingOfType("*model.AppError")).Return(nil, model.AppError{})
 		defer api.AssertExpectations(t)
 
 		p.SetAPI(api)
 
 		recorder := httptest.NewRecorder()
 		request := httptest.NewRequest(http.MethodPost, "/give_feedback", nil)
-		request.Header.Set("Mattermost-User-ID", userId)
+		request.Header.Set("Mattermost-User-ID", userID)
 
 		p.userWantsToGiveFeedback(recorder, request)
 		result := recorder.Result()
 
 		assert.Equal(t, http.StatusInternalServerError, result.StatusCode)
 	})
-
 }
