@@ -30,7 +30,7 @@ const (
 	// given version of Mattermost. It should contain the user's ID like "UserSurvey-abc123".
 	UserSurveyKey = "UserSurvey-%s"
 
-	FeedbackbottDescription = "Feedbackbot collects user feedback to improve Mattermost. [Learn more](https://mattermost.com/pl/default-nps)."
+	FeedbackbotDescription = "Feedbackbot collects user feedback to improve Mattermost. [Learn more](https://mattermost.com/pl/default-nps)."
 )
 
 type Plugin struct {

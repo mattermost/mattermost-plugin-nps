@@ -11,7 +11,7 @@ func (p *Plugin) ChannelHasBeenCreated(c *plugin.Context, channel *model.Channel
 		return
 	}
 
-	channel.Header = FeedbackbottDescription
+	channel.Header = FeedbackbotDescription
 
 	if _, err := p.API.UpdateChannel(channel); err != nil {
 		p.API.LogWarn("Failed to set channel header for Feedbackbot", "err", err)

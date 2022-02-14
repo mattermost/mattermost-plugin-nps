@@ -79,12 +79,12 @@ func (p *Plugin) ensureBotExists() (string, *model.AppError) {
 	botTemplate := &model.Bot{
 		Username:    "feedbackbot",
 		DisplayName: "Feedbackbot",
-		Description: FeedbackbottDescription,
+		Description: FeedbackbotDescription,
 	}
 
 	user, err := p.API.GetUserByUsername("feedbackbot")
 	if err != nil || user == nil {
-		p.API.LogDebug("Failed to find the bot, it might exists under its old name surveybot, verifying", "err", err)
+		p.API.LogDebug("Failed to find the bot, it might exist under its old name surveybot, verifying", "err", err)
 
 		user, err = p.API.GetUserByUsername("surveybot")
 		// found old surveybot, rename it.
