@@ -24,7 +24,7 @@ export function userWantsToGiveFeedback(client) {
 
         client.userWantsToGiveFeedback().then(({data}) => {
             const channel = getChannel(getState(), data.channel_id);
-            navigateToChannel(getCurrentRelativeTeamUrl(getState()), channel.display_name);
+            navigateToChannel(getCurrentRelativeTeamUrl(getState()), channel.name);
         });
     };
 }
