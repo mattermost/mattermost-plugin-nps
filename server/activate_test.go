@@ -30,7 +30,7 @@ func TestOnActivate(t *testing.T) {
 				EnableDiagnostics: model.NewBool(true),
 			},
 		})
-		api.On("GetUserByUsername", "surveybot").Return(&model.User{Id: botUserID}, nil)
+		api.On("GetUserByUsername", "feedbackbot").Return(&model.User{Id: botUserID}, nil)
 		api.On("GetBot", botUserID, true).Return(&model.Bot{UserId: botUserID}, nil)
 		api.On("GetServerVersion").Return(serverVersion)
 		api.On("KVList", 0, 100).Return([]string{}, nil)
@@ -60,7 +60,7 @@ func TestOnActivate(t *testing.T) {
 				EnableDiagnostics: model.NewBool(true),
 			},
 		})
-		api.On("GetUserByUsername", "surveybot").Return(&model.User{Id: botUserID}, nil)
+		api.On("GetUserByUsername", "feedbackbot").Return(&model.User{Id: botUserID}, nil)
 		api.On("GetBot", botUserID, true).Return(&model.Bot{UserId: botUserID}, nil)
 		api.On("GetServerVersion").Return(serverVersion)
 		api.On("KVList", 0, 100).Return([]string{}, nil)
@@ -83,7 +83,7 @@ func TestOnActivate(t *testing.T) {
 		assert.NotNil(t, p.client)
 	})
 
-	t.Run("should return an error when unable to get Surveybot", func(t *testing.T) {
+	t.Run("should return an error when unable to get Feedbackbot", func(t *testing.T) {
 		api := makeAPIMock()
 		api.On("GetConfig").Return(&model.Config{
 			LogSettings: model.LogSettings{
@@ -91,6 +91,7 @@ func TestOnActivate(t *testing.T) {
 			},
 		})
 		api.On("CreateBot", mock.Anything).Return(nil, &model.AppError{})
+		api.On("GetUserByUsername", "feedbackbot").Return(nil, &model.AppError{})
 		api.On("GetUserByUsername", "surveybot").Return(nil, &model.AppError{})
 		api.On("LogError", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 		defer api.AssertExpectations(t)
@@ -130,16 +131,41 @@ func TestEnsureBotExists(t *testing.T) {
 		return api
 	}
 
-	t.Run("if surveybot already exists", func(t *testing.T) {
+	t.Run("if feedbackbot already exists", func(t *testing.T) {
 		t.Run("should find and return the existing bot ID", func(t *testing.T) {
 			expectedBotID := model.NewId()
 
 			api := setupAPI()
+			api.On("GetUserByUsername", "feedbackbot").Return(&model.User{
+				Id: expectedBotID,
+			}, nil)
+			api.On("GetBot", expectedBotID, true).Return(&model.Bot{UserId: expectedBotID}, nil)
+			defer api.AssertExpectations(t)
+
+			p := &Plugin{}
+			p.API = api
+
+			botID, err := p.ensureBotExists()
+
+			assert.Equal(t, expectedBotID, botID)
+			assert.Nil(t, err)
+		})
+
+		t.Run("should rename surveybot to feedbackbot when found", func(t *testing.T) {
+			expectedBotID := model.NewId()
+
+			api := setupAPI()
+			api.On("GetUserByUsername", "feedbackbot").Return(nil, &model.AppError{})
 			api.On("GetUserByUsername", "surveybot").Return(&model.User{
 				Id: expectedBotID,
 			}, nil)
-			api.On("GetBot", expectedBotID, true).Return(&model.Bot{
-				UserId: expectedBotID,
+			api.On("PatchBot", expectedBotID, &model.BotPatch{
+				DisplayName: model.NewString("Feedbackbot"),
+				Username:    model.NewString("feedbackbot"),
+			}).Return(&model.Bot{
+				UserId:      expectedBotID,
+				Username:    "feedbackbot",
+				DisplayName: "Feedbackbot",
 			}, nil)
 			defer api.AssertExpectations(t)
 
@@ -154,6 +180,7 @@ func TestEnsureBotExists(t *testing.T) {
 
 		t.Run("should return an error if unable to get user and create the bot", func(t *testing.T) {
 			api := setupAPI()
+			api.On("GetUserByUsername", "feedbackbot").Return(nil, &model.AppError{})
 			api.On("GetUserByUsername", "surveybot").Return(nil, &model.AppError{})
 			api.On("CreateBot", mock.Anything).Return(nil, &model.AppError{})
 			api.On("LogError", mock.Anything, "err", mock.Anything)
@@ -169,12 +196,13 @@ func TestEnsureBotExists(t *testing.T) {
 		})
 	})
 
-	t.Run("if surveybot doesn't exist", func(t *testing.T) {
+	t.Run("if feedbackbot doesn't exist", func(t *testing.T) {
 		t.Run("should create the bot and return the ID", func(t *testing.T) {
 			expectedBotID := model.NewId()
 			profileImageBytes := []byte("profileImage")
 
 			api := setupAPI()
+			api.On("GetUserByUsername", "feedbackbot").Return(nil, &model.AppError{})
 			api.On("GetUserByUsername", "surveybot").Return(nil, &model.AppError{})
 			api.On("CreateBot", mock.Anything).Return(&model.Bot{
 				UserId: expectedBotID,
@@ -200,6 +228,7 @@ func TestEnsureBotExists(t *testing.T) {
 			expectedBotID := model.NewId()
 
 			api := setupAPI()
+			api.On("GetUserByUsername", "feedbackbot").Return(nil, &model.AppError{})
 			api.On("GetUserByUsername", "surveybot").Return(nil, &model.AppError{})
 			api.On("CreateBot", mock.Anything).Return(&model.Bot{
 				UserId: expectedBotID,

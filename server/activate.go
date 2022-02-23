@@ -74,17 +74,26 @@ func (p *Plugin) canSendDiagnostics() bool {
 }
 
 func (p *Plugin) ensureBotExists() (string, *model.AppError) {
-	p.API.LogInfo("Ensuring Surveybot exists")
+	p.API.LogInfo("Ensuring Feedbackbot exists")
 
-	user, err := p.API.GetUserByUsername("surveybot")
+	botTemplate := &model.Bot{
+		Username:    "feedbackbot",
+		DisplayName: "Feedbackbot",
+		Description: FeedbackbotDescription,
+	}
+
+	user, err := p.API.GetUserByUsername("feedbackbot")
 	if err != nil || user == nil {
-		p.API.LogDebug("Failed to find the bot, maybe does not exist, wuill try to create it", "err", err)
+		p.API.LogDebug("Failed to find the bot, it might exist under its old name surveybot, verifying", "err", err)
 
-		bot, createErr := p.API.CreateBot(&model.Bot{
-			Username:    "surveybot",
-			DisplayName: "Surveybot",
-			Description: SurveybotDescription,
-		})
+		user, err = p.API.GetUserByUsername("surveybot")
+		// found old surveybot, rename it.
+		if user != nil {
+			return p.renameSurveyBot(user, botTemplate)
+		}
+
+		p.API.LogDebug("Failed to find the bot, creating it", "err", err)
+		bot, createErr := p.API.CreateBot(botTemplate)
 		if createErr != nil {
 			p.API.LogError("Failed to create the bot", "err", createErr)
 			return "", err
@@ -94,18 +103,32 @@ func (p *Plugin) ensureBotExists() (string, *model.AppError) {
 			p.API.LogWarn("Failed to set profile image for bot", "err", profileErr)
 		}
 
-		p.API.LogInfo("Surveybot created")
+		p.API.LogInfo("feedbackbot created")
 		return bot.UserId, nil
 	}
 
 	bot, err := p.API.GetBot(user.Id, true)
 	if err != nil {
-		p.API.LogError("Failed to find Surveybot", "err", err)
+		p.API.LogError("Failed to find feedbackbot", "err", err)
 		return "", err
 	}
 
-	p.API.LogDebug("Found Surveybot")
+	p.API.LogDebug("Found feedbackbot")
 	return bot.UserId, nil
+}
+
+func (p *Plugin) renameSurveyBot(user *model.User, botTemplate *model.Bot) (string, *model.AppError) {
+	p.API.LogDebug("Found surveybot, renaming to feedbackbot")
+	b, err := p.API.PatchBot(user.Id, &model.BotPatch{
+		Username:    model.NewString(botTemplate.Username),
+		DisplayName: model.NewString(botTemplate.DisplayName),
+	})
+	if err != nil {
+		p.API.LogError("unable to rename bot", "err", err)
+		return "", err
+	}
+
+	return b.UserId, nil
 }
 
 func (p *Plugin) setBotProfileImage(botUserID string) *model.AppError {

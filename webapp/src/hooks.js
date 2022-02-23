@@ -19,7 +19,7 @@ export default class Hooks {
         // makeGetChannel passes the channel through completeDirectChannelInfo, so it has extra data that helps here
         const teammate = getUser(this.store.getState(), channel.teammate_id);
 
-        if (teammate.username !== 'surveybot') {
+        if (teammate.username !== 'feedbackbot') {
             return Promise.resolve({post});
         }
 

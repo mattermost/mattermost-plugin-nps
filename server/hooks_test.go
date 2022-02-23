@@ -13,10 +13,10 @@ import (
 func TestChannelHasBeenCreated(t *testing.T) {
 	botUserID := model.NewId()
 
-	t.Run("should set channel header for a Surveybot DM channel", func(t *testing.T) {
+	t.Run("should set channel header for a Feedbackbot DM channel", func(t *testing.T) {
 		api := &plugintest.API{}
 		api.On("UpdateChannel", mock.MatchedBy(func(channel *model.Channel) bool {
-			return channel.Header == SurveybotDescription
+			return channel.Header == FeedbackbotDescription
 		})).Return(nil, nil)
 		defer api.AssertExpectations(t)
 
@@ -163,7 +163,7 @@ func TestMessageHasBeenPosted(t *testing.T) {
 		})
 	})
 
-	t.Run("should not respond to a post outside of a Surveybot DM channel", func(t *testing.T) {
+	t.Run("should not respond to a post outside of a Feedbackbot DM channel", func(t *testing.T) {
 		api := &plugintest.API{}
 		api.On("GetConfig").Return(&model.Config{
 			LogSettings: model.LogSettings{
@@ -186,7 +186,7 @@ func TestMessageHasBeenPosted(t *testing.T) {
 		})
 	})
 
-	t.Run("should not respond to posts made by Surveybot", func(t *testing.T) {
+	t.Run("should not respond to posts made by Feedbackbot", func(t *testing.T) {
 		api := &plugintest.API{}
 		api.On("GetConfig").Return(&model.Config{
 			LogSettings: model.LogSettings{

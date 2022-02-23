@@ -506,3 +506,52 @@ func TestDisableForUser(t *testing.T) {
 		assert.IsType(t, &model.PostActionIntegrationResponse{}, mustUnmarshalJSON(body, &model.PostActionIntegrationResponse{}))
 	})
 }
+
+func TestUserWantsToGiveFeedback(t *testing.T) {
+	userID := model.NewId()
+
+	t.Run("should send a message to the user on behalf of the feedbackbot", func(t *testing.T) {
+		p := Plugin{botUserID: model.NewId()}
+
+		api := &plugintest.API{}
+		createdPost := &model.Post{Id: model.NewId()}
+		api.On("GetDirectChannel", userID, p.botUserID).Return(&model.Channel{}, nil)
+		api.On("CreatePost", mock.AnythingOfType("*model.Post")).Return(createdPost, nil)
+		defer api.AssertExpectations(t)
+
+		p.SetAPI(api)
+
+		recorder := httptest.NewRecorder()
+		request := httptest.NewRequest(http.MethodPost, "/give_feedback", nil)
+		request.Header.Set("Mattermost-User-ID", userID)
+
+		p.userWantsToGiveFeedback(recorder, request)
+		result := recorder.Result()
+		body, _ := ioutil.ReadAll(result.Body)
+
+		resultPost := mustUnmarshalJSON(body, &model.Post{})
+		assert.Equal(t, http.StatusOK, result.StatusCode)
+		assert.IsType(t, &model.Post{}, resultPost)
+		assert.Equal(t, createdPost.Id, resultPost.(*model.Post).Id)
+	})
+
+	t.Run("should fail when creating the post fails", func(t *testing.T) {
+		p := Plugin{botUserID: model.NewId()}
+
+		api := &plugintest.API{}
+		api.On("GetDirectChannel", userID, p.botUserID).Return(nil, &model.AppError{})
+		api.On("LogError", mock.AnythingOfType("string"), "user_id", userID, "err", mock.AnythingOfType("*model.AppError")).Return(nil, model.AppError{})
+		defer api.AssertExpectations(t)
+
+		p.SetAPI(api)
+
+		recorder := httptest.NewRecorder()
+		request := httptest.NewRequest(http.MethodPost, "/give_feedback", nil)
+		request.Header.Set("Mattermost-User-ID", userID)
+
+		p.userWantsToGiveFeedback(recorder, request)
+		result := recorder.Result()
+
+		assert.Equal(t, http.StatusInternalServerError, result.StatusCode)
+	})
+}

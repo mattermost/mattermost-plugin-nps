@@ -36,6 +36,11 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 			Method:  http.MethodPost,
 			Handler: requiresUserID(p.disableForUser),
 		},
+		{
+			Path:    "/api/v1/give_feedback",
+			Method:  http.MethodPost,
+			Handler: requiresUserID(p.userWantsToGiveFeedback),
+		},
 	}
 
 	routeFound := false
@@ -89,6 +94,28 @@ func (p *Plugin) userConnected(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.WriteHeader(http.StatusOK)
+}
+
+func (p *Plugin) userWantsToGiveFeedback(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("Mattermost-User-ID")
+
+	post, err := p.CreateBotDMPost(userID, &model.Post{
+		Message: feedbackRequestBody,
+		Type:    "custom_nps_feedback",
+	})
+	if err != nil {
+		p.API.LogError("Failed to send user the give feedback message", "user_id", userID, "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(post); err != nil {
+		p.API.LogWarn("unable to encode feedback message post", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }
 
