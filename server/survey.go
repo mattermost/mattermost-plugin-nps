@@ -11,21 +11,27 @@ import (
 )
 
 const (
+	// Helper to make code more readable
+	day = 24 * time.Hour
+
 	// How often "survey scheduled" emails can be sent to prevent multiple emails from being sent if multiple server
 	// upgrades occur within a short time
-	MinTimeBetweenSurveyEmails = 7 * 24 * time.Hour
+	MinTimeBetweenSurveyEmails = 7 * day
+
+	// How long until the welcome feedback occurs after a user created his account
+	TimeUntilWelcomeFeedback = 7 * day
 
 	// How long until a survey occurs after a server upgrade in days (for use in notifications)
-	DaysUntilSurvey = 21
+	DaysUntilSurvey = 45
 
 	// How long until a survey occurs after a server upgrade as a time.Duration
-	TimeUntilSurvey = 21 * 24 * time.Hour
+	TimeUntilSurvey = 45 * day
 
 	// Get admin users up to 100 at a time when sending email notifications
 	AdminUsersPerPage = 100
 
 	// The minimum time before a user can be sent a survey after completing the previous one
-	MinTimeBetweenUserSurveys = 90 * 24 * time.Hour
+	MinTimeBetweenUserSurveys = 90 * day
 )
 
 type adminNotice struct {
