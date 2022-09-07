@@ -35,6 +35,8 @@ func TestOnActivate(t *testing.T) {
 		api.On("GetServerVersion").Return(serverVersion)
 		api.On("KVList", 0, 100).Return([]string{}, nil)
 		api.On("KVGet", fmt.Sprintf(ServerUpgradeKey, serverVersion)).Return(mustMarshalJSON(&serverUpgrade{}), nil)
+		// Pretend it's in the future to avoid having to mock this whole process - the code is tested in welcome_test.go
+		api.On("KVGet", WelcomeFeedbackMigrationKey).Return(mustMarshalJSON(&welcomeFeedbackMigration{CreateAt: time.Now().AddDate(1, 0, 0)}), nil)
 		defer api.AssertExpectations(t)
 
 		p := &Plugin{
