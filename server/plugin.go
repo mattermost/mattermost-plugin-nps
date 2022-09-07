@@ -1,7 +1,7 @@
 package main
 
 import (
-	"io/ioutil"
+	"os"
 	"sync"
 	"time"
 
@@ -68,13 +68,13 @@ type Plugin struct {
 	// now provides access to time.Now in a way that is mockable for unit testing.
 	now func() time.Time
 
-	// readFile provides access to ioutil.ReadFile in a way that is mockable for unit testing.
+	// readFile provides access to os.ReadFile in a way that is mockable for unit testing.
 	readFile func(path string) ([]byte, error)
 }
 
 func NewPlugin() *Plugin {
 	return &Plugin{
 		now:      time.Now,
-		readFile: ioutil.ReadFile,
+		readFile: os.ReadFile,
 	}
 }
