@@ -31,7 +31,7 @@ const (
 	AdminUsersPerPage = 100
 
 	// The minimum time before a user can be sent a survey after completing the previous one
-	MinTimeBetweenUserSurveys = 90 * day
+	MinTimeBetweenUserSurveys = 180 * day
 )
 
 type adminNotice struct {
