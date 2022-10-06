@@ -16,7 +16,7 @@ var adminEmailBodyTemplate = template.Must(template.New("emailBody").Parse(`
                         <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse;">
                             <tr>
                                 <td style="padding: 20px 20px 10px; text-align:left;">
-                                    <img src="{{.SiteURL}}/static/images/logo-email.png" width="130px" style="opacity: 0.5" alt="">
+                                    <img src="{{.SiteURL}}/static/images/logo-email.png" width="130px" alt="">
                                 </td>
                             </tr>
                             <tr>
