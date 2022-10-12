@@ -10,19 +10,32 @@ export default class ConfirmFeedbackModal extends React.PureComponent {
         show: PropTypes.bool.isRequired,
     };
 
+    constructor(props) {
+        super(props);
+        this.state = {
+            email: '',
+        };
+    }
+
+    resetEmail = () => {
+        this.setState({email: ''});
+    }
+
     onCancel = () => {
         if (this.props.onCancel) {
             this.props.onCancel();
         }
 
+        this.resetEmail();
         this.props.hideConfirmationModal();
     }
 
     onConfirm = () => {
         if (this.props.onConfirm) {
-            this.props.onConfirm();
+            this.props.onConfirm(this.state.email || '');
         }
 
+        this.resetEmail();
         this.props.hideConfirmationModal();
     }
 
@@ -37,7 +50,20 @@ export default class ConfirmFeedbackModal extends React.PureComponent {
                     <Modal.Title>{'Send Feedback'}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    {'You are about to send feedback about Mattermost. Are you sure?'}
+                    <p>{'You are about to send feedback about Mattermost. Are you sure?'}</p>
+                    <p>{'You can optionally provide an email address if you wish to be contacted by our team.'}</p>
+                    <div className='form-group'>
+
+                        <input
+                            className='form-control'
+                            aria-label='Email'
+                            type='email'
+                            placeholder='Email (optional)'
+                            value={this.state.email}
+                            onChange={(e) => this.setState({email: e.target.value})}
+                        />
+                    </div>
+
                 </Modal.Body>
                 <Modal.Footer>
                     <button
