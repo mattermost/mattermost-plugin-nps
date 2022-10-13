@@ -65,9 +65,6 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 	// Send the feedback to Segment
 	p.sendFeedback(post.Message, emailStr, post.UserId, post.CreateAt)
 
-	// Send the feedback to Segment
-	p.sendFeedback(post.Message, post.UserId, post.CreateAt)
-
 	rootID := post.RootId
 	// if it is a new post in the channel, update response RootId
 	if rootID == "" {
