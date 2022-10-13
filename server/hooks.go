@@ -55,6 +55,16 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 		return
 	}
 
+	emailStr := ""
+	email := post.GetProp("feedback_email")
+	if email != nil {
+		if emailVal, ok := email.(string); ok && emailVal != "" {
+			emailStr = emailVal
+		}
+	}
+	// Send the feedback to Segment
+	p.sendFeedback(post.Message, emailStr, post.UserId, post.CreateAt)
+
 	// Send the feedback to Segment
 	p.sendFeedback(post.Message, post.UserId, post.CreateAt)
 

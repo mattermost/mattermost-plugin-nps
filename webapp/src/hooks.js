@@ -24,7 +24,10 @@ export default class Hooks {
         }
 
         return new Promise((resolve) => {
-            const onConfirm = () => resolve({post});
+            const onConfirm = (email) => {
+                post.props.feedback_email = email;
+                resolve({post});
+            };
             const onCancel = () => resolve({error: {message: 'Feedback not sent.'}});
 
             this.store.dispatch(Actions.showConfirmationModal(onConfirm, onCancel));
