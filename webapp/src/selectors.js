@@ -23,7 +23,7 @@ export function getWindowWidth(state) {
 }
 
 export function isSurveyPostSmall(state, isRHS) {
-    return isRHS || !useFullSurveyPost(state);
+    return isRHS || !shouldUseFullSurveyPost(state);
 }
 
 function isCompactView(state) {
@@ -60,10 +60,10 @@ export const useSurveyPost = createSelector(
         }
 
         return windowWidth >= smallWidth && windowWidth > 768;
-    }
+    },
 );
 
-export const useFullSurveyPost = createSelector(
+export const shouldUseFullSurveyPost = createSelector(
     isCompactView,
     isSidebarOpen,
     isTeamSidebarVisible,
@@ -77,5 +77,5 @@ export const useFullSurveyPost = createSelector(
         }
 
         return windowWidth >= fullWidth && windowWidth > 768;
-    }
+    },
 );

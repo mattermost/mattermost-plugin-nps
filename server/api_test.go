@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -157,7 +157,7 @@ func TestSubmitScore(t *testing.T) {
 		p.submitScore(recorder, request)
 
 		result := recorder.Result()
-		body, _ := ioutil.ReadAll(result.Body)
+		body, _ := io.ReadAll(result.Body)
 
 		assert.Equal(t, http.StatusOK, result.StatusCode)
 		assert.IsType(t, &model.PostActionIntegrationResponse{}, mustUnmarshalJSON(body, &model.PostActionIntegrationResponse{}))
@@ -199,7 +199,7 @@ func TestSubmitScore(t *testing.T) {
 		p.submitScore(recorder, request)
 
 		result := recorder.Result()
-		body, _ := ioutil.ReadAll(result.Body)
+		body, _ := io.ReadAll(result.Body)
 
 		assert.Equal(t, http.StatusOK, result.StatusCode)
 		assert.IsType(t, &model.PostActionIntegrationResponse{}, mustUnmarshalJSON(body, &model.PostActionIntegrationResponse{}))
@@ -240,7 +240,7 @@ func TestSubmitScore(t *testing.T) {
 		p.submitScore(recorder, request)
 
 		result := recorder.Result()
-		body, _ := ioutil.ReadAll(result.Body)
+		body, _ := io.ReadAll(result.Body)
 
 		assert.Equal(t, http.StatusOK, result.StatusCode)
 		assert.IsType(t, &model.PostActionIntegrationResponse{}, mustUnmarshalJSON(body, &model.PostActionIntegrationResponse{}))
@@ -500,7 +500,7 @@ func TestDisableForUser(t *testing.T) {
 		p.disableForUser(recorder, request)
 
 		result := recorder.Result()
-		body, _ := ioutil.ReadAll(result.Body)
+		body, _ := io.ReadAll(result.Body)
 
 		assert.Equal(t, http.StatusOK, result.StatusCode)
 		assert.IsType(t, &model.PostActionIntegrationResponse{}, mustUnmarshalJSON(body, &model.PostActionIntegrationResponse{}))
@@ -527,7 +527,7 @@ func TestUserWantsToGiveFeedback(t *testing.T) {
 
 		p.userWantsToGiveFeedback(recorder, request)
 		result := recorder.Result()
-		body, _ := ioutil.ReadAll(result.Body)
+		body, _ := io.ReadAll(result.Body)
 
 		resultPost := mustUnmarshalJSON(body, &model.Post{})
 		assert.Equal(t, http.StatusOK, result.StatusCode)

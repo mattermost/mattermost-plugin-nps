@@ -63,7 +63,7 @@ export default class SurveyPost extends React.PureComponent {
                     score={i}
                     selected={i === selectedScore}
                     theme={this.props.theme}
-                />
+                />,
             );
         }
 
