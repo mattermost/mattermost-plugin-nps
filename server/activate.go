@@ -47,6 +47,9 @@ func (p *Plugin) OnActivate() error {
 		go p.checkForNextSurvey(now)
 	}
 
+	// Set the WelcomeFeedbackMigration date if it does not exist.
+	p.setWelcomeFeedbackMigration(now)
+
 	return nil
 }
 

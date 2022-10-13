@@ -18,6 +18,10 @@ const (
 	// of an upcoming NPS survey.
 	LastAdminNoticeKey = "LastAdminNotice"
 
+	// WelcomeFeedbackMigrationKey is used to store when WelcomeFeedback have been actived for the first time on this server
+	// to ensure we don't send the message to older users.
+	WelcomeFeedbackMigrationKey = "WelcomeFeedbackMigration"
+
 	// ServerUpgradeKey is used to store a serverUpgrade object containing when an upgrade to a given version first
 	// occurred. It should contain the server version like "ServerUpgrade-5.10.0".
 	ServerUpgradeKey = "ServerUpgrade-%s"
@@ -29,6 +33,10 @@ const (
 	// UserSurveyKey is used to store the userSurveyState tracking a user's progress through an NPS survey on the
 	// given version of Mattermost. It should contain the user's ID like "UserSurvey-abc123".
 	UserSurveyKey = "UserSurvey-%s"
+
+	// UserSurveyStateKey is used to know if we sent the welcome feedback post to new users.
+	// Format is 'UserWelcomeFeedback-{user_id}'
+	UserWelcomeFeedbackKey = "UserWelcomeFeedback-%s"
 
 	FeedbackbotDescription = "Feedbackbot collects user feedback to improve Mattermost. [Learn more](https://mattermost.com/pl/default-nps)."
 )
@@ -48,6 +56,9 @@ type Plugin struct {
 
 	// activated is used to track whether or not OnActivate has initialized the plugin state.
 	activated bool
+
+	// welcomeFeedbackAfter is the date after which new users can get the welcome feedback post.
+	welcomeFeedbackAfter time.Time
 
 	botUserID string
 
