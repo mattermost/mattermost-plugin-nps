@@ -1,18 +1,24 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import {changeOpacity} from 'mattermost-redux/utils/theme_utils';
 
-export default class Score extends React.PureComponent {
-    static propTypes = {
-        isSmall: PropTypes.bool.isRequired,
-        score: PropTypes.number.isRequired,
-        selected: PropTypes.bool.isRequired,
-        selectScore: PropTypes.func.isRequired,
-        theme: PropTypes.object.isRequired,
+interface Props {
+    isSmall: boolean;
+    score: number;
+    selected: boolean;
+    selectScore: (score: number) => void;
+    theme: {
+        buttonBg: string;
+        buttonColor: string;
     }
+}
 
-    constructor(props) {
+interface State {
+    hovered: boolean;
+}
+
+export default class Score extends React.PureComponent<Props, State> {
+    constructor(props: Props) {
         super(props);
 
         this.state = {
@@ -33,12 +39,12 @@ export default class Score extends React.PureComponent {
     }
 
     render() {
-        const containerStyle = {...style.container};
+        const containerStyle: Record<string, string|number> = {...style.container};
         if (this.props.score !== 10 && !this.props.isSmall) {
             containerStyle.marginRight = 8;
         }
 
-        const bubbleStyle = this.props.isSmall ? {...style.bubbleSmall} : {...style.bubble};
+        const bubbleStyle: Record<string, string|number> = this.props.isSmall ? {...style.bubbleSmall} : {...style.bubble};
         if (this.props.selected) {
             bubbleStyle.backgroundColor = this.props.theme.buttonBg;
             bubbleStyle.color = this.props.theme.buttonColor;
