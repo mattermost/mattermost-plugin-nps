@@ -47,11 +47,11 @@ export default class ConfirmFeedbackModal extends React.PureComponent {
                 onHide={this.onCancel}
             >
                 <Modal.Header>
-                    <Modal.Title>{'Send Feedback'}</Modal.Title>
+                    <Modal.Title>{'Send feedback'}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     <p>{'You are about to send feedback about Mattermost. Are you sure?'}</p>
-                    <p>{'You can optionally provide an email address if you wish to be contacted by our team.'}</p>
+                    <p>{'**Optional**: If you'd like to be contacted by our team, include your your email address.'}</p>
                     <div className='form-group'>
                         <input
                             className='form-control'
