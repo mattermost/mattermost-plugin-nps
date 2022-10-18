@@ -145,6 +145,10 @@ func (p *Plugin) checkForDMs(userID string) *model.AppError {
 		p.API.LogError("Failed to check for notice of scheduled survey for user", "err", err, "user_id", userID)
 	}
 
+	if _, err := p.checkForWelcomeFeedback(user, now); err != nil {
+		p.API.LogError("Failed to check for welcome survey for user", "err", err, "user_id", userID)
+	}
+
 	if _, err := p.checkForSurveyDM(user, now); err != nil {
 		p.API.LogError("Failed to check for survey for user", "err", err, "user_id", userID)
 	}

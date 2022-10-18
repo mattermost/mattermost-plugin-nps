@@ -4,7 +4,7 @@ import {POST_NPS_SURVEY} from './constants';
 import Hooks from './hooks';
 import {id as pluginId} from './manifest';
 import reducer from './reducers';
-import {useSurveyPost} from './selectors';
+import {useSurveyPost as shouldUseSurveyPost} from './selectors';
 
 import Root from './components/root';
 import SurveyPost from './components/survey_post';
@@ -31,7 +31,7 @@ export default class Plugin {
     }
 
     registerSurveyPost = (state) => {
-        const overrideSurveyPost = useSurveyPost(state);
+        const overrideSurveyPost = shouldUseSurveyPost(state);
 
         // this.overrideSurveyPost has to be updated first since registerPostTypeComponent calls this again
 
