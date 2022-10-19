@@ -77,7 +77,7 @@ export default class ConfirmFeedbackModal extends React.PureComponent {
                         className='btn btn-primary'
                         onClick={this.onConfirm}
                     >
-                        {'Yes'}
+                        {'Confirm'}
                     </button>
                 </Modal.Footer>
             </Modal>
