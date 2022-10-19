@@ -51,7 +51,7 @@ export default class ConfirmFeedbackModal extends React.PureComponent {
                 </Modal.Header>
                 <Modal.Body>
                     <p>{'You\'re about to send feedback about Mattermost.'}</p>
-                    <p><strong>{'Optional'}</strong>{': If you\'d like to be contacted by our team, include your email address.'}</p>
+                    <p><strong>{'Optional'}</strong>{': If you\'re open to being contacted for research purposes, please include your email address.'}</p>
                     <div className='form-group'>
                         <input
                             className='form-control'
