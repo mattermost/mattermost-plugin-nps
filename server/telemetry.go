@@ -36,9 +36,10 @@ func (p *Plugin) sendScore(score int, userID string, timestamp int64) {
 	}))
 }
 
-func (p *Plugin) sendFeedback(feedback string, userID string, timestamp int64) {
+func (p *Plugin) sendFeedback(feedback string, email string, userID string, timestamp int64) {
 	_ = p.tracker.TrackUserEvent(NpsFeedback, userID, p.getEventProperties(userID, timestamp, map[string]interface{}{
 		"feedback": feedback,
+		"email":    email,
 	}))
 }
 
