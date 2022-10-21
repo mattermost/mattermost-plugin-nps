@@ -27,7 +27,7 @@ func (p *Plugin) initTracker() {
 			enableDiagnostics = *configValue
 		}
 	}
-	p.tracker = telemetry.NewTracker(p.client, p.API.GetDiagnosticId(), p.API.GetServerVersion(), manifest.ID, manifest.Version, "nps", enableDiagnostics)
+	p.tracker = telemetry.NewTracker(p.client, p.API.GetDiagnosticId(), p.API.GetServerVersion(), manifest.Id, manifest.Version, "nps", enableDiagnostics)
 }
 
 func (p *Plugin) sendScore(score int, userID string, timestamp int64) {

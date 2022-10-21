@@ -147,7 +147,7 @@ func (p *Plugin) sendAdminNoticeEmails(admins []*model.User) {
 	subject := fmt.Sprintf(adminEmailSubject, *config.TeamSettings.SiteName, DaysUntilSurvey)
 
 	bodyProps := map[string]interface{}{
-		"PluginID":        manifest.ID,
+		"PluginID":        manifest.Id,
 		"SiteURL":         *config.ServiceSettings.SiteURL,
 		"DaysUntilSurvey": DaysUntilSurvey,
 	}
@@ -277,7 +277,7 @@ func (p *Plugin) sendAdminNoticeDM(user *model.User, notice *adminNotice) *model
 
 func (p *Plugin) buildAdminNoticePost(surveyStartAt time.Time) *model.Post {
 	return &model.Post{
-		Message: fmt.Sprintf(adminDMBody, surveyStartAt.Format("January 2, 2006"), manifest.ID),
+		Message: fmt.Sprintf(adminDMBody, surveyStartAt.Format("January 2, 2006"), manifest.Id),
 		Type:    "custom_nps_admin_notice",
 	}
 }
@@ -386,7 +386,7 @@ func (p *Plugin) buildDisableAction() *model.PostAction {
 		Name: "Disable",
 		Type: model.PostActionTypeButton,
 		Integration: &model.PostActionIntegration{
-			URL: fmt.Sprintf("/plugins/%s/api/v1/disable_for_user", manifest.ID),
+			URL: fmt.Sprintf("/plugins/%s/api/v1/disable_for_user", manifest.Id),
 		},
 	}
 }
@@ -412,7 +412,7 @@ func (p *Plugin) buildSurveyPostAction() *model.PostAction {
 		Type:    model.PostActionTypeSelect,
 		Options: options,
 		Integration: &model.PostActionIntegration{
-			URL: fmt.Sprintf("/plugins/%s/api/v1/score", manifest.ID),
+			URL: fmt.Sprintf("/plugins/%s/api/v1/score", manifest.Id),
 		},
 	}
 }
