@@ -20,13 +20,6 @@ func TestCheckForNextSurvey(t *testing.T) {
 	serverVersion := "5.10.0"
 	surveyKey := fmt.Sprintf(SurveyKey, serverVersion)
 
-	makeAPIMock := func() *plugintest.API {
-		api := &plugintest.API{}
-		api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything).Maybe()
-		api.On("LogInfo", mock.Anything).Maybe()
-		return api
-	}
-
 	t.Run("should schedule survey and send admin notices", func(t *testing.T) {
 		api := makeAPIMock()
 		api.On("KVCompareAndSet", LockKey, []byte(nil), mustMarshalJSON(now())).Return(true, nil)

@@ -73,7 +73,7 @@ func TestOnConfigurationChanged(t *testing.T) {
 		},
 	}
 
-	p.OnConfigurationChange()
-
+	err := p.OnConfigurationChange()
+	require.NoError(t, err)
 	require.False(t, p.configuration.EnableSurvey)
 }

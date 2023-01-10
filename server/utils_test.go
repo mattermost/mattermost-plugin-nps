@@ -227,6 +227,7 @@ func makeAPIMock() *plugintest.API {
 
 	api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything).Maybe()
 	api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything).Maybe()
+	api.On("LogInfo", mock.Anything, mock.Anything, mock.Anything).Maybe()
 	api.On("LogError", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
 
 	return api
