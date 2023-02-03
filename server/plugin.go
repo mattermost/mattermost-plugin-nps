@@ -62,8 +62,8 @@ type Plugin struct {
 
 	botUserID string
 
-	client  telemetry.Client
-	tracker telemetry.Tracker
+	telemetryClient telemetry.Client
+	tracker         telemetry.Tracker
 
 	// now provides access to time.Now in a way that is mockable for unit testing.
 	now func() time.Time

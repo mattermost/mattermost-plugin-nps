@@ -13,10 +13,10 @@ const (
 	NpsDisable  = "nps_disable"
 )
 
-func (p *Plugin) initializeClient() error {
+func (p *Plugin) initializeTelemetryClient() error {
 	client, err := telemetry.NewRudderClient()
 
-	p.client = client
+	p.telemetryClient = client
 	return err
 }
 
@@ -27,7 +27,7 @@ func (p *Plugin) initTracker() {
 			enableDiagnostics = *configValue
 		}
 	}
-	p.tracker = telemetry.NewTracker(p.client, p.API.GetDiagnosticId(), p.API.GetServerVersion(), manifest.Id, manifest.Version, "nps", enableDiagnostics)
+	p.tracker = telemetry.NewTracker(p.telemetryClient, p.API.GetDiagnosticId(), p.API.GetServerVersion(), manifest.Id, manifest.Version, "nps", enableDiagnostics)
 }
 
 func (p *Plugin) sendScore(score int, userID string, timestamp int64) {

@@ -24,7 +24,7 @@ func (p *Plugin) OnActivate() error {
 
 	p.serverVersion = getServerVersion(p.API.GetServerVersion())
 
-	if err := p.initializeClient(); err != nil {
+	if err := p.initializeTelemetryClient(); err != nil {
 		p.API.LogError("Failed to initialize Rudder client", "err", err.Error())
 		return err
 	}
@@ -54,8 +54,8 @@ func (p *Plugin) OnActivate() error {
 }
 
 func (p *Plugin) OnDeactivate() error {
-	if p.client != nil {
-		err := p.client.Close()
+	if p.telemetryClient != nil {
+		err := p.telemetryClient.Close()
 		if err != nil {
 			p.API.LogWarn("OnDeactivate: Failed to close telemetryClient", "error", err.Error())
 		}

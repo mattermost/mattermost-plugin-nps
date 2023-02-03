@@ -52,7 +52,7 @@ func TestOnActivate(t *testing.T) {
 
 		assert.Equal(t, botUserID, p.botUserID)
 		assert.Equal(t, serverVersion, p.serverVersion)
-		assert.NotNil(t, p.client)
+		assert.NotNil(t, p.telemetryClient)
 	})
 
 	t.Run("should return an error if unable to check for an upgrade", func(t *testing.T) {
@@ -82,7 +82,7 @@ func TestOnActivate(t *testing.T) {
 
 		assert.Equal(t, botUserID, p.botUserID)
 		assert.Equal(t, serverVersion, p.serverVersion)
-		assert.NotNil(t, p.client)
+		assert.NotNil(t, p.telemetryClient)
 	})
 
 	t.Run("should return an error when unable to get Feedbackbot", func(t *testing.T) {
