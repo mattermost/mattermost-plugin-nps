@@ -30,7 +30,7 @@ Before running `make deploy`, make sure you have set the following values in you
 
 ### How it works - overview
 
-The plugin send a survey after 45 days when a new (as in never seen before - including downgrade) version of Mattermost is detected. It also send a message to user 7 days after their registration to get early feedbacks, and allow users to give a feedback at any time they desire.
+The plugin sends a survey after 45 days when a new (as in never seen before - including downgrade) version of Mattermost is detected. It also sends a message to user 7 days after their registration to get early feedback, and allow users to give feedback at any time they desire.
 
 Survey and feedbacks are sent to rudder as `Track` events.
 
