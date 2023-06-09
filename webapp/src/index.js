@@ -67,7 +67,7 @@ export default class Plugin {
 
         // Register components
         registry.registerRootComponent(Root);
-        registry.registerUserGuideDropdownMenuAction('Give Feedback', this.onGiveFeedbackClick);
+        registry.registerUserGuideDropdownMenuAction('Give feedback', this.onGiveFeedbackClick);
 
         window.addEventListener('resize', this.onWindowResize);
         this.onWindowResize();
