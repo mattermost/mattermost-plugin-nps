@@ -4,9 +4,9 @@
     "description": "This plugin sends quarterly user satisfaction surveys to gather feedback and help improve Mattermost.",
     "homepage_url": "https://github.com/mattermost/mattermost-plugin-nps",
     "support_url": "https://github.com/mattermost/mattermost-plugin-nps/issues",
-    "release_notes_url": "https://github.com/mattermost/mattermost-plugin-nps/releases/tag/v1.3.2",
+    "release_notes_url": "https://github.com/mattermost/mattermost-plugin-nps/releases/tag/v1.3.3",
     "icon_path": "assets/icon.svg",
-    "version": "1.3.2",
+    "version": "1.3.3",
     "min_server_version": "5.37.0",
     "server": {
         "executables": {
