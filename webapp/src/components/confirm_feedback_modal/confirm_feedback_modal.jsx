@@ -32,7 +32,7 @@ export default class ConfirmFeedbackModal extends React.PureComponent {
 
     onConfirm = () => {
         if (this.props.onConfirm) {
-            this.props.onConfirm();
+            this.props.onConfirm(this.state.email);
         }
 
         this.resetEmail();
