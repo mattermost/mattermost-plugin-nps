@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
-	"github.com/mattermost/mattermost-server/v6/model"
-	"github.com/mattermost/mattermost-server/v6/plugin/plugintest"
+	"github.com/mattermost/mattermost/server/public/model"
+	"github.com/mattermost/mattermost/server/public/plugin/plugintest"
+	"github.com/mattermost/mattermost/server/public/pluginapi/experimental/telemetry"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -83,7 +83,7 @@ func TestMessageHasBeenPosted(t *testing.T) {
 
 		p := &Plugin{
 			botUserID: botUserID,
-			tracker:   telemetry.NewTracker(nil, "", "", "", "", "", false),
+			tracker:   telemetry.NewTracker(nil, "", "", "", "", "", telemetry.TrackerConfig{}, nil),
 		}
 		p.SetAPI(api)
 
@@ -124,7 +124,7 @@ func TestMessageHasBeenPosted(t *testing.T) {
 
 		p := &Plugin{
 			botUserID: botUserID,
-			tracker:   telemetry.NewTracker(nil, "", "", "", "", "", false),
+			tracker:   telemetry.NewTracker(nil, "", "", "", "", "", telemetry.TrackerConfig{}, nil),
 		}
 		p.SetAPI(api)
 
@@ -153,7 +153,7 @@ func TestMessageHasBeenPosted(t *testing.T) {
 
 		p := &Plugin{
 			botUserID: botUserID,
-			tracker:   telemetry.NewTracker(nil, "", "", "", "", "", false),
+			tracker:   telemetry.NewTracker(nil, "", "", "", "", "", telemetry.TrackerConfig{}, nil),
 		}
 		p.SetAPI(api)
 
