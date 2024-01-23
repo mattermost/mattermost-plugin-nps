@@ -2,7 +2,7 @@ import * as Actions from './actions';
 import {Client} from './client';
 import {POST_NPS_SURVEY} from './constants';
 import Hooks from './hooks';
-import {id as pluginId} from './manifest';
+import manifest from './manifest';
 import reducer from './reducers';
 import {useSurveyPost as shouldUseSurveyPost} from './selectors';
 
@@ -86,4 +86,4 @@ export default class Plugin {
     }
 }
 
-window.registerPlugin(pluginId, new Plugin());
+window.registerPlugin(manifest.id, new Plugin());
