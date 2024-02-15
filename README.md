@@ -13,20 +13,7 @@ The NPS plugin is installed and enabled by default on Mattermost 5.12 or higher.
 
 ## Developing
 
-This plugin contains both a server and web app portion.
-
-Use `make dist` to build distributions of the plugin that you can upload to a Mattermost server.
-
-Use `make check-style` to check the style.
-
-Use `make deploy` to deploy the plugin to your local server. 
-Before running `make deploy`, make sure you have set the following values in your mattermost-server configuration (`config/config.json`):
-
-```
-.ServiceSettings.EnableLocalMode: true
-.PluginSettings.EnableUploads: true
-.LogSettings.EnableDiagnostics: true
-```
+This plugin contains both a server and web app portion. Read our documentation about the [Developer Workflow](https://developers.mattermost.com/integrate/plugins/developer-workflow/) and [Developer Setup](https://developers.mattermost.com/integrate/plugins/developer-setup/) for more information about developing and extending plugins.
 
 ### How it works - overview
 

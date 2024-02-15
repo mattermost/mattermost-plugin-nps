@@ -5,8 +5,8 @@
     "build:watch": "webpack --mode=production --watch",
     "debug": "webpack --mode=none",
     "debug:watch": "webpack --mode=development --watch",
-    "lint": "eslint --ignore-pattern node_modules --ignore-pattern dist --ext .js --ext .jsx --ext .tsx --ext .ts . --quiet --cache",
-    "fix": "eslint --ignore-pattern node_modules --ignore-pattern dist --ext .js --ext .jsx --ext .tsx --ext .ts . --quiet --fix --cache",
+    "lint": "eslint --ignore-pattern node_modules --ignore-pattern dist --ext .js --ext .jsx --ext tsx --ext ts . --quiet --cache",
+    "fix": "eslint --ignore-pattern node_modules --ignore-pattern dist --ext .js --ext .jsx --ext tsx --ext ts . --quiet --fix --cache",
     "test": "jest --forceExit --detectOpenHandles --verbose",
     "test:watch": "jest --watch",
     "test-ci": "jest --forceExit --detectOpenHandles --maxWorkers=2",
@@ -55,8 +55,7 @@
     "jest": "26.1.0",
     "jest-canvas-mock": "2.2.0",
     "jest-junit": "11.0.1",
-    "mattermost-webapp": "github:mattermost/mattermost-webapp#23f5f93d9f12a7e2b5623e5cee6814366abd9a0f",
-    "node-sass": "4.14.1",
+    "sass": "1.60.0",
     "sass-loader": "9.0.2",
     "style-loader": "1.2.1",
     "webpack": "4.43.0",
@@ -108,7 +107,7 @@
       "jest-canvas-mock"
     ],
     "setupFilesAfterEnv": [
-      "<rootDir>/tests/setup.tsx"
+      "<rootDir>/tests/setup.js"
     ],
     "testURL": "http://localhost:8065"
   }

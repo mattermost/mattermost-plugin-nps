@@ -3,8 +3,9 @@ package main
 import (
 	"strings"
 
-	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
-	"github.com/mattermost/mattermost-server/v6/model"
+	"github.com/mattermost/mattermost/server/public/model"
+	"github.com/mattermost/mattermost/server/public/pluginapi/experimental/bot/logger"
+	"github.com/mattermost/mattermost/server/public/pluginapi/experimental/telemetry"
 )
 
 const (
@@ -21,13 +22,7 @@ func (p *Plugin) initializeTelemetryClient() error {
 }
 
 func (p *Plugin) initTracker() {
-	enableDiagnostics := false
-	if config := p.API.GetConfig(); config != nil {
-		if configValue := config.LogSettings.EnableDiagnostics; configValue != nil {
-			enableDiagnostics = *configValue
-		}
-	}
-	p.tracker = telemetry.NewTracker(p.telemetryClient, p.API.GetDiagnosticId(), p.API.GetServerVersion(), manifest.Id, manifest.Version, "nps", enableDiagnostics)
+	p.tracker = telemetry.NewTracker(p.telemetryClient, p.API.GetDiagnosticId(), p.API.GetServerVersion(), manifest.Id, manifest.Version, "nps", telemetry.NewTrackerConfig(p.API.GetConfig()), logger.New(p.API))
 }
 
 func (p *Plugin) sendScore(score int, userID string, timestamp int64) {
