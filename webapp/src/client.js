@@ -1,10 +1,10 @@
 import {Client4} from 'mattermost-redux/client';
 
-import {id as pluginId} from './manifest';
+import manifest from './manifest';
 
 export class Client {
     constructor() {
-        this.url = `/plugins/${pluginId}/api/v1`;
+        this.url = `/plugins/${manifest.id}/api/v1`;
     }
 
     connected = () => {

@@ -4,14 +4,14 @@ import {Preferences} from 'mattermost-redux/constants';
 import {get} from 'mattermost-redux/selectors/entities/preferences';
 import {getMyTeams} from 'mattermost-redux/selectors/entities/teams';
 
-import {id as pluginId} from './manifest';
+import manifest from './manifest';
 
 const MESSAGE_DISPLAY = 'message_display';
 const MESSAGE_DISPLAY_DEFAULT = 'clean';
 const MESSAGE_DISPLAY_COMPACT = 'compact';
 
 function getPluginState(state) {
-    return state['plugins-' + pluginId] || {};
+    return state['plugins-' + manifest.id] || {};
 }
 
 export function getConfirmationModalState(state) {
