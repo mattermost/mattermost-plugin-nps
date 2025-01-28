@@ -11,3 +11,6 @@ server/manifest.go
 
 # Jetbrains
 .idea/
+
+# notice
+.notice-work
